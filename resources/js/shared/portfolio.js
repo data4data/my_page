@@ -53,10 +53,6 @@ export function normalizePortfolio(payload) {
             fields.forEach((field) => {
                 item[field] = asTranslation(item[field]);
             });
-
-            if (collection === 'expertise_items') {
-                item.gear_size = Number(item.gear_size) || 120;
-            }
         });
     });
 

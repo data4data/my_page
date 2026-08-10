@@ -31,7 +31,7 @@ defineEmits(['move', 'remove']);
                 <AppButton variant="icon" aria-label="Move down" @click="$emit('move', collection, index, 1)">
                     <ChevronDown :size="16" />
                 </AppButton>
-                <AppButton variant="icon" aria-label="Remove" @click="$emit('remove', collection, index)">
+                <AppButton variant="icon-danger" aria-label="Remove" @click="$emit('remove', collection, index)">
                     <Trash2 :size="16" />
                 </AppButton>
             </div>

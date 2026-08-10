@@ -5,11 +5,10 @@ Laravel + Vue + Tailwind project for a bilingual digital visit card. The public 
 ## Features
 
 - Public portfolio page in English and Dutch.
-- Admin page for editing bilingual content.
-- Ordered expertise, metrics, process steps, and projects.
-- Reusable `SkillGear` component for expertise/technology gears.
-- Gear size can be changed per expertise item in admin.
-- Seeded default OA content.
+- Password-protected admin editor for the bilingual content, split into one tab per section (Profile, Experience, Expertise, Process, Projects, Inquiries), built on a small reusable component layer (buttons, inputs, selects) styled once and used everywhere.
+- Ordered expertise, metrics, process steps, and projects, each with per-language fields edited side by side.
+- Public "For developers" connect form — submissions show up read-only in an Inquiries admin tab.
+- Seeded default OA content, restorable from the admin editor at any time.
 - Ready to extend later for company or multi-person profiles.
 
 ## Requirements
@@ -17,76 +16,62 @@ Laravel + Vue + Tailwind project for a bilingual digital visit card. The public 
 - PHP 8.3+
 - Composer
 - Node.js + npm
-- MySQL database named `portfolio`
+- A database — SQLite works out of the box (a `database/database.sqlite` file is already in the repo); MySQL is also supported if you'd rather use that.
 
 ## Setup
 
-Install PHP dependencies:
+Install PHP and frontend dependencies:
 
 ```bash
 composer install
-```
-
-Install frontend dependencies:
-
-```bash
 npm install
 ```
 
-Create the environment file if it does not exist:
+Create the environment file and generate the app key:
 
 ```bash
 cp .env.example .env
-```
-
-Generate the application key:
-
-```bash
 php artisan key:generate
 ```
 
-Update `.env` with your local database credentials:
+By default `.env.example` is set up for MySQL. For SQLite (simplest for local dev), set instead:
 
 ```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=portfolio
-DB_USERNAME=your_mysql_user
-DB_PASSWORD=your_mysql_password
+DB_CONNECTION=sqlite
+DB_DATABASE=/absolute/path/to/database/database.sqlite
 ```
 
-Run migrations and seed the default OA content:
+Set the admin login credentials before seeding (used to create the one admin account):
+
+```env
+ADMIN_EMAIL=you@example.com
+ADMIN_PASSWORD=choose-a-real-password
+```
+
+Run migrations and seed the default OA content plus the admin user:
 
 ```bash
 php artisan migrate --seed
 ```
 
-## Run Locally
+## Run locally
 
-Start Laravel:
-
-```bash
-php artisan serve
-```
-
-Start Vite in a second terminal:
+One command starts the server, queue worker, log tailer, and Vite together:
 
 ```bash
-npm run dev
+composer run dev
 ```
 
-Open the public page:
+Or run the pieces separately:
 
-```text
-http://127.0.0.1:8000
+```bash
+php artisan serve   # backend
+npm run dev          # frontend (Vite)
 ```
 
-Open the admin page:
-
-```text
-http://127.0.0.1:8000/admin
-```
+- Public page: `http://127.0.0.1:8000`
+- Admin editor: `http://127.0.0.1:8000/control-room-ao` — not linked anywhere on the public page; sign in with the `ADMIN_EMAIL` / `ADMIN_PASSWORD` above at `/login`.
+- Developer connect form: `http://127.0.0.1:8000/hi-developer`
 
 ## Build
 
@@ -96,20 +81,12 @@ Create production frontend assets:
 npm run build
 ```
 
-## Content Model
+## Tests
 
-Expertise items power both the expertise cards and the gear visual. In admin you can:
-
-- add or remove expertise items
-- move items up or down
-- edit English and Dutch text
-- set an icon key
-- set a category
-- set gear size from `82` to `180`
-- hide or show an item
-
-The reusable gear component lives at:
-
-```text
-resources/js/components/SkillGear.vue
+```bash
+composer test
 ```
+
+## Content model
+
+`PortfolioProfile` is the root record, with `metrics`, `expertiseItems`, `projects`, and `processSteps` as ordered child collections. Free-text fields are stored as `{en, nl}` JSON and edited in the admin UI as a single label with EN/NL inputs side by side — nothing here requires touching code. See `CLAUDE.md` for the full architecture notes.
