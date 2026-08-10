@@ -1,4 +1,9 @@
 import { createApp } from 'vue';
+import PrimeVue from 'primevue/config';
 import App from './App.vue';
+import router from './router';
 
-createApp(App).mount('#app');
+createApp(App)
+    .use(router)
+    .use(PrimeVue, { unstyled: true })
+    .mount('#app');
