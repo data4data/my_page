@@ -1,5 +1,6 @@
 <script setup>
 import { ChevronDown, ChevronUp, Trash2 } from '@lucide/vue';
+import AppButton from './ui/AppButton.vue';
 
 defineProps({
     title: {
@@ -24,15 +25,15 @@ defineEmits(['move', 'remove']);
         <header>
             <strong>{{ title }} {{ index + 1 }}</strong>
             <div>
-                <button type="button" aria-label="Move up" @click="$emit('move', collection, index, -1)">
+                <AppButton variant="icon" aria-label="Move up" @click="$emit('move', collection, index, -1)">
                     <ChevronUp :size="16" />
-                </button>
-                <button type="button" aria-label="Move down" @click="$emit('move', collection, index, 1)">
+                </AppButton>
+                <AppButton variant="icon" aria-label="Move down" @click="$emit('move', collection, index, 1)">
                     <ChevronDown :size="16" />
-                </button>
-                <button type="button" aria-label="Remove" @click="$emit('remove', collection, index)">
+                </AppButton>
+                <AppButton variant="icon" aria-label="Remove" @click="$emit('remove', collection, index)">
                     <Trash2 :size="16" />
-                </button>
+                </AppButton>
             </div>
         </header>
         <div class="admin-grid">
