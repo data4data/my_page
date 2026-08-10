@@ -12,7 +12,6 @@ class ExpertiseItem extends Model
         'description',
         'icon',
         'category',
-        'gear_size',
         'sort_order',
         'is_visible',
     ];
@@ -20,7 +19,6 @@ class ExpertiseItem extends Model
     protected $casts = [
         'title' => 'array',
         'description' => 'array',
-        'gear_size' => 'integer',
         'is_visible' => 'boolean',
     ];
 }
