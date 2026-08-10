@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@plugin 'tailwindcss-primeui';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -819,23 +820,23 @@
     }
 
     .contact-copy {
-        @apply self-center max-w-sm;
+        @apply self-center max-w-xl;
         margin-left: clamp(52px, 14%, 88px);
     }
 
     .contact-headline {
-        @apply text-2xl font-semibold leading-snug text-white;
-        letter-spacing: 0.01em;
+        @apply font-serif text-4xl font-normal leading-tight text-white;
+        letter-spacing: 0;
     }
 
     .contact-headline span {
-        @apply block;
+        @apply block whitespace-nowrap;
     }
 
     .contact-headline span:nth-child(2) {
         @apply font-bold text-[#2f75a8];
         margin-left: clamp(68px, 9vw, 96px);
-        font-size: 1.28em;
+        font-size: 1.18em;
         line-height: 1.05;
     }
 
@@ -844,7 +845,7 @@
     }
 
     .contact-cta-link {
-        @apply mt-5 inline-flex items-center gap-3 text-xs font-semibold uppercase text-[#c5a064];
+        @apply mt-6 inline-flex items-center gap-3 text-xs font-semibold uppercase text-[#c5a064];
         letter-spacing: 0.18em;
         margin-left: clamp(68px, 9vw, 96px);
     }
@@ -865,6 +866,11 @@
         @apply rounded-lg border border-[#d8cbbb] bg-white/70 px-4 py-3 text-sm leading-6 text-[#516070];
     }
 
+    .admin-note-label {
+        @apply mr-1 text-xs font-semibold uppercase text-[#516070];
+        letter-spacing: 0.08em;
+    }
+
     .admin-grid {
         @apply grid gap-4 md:grid-cols-2;
     }
@@ -878,24 +884,74 @@
         letter-spacing: 0.08em;
     }
 
-    .admin-grid input,
-    .admin-grid textarea,
-    .admin-grid select {
+    /*
+     * Form field look, shared by the AppInput / AppTextarea / AppSelect / AppCheckbox
+     * wrapper components (resources/js/components/ui/) — change the field style once,
+     * here, instead of per-tag CSS scattered across every admin form.
+     */
+    .field-input,
+    .field-textarea {
         @apply w-full rounded-md border border-[#d8cbbb] bg-white px-3 py-3 text-sm normal-case text-[#071523] outline-none transition focus:border-[#2f75a8] focus:ring-4 focus:ring-[#2f75a8]/10;
         letter-spacing: 0;
     }
 
-    .admin-grid textarea {
+    .field-textarea {
         resize: vertical;
     }
 
-    .admin-grid .check {
-        @apply flex flex-row items-center gap-3 self-end rounded-md border border-[#d8cbbb] bg-white px-3 py-3 text-sm normal-case text-[#071523];
+    .field-select-root {
+        @apply relative flex w-full cursor-pointer items-center justify-between rounded-md border border-[#d8cbbb] bg-white px-3 py-3 text-sm normal-case text-[#071523] outline-none transition focus-within:border-[#2f75a8] focus-within:ring-4 focus-within:ring-[#2f75a8]/10;
         letter-spacing: 0;
     }
 
-    .admin-grid .check input {
-        @apply w-4;
+    .field-select-label {
+        @apply flex-1 truncate;
+    }
+
+    .field-select-dropdown {
+        @apply ml-2 grid place-items-center text-[#516070];
+    }
+
+    .field-select-overlay {
+        @apply z-50 mt-1 overflow-hidden rounded-md border border-[#d8cbbb] bg-white shadow-[0_18px_45px_rgba(7,21,35,0.15)];
+    }
+
+    .field-select-list {
+        @apply max-h-60 overflow-y-auto py-1 text-sm normal-case;
+    }
+
+    .field-select-option {
+        @apply cursor-pointer px-3 py-2 transition hover:bg-[#f4efe7];
+    }
+
+    .field-checkbox-root {
+        @apply flex cursor-pointer flex-row items-center gap-3 self-end rounded-md border border-[#d8cbbb] bg-white px-3 py-3 text-sm normal-case text-[#071523];
+        letter-spacing: 0;
+    }
+
+    .field-checkbox-input {
+        @apply sr-only;
+    }
+
+    .field-checkbox-box {
+        @apply grid h-4 w-4 flex-none place-items-center rounded border border-[#516070] transition;
+    }
+
+    /*
+     * data-p-checked lands on PrimeVue Checkbox's own root (the "contents"
+     * div directly inside .field-checkbox-root), not on .field-checkbox-root
+     * itself — the selector has to reach through it, not match on it.
+     */
+    .field-checkbox-root [data-p-checked='true'] .field-checkbox-box {
+        @apply border-[#071523] bg-[#071523];
+    }
+
+    .field-checkbox-icon {
+        @apply h-3 w-3 text-white;
+    }
+
+    .icon-button {
+        @apply grid h-9 w-9 place-items-center rounded-full border border-[#d8cbbb] bg-white transition hover:bg-[#071523] hover:text-white;
     }
 
     .editable-card {
@@ -915,8 +971,18 @@
         @apply flex gap-2;
     }
 
-    .editable-card > header button {
-        @apply grid h-9 w-9 place-items-center rounded-full border border-[#d8cbbb] bg-white transition hover:bg-[#071523] hover:text-white;
+    .connect-overlay {
+        @apply fixed inset-0 z-50 flex items-center justify-center bg-[#071523]/60 px-5 py-10 backdrop-blur-sm;
+    }
+
+    .connect-modal {
+        @apply relative w-full max-w-md rounded-lg border border-[#d8cbbb] bg-[#f4efe7] p-6 text-[#071523] shadow-[0_30px_90px_rgba(7,21,35,0.35)] md:p-8;
+        max-height: calc(100vh - 5rem);
+        overflow-y: auto;
+    }
+
+    .connect-close {
+        @apply absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full border border-[#d8cbbb] bg-white transition hover:bg-[#071523] hover:text-white;
     }
 }
 
@@ -1047,6 +1113,14 @@
     .contact-copy {
         margin-left: 0;
         max-width: 280px;
+    }
+
+    .contact-headline {
+        font-size: 30px;
+    }
+
+    .contact-headline span {
+        white-space: normal;
     }
 
     .gear-system {
