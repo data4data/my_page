@@ -14,7 +14,15 @@ class PortfolioController extends Controller
 {
     public function app(): View
     {
-        return view('app');
+        // Soft lookup (not activeProfile()'s firstOrFail) so every page —
+        // including /login — still renders on a fresh install before
+        // anything has been seeded, just with a generic title.
+        $profile = PortfolioProfile::query()->where('is_active', true)->first();
+
+        $role = $profile ? ($profile->role['en'] ?? $profile->role['nl'] ?? '') : '';
+        $title = $profile ? trim($profile->initials.($role ? " | {$role}" : '')) : 'Digital Visit Card';
+
+        return view('app', ['siteTitle' => $title]);
     }
 
     public function show(): JsonResponse
@@ -71,7 +79,6 @@ class PortfolioController extends Controller
                 'description',
                 'icon',
                 'category',
-                'gear_size',
                 'is_visible',
             ]);
 
