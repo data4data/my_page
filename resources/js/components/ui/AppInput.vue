@@ -6,6 +6,10 @@ defineProps({
         type: String,
         default: 'text',
     },
+    invalid: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 // Support v-model.number (used for the numeric gear-size field) the same
@@ -20,5 +24,5 @@ const [model, modifiers] = defineModel({
 </script>
 
 <template>
-    <InputText v-model="model" :type="type" class="field-input" unstyled />
+    <InputText v-model="model" :type="type" :class="['field-input', { 'field-input-invalid': invalid }]" unstyled />
 </template>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { X } from '@lucide/vue';
 import AppInput from './ui/AppInput.vue';
@@ -22,11 +22,29 @@ const submitting = ref(false);
 const submitted = ref(false);
 const error = ref('');
 
+// True after the first submit attempt, so red borders only show once the
+// visitor has tried to send the form.
+const attemptedSubmit = ref(false);
+
+const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
+const nameInvalid = computed(() => attemptedSubmit.value && !form.value.name.trim());
+const emailInvalid = computed(() => attemptedSubmit.value && !isValidEmail(form.value.email));
+const messageInvalid = computed(() => attemptedSubmit.value && !form.value.message.trim());
+const hasClientErrors = computed(() => nameInvalid.value || emailInvalid.value || messageInvalid.value);
+
 const close = () => router.push({ name: 'public' });
 
 const submit = async () => {
-    submitting.value = true;
+    attemptedSubmit.value = true;
     error.value = '';
+
+    if (hasClientErrors.value) {
+        error.value = copy('connectValidation');
+        return;
+    }
+
+    submitting.value = true;
 
     const response = await fetch('/hi-developer', {
         method: 'POST',
@@ -71,14 +89,14 @@ const submit = async () => {
 
                 <p v-if="error" class="mt-4 rounded-md border border-[#c0503f]/40 bg-[#fdecea] px-4 py-3 text-sm text-[#8a2f22]">{{ error }}</p>
 
-                <form class="mt-6 space-y-4" @submit.prevent="submit">
+                <form class="mt-6 space-y-4" novalidate @submit.prevent="submit">
                     <label class="block text-sm font-semibold">
-                        {{ copy('connectName') }}
-                        <AppInput v-model="form.name" class="mt-2" required />
+                        {{ copy('connectName') }}<span class="field-required-mark">*</span>
+                        <AppInput v-model="form.name" class="mt-2" :invalid="nameInvalid" />
                     </label>
                     <label class="block text-sm font-semibold">
-                        {{ copy('connectEmail') }}
-                        <AppInput v-model="form.email" type="email" class="mt-2" required />
+                        {{ copy('connectEmail') }}<span class="field-required-mark">*</span>
+                        <AppInput v-model="form.email" type="email" class="mt-2" :invalid="emailInvalid" />
                     </label>
                     <label class="block text-sm font-semibold">
                         {{ copy('connectCompany') }}
@@ -93,8 +111,8 @@ const submit = async () => {
                         <AppInput v-model="form.linkedin_url" type="url" class="mt-2" />
                     </label>
                     <label class="block text-sm font-semibold">
-                        {{ copy('connectMessage') }}
-                        <AppTextarea v-model="form.message" rows="4" class="mt-2" required />
+                        {{ copy('connectMessage') }}<span class="field-required-mark">*</span>
+                        <AppTextarea v-model="form.message" rows="4" class="mt-2" :invalid="messageInvalid" />
                     </label>
 
                     <AppButton variant="primary" type="submit" class="w-full justify-center" :disabled="submitting">

@@ -10,7 +10,7 @@ import Button from 'primevue/button';
 const props = defineProps({
     variant: {
         type: String,
-        default: 'primary', // primary | secondary | menu | lang | link | icon
+        default: 'primary', // primary | secondary | menu | menu-gold | lang | link | icon | icon-danger
     },
     as: {
         type: String,
@@ -20,20 +20,26 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    size: {
+        type: String,
+        default: 'md', // md | sm — 'sm' trims padding/shadow for tight bars (e.g. the admin header)
+    },
 });
 
 const variantClass = {
     primary: 'dark-button',
     secondary: 'light-button',
     menu: 'menu-button',
+    'menu-gold': 'menu-button menu-button-gold',
     lang: 'lang-button',
     link: 'text-link',
     icon: 'icon-button',
+    'icon-danger': 'icon-button-danger',
 };
 
 const rootClass = computed(() => [
     variantClass[props.variant] ?? variantClass.primary,
-    { active: props.active },
+    { active: props.active, 'btn-compact': props.size === 'sm' },
 ]);
 </script>
 

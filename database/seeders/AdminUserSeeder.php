@@ -23,7 +23,7 @@ class AdminUserSeeder extends Seeder
         $password = env('ADMIN_PASSWORD', 'password');
 
         $user = User::firstOrNew(['email' => $email]);
-        $user->name = $user->name ?: 'OA';
+        $user->name = $user->name ?: 'Admin';
         $user->password = Hash::make($password);
         $user->save();
 

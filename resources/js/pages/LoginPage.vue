@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import AppInput from '../components/ui/AppInput.vue';
 import AppButton from '../components/ui/AppButton.vue';
 import AppCheckbox from '../components/ui/AppCheckbox.vue';
@@ -10,6 +10,15 @@ const password = ref('');
 const remember = ref(false);
 const error = ref('');
 const submitting = ref(false);
+const initials = ref('');
+
+onMounted(async () => {
+    // Public endpoint — just enough to show the real site initials instead
+    // of a hardcoded name, so this page isn't tied to one specific project.
+    const response = await fetch('/portfolio');
+    const body = await response.json().catch(() => null);
+    initials.value = body?.profile?.initials ?? '';
+});
 
 const submit = async () => {
     submitting.value = true;
@@ -46,7 +55,7 @@ const submit = async () => {
 <template>
     <main class="min-h-screen bg-[#f4efe7] text-[#071523]">
         <div class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-10">
-            <a href="/" class="text-3xl font-semibold tracking-normal">OA</a>
+            <a href="/" class="text-3xl font-semibold tracking-normal">{{ initials }}</a>
             <p class="eyebrow mt-6">Admin</p>
             <h1 class="mt-3 font-serif text-3xl leading-tight">Sign in to edit the site</h1>
 

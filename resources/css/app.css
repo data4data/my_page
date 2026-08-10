@@ -48,13 +48,35 @@
         letter-spacing: 0.12em;
     }
 
+    /* Trimmed padding/shadow for tight bars (e.g. the admin header). */
+    .dark-button.btn-compact,
+    .light-button.btn-compact {
+        @apply px-4 py-2.5 shadow-none;
+    }
+
+    /* Floating "Add ..." button in the admin list tabs, always reachable
+       without scrolling. Shadow restated after .btn-compact's shadow-none
+       (same specificity, later wins) — a floating button still needs it. */
+    .fab-add {
+        @apply fixed bottom-6 right-6 z-40 shadow-[0_18px_45px_rgba(7,21,35,0.35)];
+    }
+
+    .fab-add.btn-compact {
+        @apply shadow-[0_18px_45px_rgba(7,21,35,0.35)];
+    }
+
     .light-button {
         @apply rounded-full border border-[#d8cbbb] bg-white/70 px-5 py-3 text-sm font-semibold text-[#071523] hover:bg-white;
     }
 
     .menu-button {
-        @apply rounded-full border border-white/60 bg-white/25 px-5 py-3 text-xs font-semibold uppercase text-white backdrop-blur-md hover:bg-white/35;
+        @apply rounded-full border border-white/60 bg-white/25 px-5 py-3 text-xs font-semibold uppercase text-[#071523] backdrop-blur-md hover:bg-white/35;
         letter-spacing: 0.12em;
+    }
+
+    /* .menu-button, transparent at rest with gold text ("Get in touch"). */
+    .menu-button-gold {
+        @apply border-white/30 bg-transparent font-semibold text-[#c5a064] hover:border-white/60 hover:bg-white/35 hover:text-[#071523];
     }
 
     .lang-button {
@@ -122,6 +144,22 @@
     .site-nav a {
         position: relative;
         padding: 12px 0;
+        transition: color 150ms ease;
+    }
+
+    .site-nav a.active {
+        color: #2f75a8;
+    }
+
+    .site-nav a.active::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 6px;
+        height: 2px;
+        border-radius: 999px;
+        background: #2f75a8;
     }
 
     .site-actions {
@@ -152,7 +190,7 @@
         --hero-frame-left: max(0px, calc((100vw - 1400px) / 2));
         --hero-copy-left: clamp(76px, 8vw, 150px);
         position: relative;
-        min-height: clamp(690px, 39vw, 860px);
+        min-height: clamp(780px, 44vw, 900px);
         padding: 112px 20px 0;
         overflow: hidden;
         background:
@@ -167,7 +205,7 @@
 
     .hero-photo {
         @apply absolute inset-0 h-full w-full;
-        object-fit: fill;
+        object-fit: cover;
         object-position: center top;
         filter: saturate(0.98) contrast(1.02);
     }
@@ -348,16 +386,11 @@
     }
 
     .hero-stats {
-        position: absolute;
-        z-index: 12;
-        left: calc(var(--hero-frame-left) + var(--hero-copy-left));
-        bottom: clamp(30px, 3.2vw, 58px);
         display: grid;
         grid-template-columns: repeat(4, 138px);
         width: max-content;
-        max-width: calc(100vw - var(--hero-frame-left) - var(--hero-copy-left) - 32px);
-        margin-top: 0;
-        pointer-events: none;
+        max-width: 100%;
+        margin-top: 30px; /* same gap as .hero-summary -> .hero-actions above */
     }
 
     .hero-stats .metric {
@@ -373,13 +406,6 @@
         padding-left: 0;
     }
 
-    .hero-scroll {
-        position: relative;
-        z-index: 10;
-        justify-self: end;
-        align-self: center;
-    }
-
     .headline-blue {
         color: #2f75a8;
     }
@@ -388,6 +414,10 @@
         color: #ad8650;
     }
 
+    /* Fixed across the whole page. Hidden below a minimum viewport height
+       (see the max-height media query further down) since short/wide
+       screens (e.g. a 1024x600 Nest Hub) don't have room for it without
+       overlapping content. */
     .social-rail {
         @apply fixed z-30 hidden flex-col items-center gap-5 text-[#071523] lg:flex;
         top: calc(112px + clamp(18px, 3vh, 38px));
@@ -416,12 +446,6 @@
 
     .social-rail a {
         @apply grid h-9 w-9 place-items-center rounded-full transition hover:bg-white/70;
-    }
-
-    .vertical-label {
-        @apply relative pr-7 text-xs font-semibold uppercase text-white;
-        writing-mode: vertical-rl;
-        letter-spacing: 0.18em;
     }
 
     .metric {
@@ -609,85 +633,6 @@
         background: #071523;
     }
 
-    .gear-system {
-        @apply relative mx-auto flex min-h-[430px] w-full max-w-[560px] flex-wrap items-center justify-center overflow-visible rounded-lg p-8;
-        background:
-            radial-gradient(circle at 50% 50%, rgba(255,255,255,0.86), transparent 18%),
-            radial-gradient(circle at 50% 50%, rgba(47,117,168,0.07), transparent 62%);
-    }
-
-    .gear-reference {
-        @apply absolute inset-0 opacity-75;
-        background-image: url('../images/gears_image.png');
-        background-repeat: no-repeat;
-        background-size: contain;
-        background-position: center;
-        filter: saturate(0.92) contrast(0.98) drop-shadow(0 24px 34px rgba(92,72,49,0.16));
-    }
-
-    .core-center {
-        @apply absolute grid place-items-center rounded-full border border-[#cdbb9d] bg-[#f8f4ed]/90 text-center shadow-[0_18px_45px_rgba(92,72,49,0.16)] backdrop-blur-sm;
-    }
-
-    .core-center {
-        @apply left-1/2 top-1/2 z-20 h-32 w-32 -translate-x-1/2 -translate-y-1/2 px-4 text-xs font-bold uppercase;
-    }
-
-    .skill-gear {
-        @apply relative grid place-items-center;
-        width: var(--gear-size);
-        height: var(--gear-size);
-        margin: -5px;
-        isolation: isolate;
-    }
-
-    .gear-shape {
-        @apply absolute inset-0 h-full w-full drop-shadow-[0_16px_24px_rgba(92,72,49,0.18)];
-        animation: gear-spin 32s linear infinite;
-        animation-direction: normal;
-        transform-origin: center;
-    }
-
-    .skill-gear:nth-child(2n) .gear-shape {
-        animation-direction: reverse;
-    }
-
-    .gear-shape path {
-        fill: #eadfce;
-        stroke: #cdbb9d;
-        stroke-width: 1.4;
-    }
-
-    .gear-shape circle:first-of-type {
-        fill: rgba(248,244,237,0.94);
-        stroke: #cdbb9d;
-        stroke-width: 1.2;
-    }
-
-    .gear-shape circle:last-of-type {
-        fill: rgba(255,255,255,0.78);
-        stroke: rgba(47,117,168,0.28);
-        stroke-width: 1.2;
-    }
-
-    .gear-content {
-        @apply relative z-10 grid max-w-[72%] place-items-center text-center text-[#071523];
-    }
-
-    .gear-content strong {
-        @apply mt-1 text-[10px] font-bold uppercase leading-tight;
-    }
-
-    .gear-content span {
-        @apply mt-0.5 max-w-full truncate text-[9px] text-[#516070];
-    }
-
-    @keyframes gear-spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
     .section-head {
         @apply mb-5 flex items-center justify-between gap-4;
     }
@@ -805,7 +750,7 @@
     .contact-band {
         @apply relative grid min-h-[300px] overflow-hidden bg-[#071523] p-10 text-white;
         background-image:
-            linear-gradient(90deg, rgba(7,21,35,0.58) 0%, rgba(7,21,35,0.38) 44%, rgba(7,21,35,0.04) 100%),
+            linear-gradient(90deg, rgba(7,21,35,0.78) 0%, rgba(7,21,35,0.55) 44%, rgba(7,21,35,0.12) 100%),
             url('../images/contact-still-life.png');
         background-size: cover;
         background-position: center;
@@ -835,35 +780,37 @@
 
     .contact-headline span:nth-child(2) {
         @apply font-bold text-[#2f75a8];
-        margin-left: clamp(68px, 9vw, 96px);
+        margin-left: clamp(24px, 5vw, 56px);
         font-size: 1.18em;
         line-height: 1.05;
     }
 
     .contact-headline span:nth-child(3) {
-        margin-left: clamp(68px, 9vw, 96px);
+        margin-left: clamp(130px, 16vw, 197px);
     }
 
+    /* Sizing/position only — .menu-button-gold (via AppButton) supplies
+       the pill shape and colors. */
     .contact-cta-link {
-        @apply mt-6 inline-flex items-center gap-3 text-xs font-semibold uppercase text-[#c5a064];
-        letter-spacing: 0.18em;
-        margin-left: clamp(68px, 9vw, 96px);
+        @apply mt-6 px-7 py-4 text-2xl uppercase;
+        margin-left: clamp(24px, 5vw, 56px);
+        letter-spacing: 0.08em;
     }
 
     .admin-tab {
-        @apply rounded-full px-4 py-2 text-[#516070] transition hover:bg-white/70 hover:text-[#071523];
+        @apply rounded-full px-4 py-2 text-[#516070] transition hover:bg-[#2f75a8]/10 hover:text-[#2f75a8];
     }
 
     .admin-tab.active {
-        @apply bg-[#071523] text-white;
+        @apply bg-[#2f75a8] text-white;
     }
 
     .admin-panel {
-        @apply rounded-lg border border-[#d8cbbb] bg-white/55 p-5 shadow-[0_24px_80px_rgba(44,34,24,0.08)] md:p-7;
+        @apply rounded-lg border border-[#d8cbbb] border-t-2 border-t-[#2f75a8] bg-white/55 p-5 shadow-[0_24px_80px_rgba(44,34,24,0.08)] md:p-7;
     }
 
     .admin-note {
-        @apply rounded-lg border border-[#d8cbbb] bg-white/70 px-4 py-3 text-sm leading-6 text-[#516070];
+        @apply rounded-lg border border-[#bcd3e3] bg-[#eef4f8] px-4 py-3 text-sm leading-6 text-[#294a5f];
     }
 
     .admin-note-label {
@@ -884,11 +831,7 @@
         letter-spacing: 0.08em;
     }
 
-    /*
-     * Form field look, shared by the AppInput / AppTextarea / AppSelect / AppCheckbox
-     * wrapper components (resources/js/components/ui/) — change the field style once,
-     * here, instead of per-tag CSS scattered across every admin form.
-     */
+    /* Shared field look for AppInput/AppTextarea/AppSelect/AppCheckbox (resources/js/components/ui/) — change it once, here. */
     .field-input,
     .field-textarea {
         @apply w-full rounded-md border border-[#d8cbbb] bg-white px-3 py-3 text-sm normal-case text-[#071523] outline-none transition focus:border-[#2f75a8] focus:ring-4 focus:ring-[#2f75a8]/10;
@@ -897,6 +840,16 @@
 
     .field-textarea {
         resize: vertical;
+    }
+
+    /* Shown after a failed submit on a required-but-empty field, instead of the browser's native validation UI. */
+    .field-input-invalid,
+    .field-textarea-invalid {
+        @apply border-[#c0503f] focus:border-[#c0503f] focus:ring-[#c0503f]/10;
+    }
+
+    .field-required-mark {
+        @apply text-[#c0503f];
     }
 
     .field-select-root {
@@ -924,9 +877,69 @@
         @apply cursor-pointer px-3 py-2 transition hover:bg-[#f4efe7];
     }
 
-    .field-checkbox-root {
-        @apply flex cursor-pointer flex-row items-center gap-3 self-end rounded-md border border-[#d8cbbb] bg-white px-3 py-3 text-sm normal-case text-[#071523];
+    /* Search box shown at the top of a filterable select's dropdown (AppIconSelect). */
+    .field-select-filter-header {
+        @apply border-b border-[#d8cbbb] p-2;
+    }
+
+    .field-select-filter-field {
+        @apply relative;
+    }
+
+    .field-select-filter-icon {
+        display: none;
+    }
+
+    .field-select-icon-value,
+    .field-select-icon-option {
+        @apply flex items-center gap-2 capitalize;
+    }
+
+    /* AppTranslatedField: one label over a row of EN/NL InputGroups, so a
+       bilingual value reads and edits as a single record. */
+    .field-group-label {
+        @apply block text-xs font-semibold uppercase text-[#516070];
+        letter-spacing: 0.08em;
+    }
+
+    .field-group-row {
+        @apply mt-2 flex flex-wrap gap-3;
+    }
+
+    .field-group-unit {
+        @apply flex flex-1 items-stretch;
+        min-width: 220px;
+    }
+
+    .field-group-addon {
+        @apply flex flex-none items-center gap-1.5 rounded-l-md border border-r-0 border-[#d8cbbb] bg-white px-3 text-xs font-semibold uppercase text-[#2f75a8];
+        letter-spacing: 0.08em;
+    }
+
+    .field-group-field {
+        @apply w-full rounded-r-md border border-[#d8cbbb] bg-white px-3 py-3 text-sm normal-case text-[#071523] outline-none transition focus:z-10 focus:border-[#2f75a8] focus:ring-4 focus:ring-[#2f75a8]/10;
         letter-spacing: 0;
+    }
+
+    textarea.field-group-field {
+        resize: vertical;
+    }
+
+    .field-checkbox-root {
+        @apply inline-flex w-fit cursor-pointer flex-row items-center gap-2 self-center text-sm normal-case text-[#071523];
+        letter-spacing: 0;
+    }
+
+    /*
+     * .admin-grid label { display: grid; ... } (below) targets the plain
+     * "Text<Input/>" label pattern used elsewhere in admin forms, but its
+     * (class + type) specificity beats .field-checkbox-root's (class-only)
+     * specificity — since AppCheckbox's root is also a <label> sitting
+     * inside .admin-grid, that rule was silently stacking the checkbox
+     * above its text. Restate the row layout here with higher specificity.
+     */
+    .admin-grid label.field-checkbox-root {
+        @apply flex flex-row items-center gap-2;
     }
 
     .field-checkbox-input {
@@ -937,11 +950,8 @@
         @apply grid h-4 w-4 flex-none place-items-center rounded border border-[#516070] transition;
     }
 
-    /*
-     * data-p-checked lands on PrimeVue Checkbox's own root (the "contents"
-     * div directly inside .field-checkbox-root), not on .field-checkbox-root
-     * itself — the selector has to reach through it, not match on it.
-     */
+    /* data-p-checked lands on Checkbox's own root (the "contents" div inside
+       .field-checkbox-root), not on .field-checkbox-root itself. */
     .field-checkbox-root [data-p-checked='true'] .field-checkbox-box {
         @apply border-[#071523] bg-[#071523];
     }
@@ -951,11 +961,17 @@
     }
 
     .icon-button {
-        @apply grid h-9 w-9 place-items-center rounded-full border border-[#d8cbbb] bg-white transition hover:bg-[#071523] hover:text-white;
+        @apply grid h-9 w-9 place-items-center rounded-full border border-[#d8cbbb] bg-white text-[#2f75a8] transition hover:border-[#2f75a8] hover:bg-[#2f75a8] hover:text-white;
+    }
+
+    /* Delete is a distinct, less-reversible action — black instead of the
+       blue used for reorder, so it doesn't read as "just another move button". */
+    .icon-button-danger {
+        @apply grid h-9 w-9 place-items-center rounded-full border border-[#d8cbbb] bg-white text-[#071523] transition hover:border-[#071523] hover:bg-[#071523] hover:text-white;
     }
 
     .editable-card {
-        @apply rounded-lg border border-[#d8cbbb] bg-[#f8f4ed]/70 p-4;
+        @apply rounded-lg border border-[#d8cbbb] border-l-2 border-l-[#071523] bg-[#f8f4ed]/70 p-4;
     }
 
     .editable-card > header {
@@ -983,6 +999,13 @@
 
     .connect-close {
         @apply absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full border border-[#d8cbbb] bg-white transition hover:bg-[#071523] hover:text-white;
+    }
+}
+
+/* See the .social-rail rule above for why it's hidden here. */
+@media (max-height: 700px) {
+    .social-rail {
+        display: none;
     }
 }
 
@@ -1033,17 +1056,9 @@
     }
 
     .hero-stats {
-        position: relative;
-        left: auto;
-        bottom: auto;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         width: min(100%, 440px);
-        margin-top: 42px;
-        pointer-events: auto;
-    }
-
-    .hero-scroll {
-        display: none;
+        margin-top: 30px;
     }
 
     .expertise-carousel {
@@ -1121,22 +1136,5 @@
 
     .contact-headline span {
         white-space: normal;
-    }
-
-    .gear-system {
-        max-width: 320px;
-        min-height: 320px;
-        padding: 18px;
-        overflow: visible;
-    }
-
-    .skill-gear {
-        width: min(var(--gear-size), 112px);
-        height: min(var(--gear-size), 112px);
-    }
-
-    .core-center {
-        width: 104px;
-        height: 104px;
     }
 }

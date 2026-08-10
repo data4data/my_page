@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ArrowRight, ChevronLeft, ChevronRight } from '@lucide/vue';
 import AppButton from '../components/ui/AppButton.vue';
@@ -25,6 +25,10 @@ const {
 const headerScrolled = ref(false);
 const expertiseCarousel = ref(null);
 const expertiseIndex = ref(0);
+const activeSection = ref('');
+// Document order (top to bottom), for the scan in updateActiveSection below.
+const sectionIdsInDomOrder = ['expertise', 'about', 'work', 'contact'];
+let sectionElements = [];
 
 const inputs = computed(() => processSteps.value.filter((item) => item.group === 'input'));
 const core = computed(() => processSteps.value.filter((item) => item.group === 'core'));
@@ -46,14 +50,38 @@ const updateHeaderState = () => {
     headerScrolled.value = window.scrollY > 8;
 };
 
-onMounted(() => {
-    fetchPortfolio();
+// Highlights whichever section's top edge most recently crossed the
+// reference line. A plain scan rather than IntersectionObserver, since
+// overlapping/short sections can fire entries out of order there.
+const updateActiveSection = () => {
+    const referenceY = window.innerHeight * 0.35;
+    let current = '';
+
+    for (const section of sectionElements) {
+        if (section.getBoundingClientRect().top <= referenceY) {
+            current = section.id;
+        }
+    }
+
+    activeSection.value = current;
+};
+
+onMounted(async () => {
+    await fetchPortfolio();
     updateHeaderState();
     window.addEventListener('scroll', updateHeaderState, { passive: true });
+
+    await nextTick();
+    sectionElements = sectionIdsInDomOrder
+        .map((id) => document.getElementById(id))
+        .filter(Boolean);
+    updateActiveSection();
+    window.addEventListener('scroll', updateActiveSection, { passive: true });
 });
 
 onBeforeUnmount(() => {
     window.removeEventListener('scroll', updateHeaderState);
+    window.removeEventListener('scroll', updateActiveSection);
 });
 
 const scrollExpertise = (direction) => {
@@ -83,16 +111,16 @@ const scrollExpertise = (direction) => {
             <div class="site-header-inner">
                 <a href="#" class="site-logo">{{ profile.initials }}</a>
                 <nav class="site-nav">
-                    <a href="#work">{{ copy('work') }}</a>
-                    <a href="#about">{{ copy('about') }}</a>
-                    <a href="#expertise">{{ copy('expertise') }}</a>
-                    <a href="#contact">{{ copy('contact') }}</a>
+                    <a href="#work" :class="{ active: activeSection === 'work' }">{{ copy('work') }}</a>
+                    <a href="#about" :class="{ active: activeSection === 'about' }">{{ copy('about') }}</a>
+                    <a href="#expertise" :class="{ active: activeSection === 'expertise' }">{{ copy('expertise') }}</a>
+                    <a href="#contact" :class="{ active: activeSection === 'contact' }">{{ copy('contact') }}</a>
                 </nav>
                 <div class="site-actions">
                     <AppButton variant="lang" :active="lang === 'en'" @click="setLang('en')">EN</AppButton>
                     <AppButton variant="lang" :active="lang === 'nl'" @click="setLang('nl')">NL</AppButton>
                     <AppButton variant="menu" as="router-link" :to="{ name: 'hi-developer' }">
-                        {{ copy('forDevelopers') }}
+                        {{ copy('forDevelopers') }} <ArrowRight :size="15" />
                     </AppButton>
                 </div>
             </div>
@@ -123,17 +151,13 @@ const scrollExpertise = (direction) => {
                         <AppButton variant="primary" as="a" :href="profile.primary_cta_url">{{ t(profile.primary_cta_label) }} <ArrowRight :size="17" /></AppButton>
                         <AppButton variant="link" as="a" :href="profile.secondary_cta_url">{{ t(profile.secondary_cta_label) }} <ArrowRight :size="17" /></AppButton>
                     </div>
-                </div>
 
-                <aside class="hero-scroll">
-                    <div class="vertical-label">{{ copy('scroll') }}</div>
-                </aside>
-            </div>
-
-            <div class="hero-stats">
-                <div v-for="metric in metrics" :key="t(metric.label)" class="metric">
-                    <strong>{{ metric.value }}</strong>
-                    <span>{{ t(metric.label) }}</span>
+                    <div class="hero-stats">
+                        <div v-for="metric in metrics" :key="t(metric.label)" class="metric">
+                            <strong>{{ metric.value }}</strong>
+                            <span>{{ t(metric.label) }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -236,7 +260,7 @@ const scrollExpertise = (direction) => {
                     <h2 class="contact-headline">
                         <span v-for="line in copy('contactHeadlineLines')" :key="line">{{ line }}</span>
                     </h2>
-                    <a class="contact-cta-link" href="mailto:hello@example.com">{{ copy('getInTouch') }} <ArrowRight :size="17" /></a>
+                    <AppButton variant="menu-gold" class="contact-cta-link" as="a" href="mailto:hello@example.com">{{ copy('getInTouch') }} <ArrowRight :size="22" /></AppButton>
                 </div>
             </div>
         </section>
