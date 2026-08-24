@@ -1,0 +1,30 @@
+/* Imported by app.css. Part of the split described there. */
+
+@layer components {
+    .connect-overlay {
+        @apply fixed inset-0 flex items-center justify-center bg-ink/60 px-5 py-10 backdrop-blur-sm;
+        z-index: var(--z-overlay);
+    }
+
+    .connect-modal {
+        @apply relative w-full max-w-md rounded-lg border border-sand bg-cream p-6 text-ink shadow-[0_30px_90px_rgba(7,21,35,0.35)] md:p-8;
+        max-height: calc(100vh - 5rem);
+        overflow-y: auto;
+    }
+
+    /* Task editor: more fields than the connect form, so it gets more room.
+       Same single-class specificity as .connect-modal's max-w-md, and defined
+       after it, so this width wins. */
+    .connect-modal-wide {
+        @apply max-w-2xl;
+    }
+
+    /* Confirm dialog: one short question, so narrower than the connect form. */
+    .connect-modal-narrow {
+        @apply max-w-sm;
+    }
+
+    .connect-close {
+        @apply absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full border border-sand bg-white transition hover:bg-ink hover:text-white;
+    }
+}

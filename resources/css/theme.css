@@ -1,0 +1,60 @@
+/* Imported by app.css. Part of the split described there. */
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+
+    /* Breakpoints. sm/md/lg keep Tailwind's defaults (they're used throughout);
+       xl/2xl are retargeted at the two sizes this layout actually reacts to —
+       1440 is where content moves into the gutters, 1800 is where the column
+       itself steps up. Neither variant was in use before this. */
+    --breakpoint-xl: 90rem;
+    --breakpoint-2xl: 112.5rem;
+
+    /* Core palette — the site's recurring brand colors. */
+    --color-ink: #071523;
+    --color-ink-hover: #10283f;
+    --color-accent: #2f75a8;
+    --color-accent-hover: #255f8a;
+    --color-accent-soft: #eaf1f7;
+    --color-sand: #d8cbbb;
+    --color-sand-light: #cfbfaa;
+    --color-tan: #e2d7c8;
+    --color-graphite: #516070;
+    --color-charcoal: #263746;
+    --color-taupe: #7b6d5f;
+    --color-muted: #8f8478;
+    --color-cream: #f4efe7;
+    --color-parchment: #f8f4ed;
+    --color-ivory: #fbf8f2;
+    --color-brass: #a5773e;
+    --color-gold: #c5a064;
+    --color-gold-dark: #ad8650;
+    --color-bronze: #b89054;
+    --color-bronze-text: #8c6b3d;
+    --color-steel: #9b9b9b;
+
+    /* Status colors — border/bg/text triplets for toasts, form errors, admin notes. */
+    --color-danger: #c0503f;
+    --color-danger-bg: #fdecea;
+    --color-danger-text: #8a2f22;
+    --color-success: #8fb89a;
+    --color-success-bg: #eaf5ee;
+    --color-success-text: #2c5c3a;
+    --color-warning: #b99a62;
+    --color-warning-bg: #fff8ea;
+    --color-warning-text: #805d23;
+    --color-info: #bcd3e3;
+    --color-info-bg: #eef4f8;
+    --color-info-text: #294a5f;
+
+    /* Illustration colors — the hero gradient wash and the project-card
+       gradient tiles. */
+    --color-hero-glow-1: #f7f1e8;
+    --color-hero-glow-2: #e9e1d6;
+    --color-hero-glow-3: #aebbc1;
+    --color-visual-base: #efe8dd;
+    --color-visual-blue: #dce8ed;
+    --color-visual-sand: #eee3d5;
+    --color-visual-mist: #edf3f5;
+    --color-visual-blush: #f5eee5;
+}

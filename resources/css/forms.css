@@ -1,0 +1,290 @@
+/* Imported by app.css. Part of the split described there. */
+
+@layer components {
+    .admin-note-label {
+        @apply mr-1 text-xs font-semibold uppercase text-graphite;
+        letter-spacing: 0.08em;
+    }
+
+    .admin-grid {
+        @apply grid gap-4 md:grid-cols-2;
+    }
+
+    .admin-grid .admin-full {
+        grid-column: 1 / -1;
+    }
+
+    .admin-grid label {
+        @apply grid gap-2 text-xs font-semibold uppercase text-graphite;
+        letter-spacing: 0.08em;
+    }
+
+    /* Shared field look for AppInput/AppTextarea/AppSelect/AppCheckbox (resources/js/components/ui/) — change it once, here. */
+    .field-input,
+    .field-textarea {
+        @apply w-full rounded-md border border-sand bg-white px-3 py-3 text-sm normal-case text-ink outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10;
+        letter-spacing: 0;
+    }
+
+    .field-textarea {
+        resize: vertical;
+    }
+
+    /* Shown after a failed submit on a required-but-empty field, instead of the browser's native validation UI. */
+    .field-input-invalid,
+    .field-textarea-invalid {
+        @apply border-danger focus:border-danger focus:ring-danger/10;
+    }
+
+    .field-required-mark {
+        @apply text-danger;
+    }
+
+    /* PrimeVue DatePicker (unstyled) — replaces the native datetime-local
+       input, which rendered with browser chrome and the OS locale rather
+       than this app's. Reuses .field-input for the text box so it sits
+       flush with every other field. */
+    .field-datepicker-root {
+        @apply relative block w-full;
+    }
+
+    .field-datepicker-icon {
+        @apply pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-graphite;
+    }
+
+    .field-datepicker-panel {
+        @apply z-50 mt-1 rounded-md border border-sand bg-white p-3 shadow-[0_18px_45px_rgba(7,21,35,0.15)];
+    }
+
+    .field-datepicker-header {
+        @apply mb-2 flex items-center justify-between gap-2;
+    }
+
+    .field-datepicker-title {
+        @apply flex items-center gap-2 text-sm font-semibold text-ink;
+    }
+
+    .field-datepicker-select {
+        @apply cursor-pointer rounded px-1 py-0.5 text-sm font-semibold text-ink transition hover:text-accent;
+    }
+
+    .field-datepicker-nav {
+        @apply grid h-7 w-7 place-items-center rounded-full border border-sand bg-white text-accent transition hover:border-accent hover:bg-accent hover:text-white;
+    }
+
+    .field-datepicker-dayview {
+        @apply w-full border-collapse text-sm;
+    }
+
+    .field-datepicker-weekday-cell {
+        @apply p-1;
+    }
+
+    .field-datepicker-weekday {
+        @apply text-[11px] font-semibold uppercase tracking-[0.06em] text-graphite;
+    }
+
+    .field-datepicker-day-cell {
+        @apply p-0.5;
+    }
+
+    .field-datepicker-day {
+        @apply grid h-8 w-8 cursor-pointer place-items-center rounded-full text-sm text-ink transition hover:bg-cream;
+    }
+
+    /* PrimeVue marks state with aria-selected and a space-separated data-p
+       token ("selected", "selected today", …) — not data-p-selected, which
+       is what the Checkbox uses. Matched with ~= so extra tokens still hit. */
+    .field-datepicker-day[aria-selected='true'],
+    .field-datepicker-day[data-p~='selected'] {
+        @apply bg-accent text-white hover:bg-accent;
+    }
+
+    .field-datepicker-day[aria-disabled='true'] {
+        @apply cursor-not-allowed text-muted opacity-50;
+    }
+
+    /* Today, when it isn't the selected day: outlined rather than filled. */
+    .field-datepicker-day-cell[data-p-today='true'] .field-datepicker-day:not([aria-selected='true']) {
+        @apply border border-accent;
+    }
+
+    .field-datepicker-grid {
+        @apply grid grid-cols-3 gap-1;
+    }
+
+    .field-datepicker-grid-item {
+        @apply cursor-pointer rounded px-2 py-2 text-center text-sm text-ink transition hover:bg-cream;
+    }
+
+    .field-datepicker-grid-item[aria-selected='true'],
+    .field-datepicker-grid-item[data-p~='selected'] {
+        @apply bg-accent text-white;
+    }
+
+    .field-datepicker-timepicker {
+        @apply mt-3 flex items-center justify-center gap-2 border-t border-sand pt-3;
+    }
+
+    .field-datepicker-time-unit {
+        @apply flex flex-col items-center gap-1 text-sm tabular-nums text-ink;
+    }
+
+    .field-datepicker-time-separator {
+        @apply text-sm font-semibold text-graphite;
+    }
+
+    .field-datepicker-time-button {
+        @apply grid h-6 w-6 place-items-center rounded-full text-graphite transition hover:bg-cream hover:text-accent;
+    }
+
+    .field-datepicker-buttonbar {
+        @apply mt-3 flex items-center justify-between gap-2 border-t border-sand pt-3;
+    }
+
+    .field-select-root {
+        @apply relative flex w-full cursor-pointer items-center justify-between rounded-md border border-sand bg-white px-3 py-3 text-sm normal-case text-ink outline-none transition focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/10;
+        letter-spacing: 0;
+    }
+
+    .field-select-label {
+        @apply flex-1 truncate;
+    }
+
+    .field-select-dropdown {
+        @apply ml-2 grid place-items-center text-graphite;
+    }
+
+    .field-select-overlay {
+        @apply z-50 mt-1 overflow-hidden rounded-md border border-sand bg-white shadow-[0_18px_45px_rgba(7,21,35,0.15)];
+    }
+
+    .field-select-list {
+        @apply max-h-60 overflow-y-auto py-1 text-sm normal-case;
+    }
+
+    .field-select-option {
+        @apply cursor-pointer px-3 py-2 transition hover:bg-cream;
+    }
+
+    /* Search box shown at the top of a filterable select's dropdown (AppIconSelect). */
+    .field-select-filter-header {
+        @apply border-b border-sand p-2;
+    }
+
+    .field-select-filter-field {
+        @apply relative;
+    }
+
+    .field-select-filter-icon {
+        display: none;
+    }
+
+    .field-select-icon-value,
+    .field-select-icon-option {
+        @apply flex items-center gap-2 capitalize;
+    }
+
+    /* AppTranslatedField: one label over a row of EN/NL InputGroups, so a
+       bilingual value reads and edits as a single record. */
+    .field-group-label {
+        @apply block text-xs font-semibold uppercase text-graphite;
+        letter-spacing: 0.08em;
+    }
+
+    .field-group-row {
+        @apply mt-2 flex flex-wrap gap-3;
+    }
+
+    .field-group-unit {
+        @apply flex flex-1 items-stretch;
+        min-width: 220px;
+    }
+
+    .field-group-addon {
+        @apply flex flex-none items-center gap-1.5 rounded-l-md border border-r-0 border-sand bg-white px-3 text-xs font-semibold uppercase text-accent;
+        letter-spacing: 0.08em;
+    }
+
+    .field-group-field {
+        @apply w-full rounded-r-md border border-sand bg-white px-3 py-3 text-sm normal-case text-ink outline-none transition focus:z-10 focus:border-accent focus:ring-4 focus:ring-accent/10;
+        letter-spacing: 0;
+    }
+
+    textarea.field-group-field {
+        resize: vertical;
+    }
+
+    .field-checkbox-root {
+        @apply inline-flex w-fit cursor-pointer flex-row items-center gap-2 self-center text-sm normal-case text-ink;
+        letter-spacing: 0;
+    }
+
+    /*
+     * .admin-grid label { display: grid; ... } (below) targets the plain
+     * "Text<Input/>" label pattern used elsewhere in admin forms, but its
+     * (class + type) specificity beats .field-checkbox-root's (class-only)
+     * specificity — since AppCheckbox's root is also a <label> sitting
+     * inside .admin-grid, that rule was silently stacking the checkbox
+     * above its text. Restate the row layout here with higher specificity.
+     */
+    .admin-grid label.field-checkbox-root {
+        @apply flex flex-row items-center gap-2;
+    }
+
+    .field-checkbox-input {
+        @apply sr-only;
+    }
+
+    /* Invisible but still hit-testable, stretched over .field-checkbox-box —
+       for checkboxes with no <label> or row wrapper to forward the click
+       (see AppMultiSelect's "select all"). */
+    .field-checkbox-input-overlay {
+        @apply absolute inset-0 z-10 m-0 h-full w-full cursor-pointer opacity-0;
+    }
+
+    .field-checkbox-box {
+        @apply grid h-4 w-4 flex-none place-items-center rounded border border-graphite transition;
+    }
+
+    /* data-p-checked lands on Checkbox's own root (the "contents" div), not
+       on the wrapper around it. Matched on the attribute alone rather than
+       under .field-checkbox-root: AppMultiSelect reuses this same pt shape
+       for its option/select-all tickboxes, and those have no such wrapper —
+       scoping to it left every multiselect box looking permanently
+       unchecked even while its value was selected. */
+    [data-p-checked='true'] .field-checkbox-box {
+        @apply border-ink bg-ink;
+    }
+
+    .field-checkbox-icon {
+        @apply h-3 w-3 text-white;
+    }
+
+    .icon-button {
+        @apply grid h-9 w-9 place-items-center rounded-full border border-sand bg-white text-accent transition hover:border-accent hover:bg-accent hover:text-white;
+    }
+
+    /* Delete is a distinct, less-reversible action — black instead of the
+       blue used for reorder, so it doesn't read as "just another move button". */
+    .icon-button-danger {
+        @apply grid h-9 w-9 place-items-center rounded-full border border-sand bg-white text-ink transition hover:border-ink hover:bg-ink hover:text-white;
+    }
+
+    .editable-card {
+        @apply rounded-lg border border-sand border-l-2 border-l-ink bg-parchment/70 p-4;
+    }
+
+    .editable-card > header {
+        @apply mb-4 flex items-center justify-between gap-4;
+    }
+
+    .editable-card > header strong {
+        @apply text-sm font-semibold uppercase;
+        letter-spacing: 0.12em;
+    }
+
+    .editable-card > header div {
+        @apply flex gap-2;
+    }
+}

@@ -1,0 +1,85 @@
+/* Imported by app.css. Part of the split described there. */
+
+@layer components {
+    .eyebrow {
+        @apply text-xs font-semibold uppercase text-brass;
+        letter-spacing: 0.16em;
+    }
+
+    .dark-button,
+    .light-button,
+    .accent-button,
+    .menu-button,
+    .text-link {
+        @apply inline-flex items-center justify-center gap-3 whitespace-nowrap transition;
+    }
+
+    .dark-button {
+        @apply rounded-full bg-ink px-7 py-4 text-xs font-semibold uppercase text-white shadow-[0_18px_45px_rgba(7,21,35,0.22)] hover:bg-ink-hover disabled:cursor-not-allowed disabled:opacity-60;
+        letter-spacing: 0.12em;
+    }
+
+    /* Same shape as .dark-button, blue instead of ink — the "+ Add ..."
+       floating buttons across the admin list tabs. */
+    .accent-button {
+        @apply rounded-full bg-accent px-7 py-4 text-xs font-semibold uppercase text-white shadow-[0_18px_45px_rgba(47,117,168,0.32)] hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60;
+        letter-spacing: 0.12em;
+    }
+
+    /* Trimmed padding/shadow for tight bars (e.g. the admin header). */
+    .dark-button.btn-compact,
+    .light-button.btn-compact,
+    .accent-button.btn-compact {
+        @apply px-4 py-2.5 shadow-none;
+    }
+
+    /* Floating "Add ..." button in the admin list tabs, always reachable
+       without scrolling. Shadow restated after .btn-compact's shadow-none
+       (same specificity, later wins) — a floating button still needs it. */
+    .fab-add {
+        @apply fixed bottom-6 right-6 z-40 shadow-[0_18px_45px_rgba(7,21,35,0.35)];
+    }
+
+    .fab-add.btn-compact {
+        @apply shadow-[0_18px_45px_rgba(47,117,168,0.4)];
+    }
+
+    /* Floating "Save changes" — same corner as .fab-add, stacked above it
+       (higher bottom offset) so the two never overlap on a list tab where
+       both are visible at once. Always on top: saving applies to every tab,
+       not just the one currently open. */
+    .fab-save {
+        @apply fixed bottom-24 right-6 z-40 shadow-[0_18px_45px_rgba(7,21,35,0.35)];
+    }
+
+    .fab-save.btn-compact {
+        @apply shadow-[0_18px_45px_rgba(7,21,35,0.35)];
+    }
+
+    .light-button {
+        @apply rounded-full border border-sand bg-white/70 px-5 py-3 text-sm font-semibold text-ink hover:bg-white;
+    }
+
+    .menu-button {
+        @apply rounded-full border border-white/60 bg-white/25 px-5 py-3 text-xs font-semibold uppercase text-ink backdrop-blur-md hover:bg-white/35;
+        letter-spacing: 0.12em;
+    }
+
+    /* .menu-button, transparent at rest with gold text ("Get in touch"). */
+    .menu-button-gold {
+        @apply border-white/30 bg-transparent font-semibold text-gold hover:border-white/60 hover:bg-white/35 hover:text-ink;
+    }
+
+    .lang-button {
+        @apply grid h-10 w-10 place-items-center rounded-full border border-white/60 bg-white/30 text-xs font-semibold uppercase backdrop-blur-md transition hover:bg-white/55;
+    }
+
+    .lang-button.active {
+        @apply border-ink bg-ink text-white;
+    }
+
+    .text-link {
+        @apply text-xs font-semibold uppercase text-ink hover:text-accent;
+        letter-spacing: 0.14em;
+    }
+}

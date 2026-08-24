@@ -1,0 +1,84 @@
+/* Imported by app.css. Part of the split described there. */
+
+@layer base {
+    :root {
+        /* Stacking order, in one place. Previously every overlay picked its
+           own number, and .connect-overlay and the toast container both landed
+           on z-50 — with the toasts earlier in the DOM, an error raised while a
+           modal was open was painted behind the scrim and never seen. */
+        --z-rail: 30;
+        --z-header: 40;
+        --z-overlay: 50;
+        --z-confirm: 60;
+        --z-toast: 70;
+
+        /* The one source of truth for page width. Every centered thing on the
+           public page derives from these — see .page-grid below. Before this,
+           three separate numbers (1180 content, 1400 hero, 1480 header) each
+           lived at its own call site, so wide screens showed three misaligned
+           edges stacked down the page. */
+        --gutter: clamp(1.25rem, 4vw, 3rem);
+        --measure: 68ch; /* readable line length — caps prose, never layout */
+        --content-max: 73.75rem; /* 1180 */
+        --wide-max: 87.5rem; /* 1400 */
+        --bleed-max: 92.5rem; /* 1480 */
+    }
+
+    /* One deliberate step on ultra-wide rather than fluid growth: the type is
+       set for a specific measure, and clamp()-driven columns make line lengths
+       drift. This reclaims ~140px a side before any decoration is needed. */
+    @media (min-width: 112.5rem) {
+        :root {
+            --content-max: 82.5rem; /* 1320 */
+            --wide-max: 96rem; /* 1536 */
+            --bleed-max: 100rem; /* 1600 */
+        }
+    }
+
+    * {
+        letter-spacing: 0;
+    }
+
+    html {
+        scroll-behavior: smooth;
+        /* .site-header is fixed at 74px tall, so anchor jumps would otherwise
+           park the target section's heading underneath it. */
+        scroll-padding-top: 6rem;
+    }
+
+    body {
+        margin: 0;
+        background: var(--color-cream);
+    }
+
+    /* Ambient wash for the margin that's still left after the layout has
+       reflowed as far out as it usefully can. Two very soft radials in the
+       existing hero-glow tones, so the surface reads as the same paper the
+       content sits on rather than flat cream. Fixed and non-interactive;
+       switched on only where there's actually margin to fill. */
+    body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 500ms ease;
+        background:
+            radial-gradient(60rem 60rem at 8% 18%, rgba(233, 225, 214, 0.55), transparent 65%),
+            radial-gradient(50rem 50rem at 94% 72%, rgba(174, 187, 193, 0.28), transparent 62%);
+    }
+
+    @media (min-width: 93.75rem) {
+        body::before {
+            opacity: 1;
+        }
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+        font: inherit;
+    }
+}

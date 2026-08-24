@@ -53,13 +53,12 @@ const submit = async () => {
 </script>
 
 <template>
-    <main class="min-h-screen bg-[#f4efe7] text-[#071523]">
+    <main class="min-h-screen bg-cream text-ink">
         <div class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-10">
             <a href="/" class="text-3xl font-semibold tracking-normal">{{ initials }}</a>
-            <p class="eyebrow mt-6">Admin</p>
             <h1 class="mt-3 font-serif text-3xl leading-tight">Sign in to edit the site</h1>
 
-            <p v-if="error" class="mt-6 rounded-md border border-[#c0503f]/40 bg-[#fdecea] px-4 py-3 text-sm text-[#8a2f22]">{{ error }}</p>
+            <p v-if="error" class="mt-6 rounded-md border border-danger/40 bg-danger-bg px-4 py-3 text-sm text-danger-text">{{ error }}</p>
 
             <form class="mt-8 space-y-5" @submit.prevent="submit">
                 <label class="block text-sm font-semibold">
