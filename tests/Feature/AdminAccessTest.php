@@ -42,6 +42,24 @@ class AdminAccessTest extends TestCase
         $this->actingAs($user)->get('/control-room-ao')->assertOk();
     }
 
+    public function test_admin_role_user_can_access_each_admin_section_path(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $user = User::factory()->create();
+        $user->assignRole('admin');
+
+        foreach (['/control-room-ao/mijn-agenda', '/control-room-ao/insights', '/control-room-ao/edit-content'] as $path) {
+            $this->actingAs($user)->get($path)->assertOk();
+        }
+    }
+
+    public function test_guest_is_redirected_to_login_from_each_admin_section_path(): void
+    {
+        foreach (['/control-room-ao/mijn-agenda', '/control-room-ao/insights', '/control-room-ao/edit-content'] as $path) {
+            $this->get($path)->assertRedirect('/login');
+        }
+    }
+
     public function test_login_with_valid_credentials_authenticates_and_redirects(): void
     {
         Role::findOrCreate('admin', 'web');

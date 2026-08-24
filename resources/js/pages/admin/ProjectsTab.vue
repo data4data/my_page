@@ -43,6 +43,6 @@ defineProps({
             <label class="admin-full">Tags<AppInput :model-value="item.tags?.join(', ')" @update:model-value="(value) => updateTags(item, value)" /></label>
             <AppCheckbox v-model="item.is_visible">Visible</AppCheckbox>
         </EditableCard>
-        <AppButton variant="primary" size="sm" class="fab-add" @click="addItem('projects', { title: { en: 'New project', nl: 'Nieuw project' }, summary: { en: 'Describe the system and result.', nl: 'Beschrijf het systeem en resultaat.' }, result: { en: 'What improved.', nl: 'Wat is verbeterd.' }, tags: ['Laravel'], visual_style: 'dashboard' })"><Plus :size="16" /> Add project</AppButton>
+        <AppButton variant="accent" size="sm" class="fab-add" @click="addItem('projects', { title: { en: 'New project', nl: 'Nieuw project' }, summary: { en: 'Describe the system and result.', nl: 'Beschrijf het systeem en resultaat.' }, result: { en: 'What improved.', nl: 'Wat is verbeterd.' }, tags: ['Laravel'], visual_style: 'dashboard' })"><Plus :size="16" /> Add project</AppButton>
     </div>
 </template>

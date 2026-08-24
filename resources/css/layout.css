@@ -1,0 +1,66 @@
+/* Imported by app.css. Part of the split described there. */
+
+@layer components {
+    .layer-rail {
+        z-index: var(--z-rail);
+    }
+
+    .layer-header {
+        z-index: var(--z-header);
+    }
+
+    .layer-overlay {
+        z-index: var(--z-overlay);
+    }
+
+    .layer-confirm {
+        z-index: var(--z-confirm);
+    }
+
+    .layer-toast {
+        z-index: var(--z-toast);
+    }
+
+    /* Named-track full-bleed grid. Children sit in the `content` column by
+       default and opt outward with .u-wide / .u-bleed / .u-full, so a section
+       can break its margins without any of them needing to know a pixel
+       number. Replaces `mx-auto max-w-7xl px-5` repeated per section. */
+    .page-grid {
+        display: grid;
+        grid-template-columns:
+            [full-start] minmax(var(--gutter), 1fr)
+            [bleed-start] minmax(0, calc((var(--bleed-max) - var(--wide-max)) / 2))
+            [wide-start] minmax(0, calc((var(--wide-max) - var(--content-max)) / 2))
+            [content-start] min(100% - (var(--gutter) * 2), var(--content-max)) [content-end]
+            minmax(0, calc((var(--wide-max) - var(--content-max)) / 2)) [wide-end]
+            minmax(0, calc((var(--bleed-max) - var(--wide-max)) / 2)) [bleed-end]
+            minmax(var(--gutter), 1fr) [full-end];
+        align-content: start;
+        /* clip, not hidden: `hidden` would make this a scroll container and
+           break the position:sticky sidenotes further down. */
+        overflow-x: clip;
+    }
+
+    .page-grid > * {
+        grid-column: content;
+    }
+
+    .page-grid > .u-wide {
+        grid-column: wide;
+    }
+
+    .page-grid > .u-bleed {
+        grid-column: bleed;
+    }
+
+    .page-grid > .u-full {
+        grid-column: full;
+    }
+
+    /* Running prose stays readable no matter how wide the container grows.
+       The container cap and the text cap are different limits; before this
+       they were the same one. */
+    .u-measure {
+        max-width: var(--measure);
+    }
+}

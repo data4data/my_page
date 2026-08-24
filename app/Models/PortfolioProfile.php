@@ -24,6 +24,8 @@ class PortfolioProfile extends Model
         'quote',
         'quote_author',
         'social_links',
+        'default_language',
+        'show_language_toggle',
     ];
 
     protected $casts = [
@@ -38,6 +40,7 @@ class PortfolioProfile extends Model
         'quote' => 'array',
         'quote_author' => 'array',
         'social_links' => 'array',
+        'show_language_toggle' => 'boolean',
     ];
 
     public function metrics(): HasMany

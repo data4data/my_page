@@ -10,7 +10,7 @@ import Button from 'primevue/button';
 const props = defineProps({
     variant: {
         type: String,
-        default: 'primary', // primary | secondary | menu | menu-gold | lang | link | icon | icon-danger
+        default: 'primary', // primary | secondary | accent | menu | menu-gold | lang | link | icon | icon-danger
     },
     as: {
         type: String,
@@ -29,6 +29,7 @@ const props = defineProps({
 const variantClass = {
     primary: 'dark-button',
     secondary: 'light-button',
+    accent: 'accent-button',
     menu: 'menu-button',
     'menu-gold': 'menu-button menu-button-gold',
     lang: 'lang-button',

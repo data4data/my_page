@@ -66,6 +66,8 @@ class PortfolioController extends Controller
                 'quote',
                 'quote_author',
                 'social_links',
+                'default_language',
+                'show_language_toggle',
             ]));
 
             $this->replaceOrdered($profile, 'metrics', $data['metrics'] ?? [], [

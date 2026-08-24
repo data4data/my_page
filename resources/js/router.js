@@ -22,7 +22,21 @@ const routes = [
     },
     {
         path: '/control-room-ao',
-        name: 'admin',
+        redirect: '/control-room-ao/mijn-agenda',
+    },
+    {
+        path: '/control-room-ao/mijn-agenda',
+        name: 'admin-agenda',
+        component: () => import('./pages/AdminPage.vue'),
+    },
+    {
+        path: '/control-room-ao/insights',
+        name: 'admin-insights',
+        component: () => import('./pages/AdminPage.vue'),
+    },
+    {
+        path: '/control-room-ao/edit-content',
+        name: 'admin-edit',
         component: () => import('./pages/AdminPage.vue'),
     },
     {
