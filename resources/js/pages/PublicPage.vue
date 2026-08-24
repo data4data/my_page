@@ -5,7 +5,7 @@ import { ArrowRight, ChevronLeft, ChevronRight } from '@lucide/vue';
 import AppButton from '../components/ui/AppButton.vue';
 import DeveloperConnectModal from '../components/DeveloperConnectModal.vue';
 import { resolveIcon } from '../shared/icons';
-import { copy, lang, setLang, t } from '../shared/i18n';
+import { applyLanguagePolicy, copy, lang, LANGUAGES, languageSwitcherShown, setLang, t } from '../shared/i18n';
 import { usePortfolioSource } from '../shared/portfolio';
 
 const route = useRoute();
@@ -66,8 +66,14 @@ const updateActiveSection = () => {
     activeSection.value = current;
 };
 
+// Hidden when the owner has turned the switcher off in the admin's Language
+// tab — the site then runs in the default language only.
+const showLanguageSwitcher = computed(() => languageSwitcherShown(profile.value));
+
 onMounted(async () => {
     await fetchPortfolio();
+    applyLanguagePolicy(profile.value);
+
     updateHeaderState();
     window.addEventListener('scroll', updateHeaderState, { passive: true });
 
@@ -102,12 +108,15 @@ const scrollExpertise = (direction) => {
 </script>
 
 <template>
-    <main v-if="loading" class="min-h-screen bg-[#f4efe7] px-6 py-10 text-[#071523]">
+    <main v-if="loading" class="min-h-screen bg-cream px-6 py-10 text-ink">
         <div class="mx-auto max-w-7xl">{{ copy('loading') }}</div>
     </main>
 
-    <main v-else class="min-h-screen overflow-hidden bg-[#f4efe7] text-[#071523]">
-        <header class="site-header" :class="{ scrolled: headerScrolled }">
+    <!-- No bg-cream here: body already paints it, and an opaque background on
+         this element would cover the ambient body::before wash (negative
+         z-index paints beneath in-flow block backgrounds). -->
+    <main v-else class="page-grid min-h-screen text-ink">
+        <header class="site-header u-full" :class="{ scrolled: headerScrolled }">
             <div class="site-header-inner">
                 <a href="#" class="site-logo">{{ profile.initials }}</a>
                 <nav class="site-nav">
@@ -117,8 +126,17 @@ const scrollExpertise = (direction) => {
                     <a href="#contact" :class="{ active: activeSection === 'contact' }">{{ copy('contact') }}</a>
                 </nav>
                 <div class="site-actions">
-                    <AppButton variant="lang" :active="lang === 'en'" @click="setLang('en')">EN</AppButton>
-                    <AppButton variant="lang" :active="lang === 'nl'" @click="setLang('nl')">NL</AppButton>
+                    <template v-if="showLanguageSwitcher">
+                        <AppButton
+                            v-for="language in LANGUAGES"
+                            :key="language.value"
+                            variant="lang"
+                            :active="lang === language.value"
+                            @click="setLang(language.value)"
+                        >
+                            {{ language.value.toUpperCase() }}
+                        </AppButton>
+                    </template>
                     <AppButton variant="menu" as="router-link" :to="{ name: 'hi-developer' }">
                         {{ copy('forDevelopers') }} <ArrowRight :size="15" />
                     </AppButton>
@@ -126,7 +144,7 @@ const scrollExpertise = (direction) => {
             </div>
         </header>
 
-        <section class="hero-shell">
+        <section class="hero-shell u-full">
             <div class="hero-visual" aria-hidden="true">
                 <img class="hero-photo" :src="'/images/header-hero.png'" alt="">
                 <div class="hero-photo-shade"></div>
@@ -162,7 +180,7 @@ const scrollExpertise = (direction) => {
             </div>
         </section>
 
-        <section id="expertise" class="page-section expertise-section mx-auto max-w-7xl px-5">
+        <section id="expertise" class="page-section expertise-section">
             <div class="expertise-carousel">
                 <button class="expertise-arrow expertise-arrow-left" type="button" aria-label="Previous expertise" @click="scrollExpertise(-1)">
                     <ChevronLeft :size="22" />
@@ -181,7 +199,7 @@ const scrollExpertise = (direction) => {
             </div>
         </section>
 
-        <section id="about" class="page-section mx-auto max-w-7xl px-5">
+        <section id="about" class="page-section">
             <div class="section-head">
                 <p class="eyebrow">{{ copy('how') }}</p>
             </div>
@@ -225,7 +243,7 @@ const scrollExpertise = (direction) => {
             </div>
         </section>
 
-        <section id="work" class="page-section mx-auto max-w-7xl px-5">
+        <section id="work" class="page-section">
             <div class="section-head">
                 <p class="eyebrow">{{ copy('featured') }}</p>
                 <a href="#contact" class="text-link">{{ copy('viewAll') }} <ArrowRight :size="17" /></a>
@@ -248,14 +266,13 @@ const scrollExpertise = (direction) => {
             </div>
         </section>
 
-        <section id="contact" class="page-section contact-section mx-auto max-w-7xl px-5">
+        <section id="contact" class="page-section contact-section">
             <div class="quote-card">
                 <span>“</span>
                 <p>{{ t(profile.quote) || copy('quote') }}</p>
                 <strong>{{ t(profile.quote_author) }}</strong>
             </div>
             <div class="contact-band">
-                <div class="contact-image" aria-hidden="true"></div>
                 <div class="contact-copy">
                     <h2 class="contact-headline">
                         <span v-for="line in copy('contactHeadlineLines')" :key="line">{{ line }}</span>
@@ -265,7 +282,7 @@ const scrollExpertise = (direction) => {
             </div>
         </section>
 
-        <footer class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 px-5 py-10 text-xs font-semibold uppercase tracking-[0.18em]">
+        <footer class="flex flex-wrap items-center justify-between gap-5 py-10 text-xs font-semibold uppercase tracking-[0.18em]">
             <span>{{ t(profile.location_note) }}</span>
             <span>{{ t(profile.availability_note) }}</span>
         </footer>

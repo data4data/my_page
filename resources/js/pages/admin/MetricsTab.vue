@@ -38,6 +38,6 @@ defineProps({
             <div class="admin-full"><AppTranslatedField label="Label" v-model="item.label" /></div>
             <AppCheckbox v-model="item.is_visible">Visible</AppCheckbox>
         </EditableCard>
-        <AppButton variant="primary" size="sm" class="fab-add" @click="addItem('metrics', { value: '1+', label: { en: 'New metric', nl: 'Nieuwe metriek' } })"><Plus :size="16" /> Add metric</AppButton>
+        <AppButton variant="accent" size="sm" class="fab-add" @click="addItem('metrics', { value: '1+', label: { en: 'New metric', nl: 'Nieuwe metriek' } })"><Plus :size="16" /> Add metric</AppButton>
     </div>
 </template>

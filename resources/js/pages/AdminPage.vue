@@ -1,15 +1,28 @@
 <script setup>
-import { ref } from 'vue';
-import { ArrowRight, LogOut, RefreshCcw } from '@lucide/vue';
+import { computed, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { ArrowRight, Calendar, Inbox, Pencil } from '@lucide/vue';
 import AppButton from '../components/ui/AppButton.vue';
+import AdminLayout from '../components/admin/AdminLayout.vue';
+import SectionTabs from '../components/admin/SectionTabs.vue';
 import ProfileTab from './admin/ProfileTab.vue';
 import MetricsTab from './admin/MetricsTab.vue';
 import ExpertiseTab from './admin/ExpertiseTab.vue';
 import ProcessTab from './admin/ProcessTab.vue';
 import ProjectsTab from './admin/ProjectsTab.vue';
-import InquiriesTab from './admin/InquiriesTab.vue';
+import InsightsPage from './admin/InsightsPage.vue';
+import ResetContentTab from './admin/ResetContentTab.vue';
+import LanguageTab from './admin/LanguageTab.vue';
+import AgendaPage from './admin/AgendaPage.vue';
+import ToastStack from '../components/ui/ToastStack.vue';
+import ConfirmDialog from '../components/ui/ConfirmDialog.vue';
 import { copy } from '../shared/i18n';
 import { csrfToken, usePortfolioSource } from '../shared/portfolio';
+import { useToast } from '../shared/toast';
+
+const toast = useToast();
+const route = useRoute();
+const router = useRouter();
 
 const {
     data,
@@ -24,20 +37,39 @@ const {
 
 const saving = ref(false);
 const restoring = ref(false);
-const message = ref('');
 const tab = ref('profile');
+
+// Top-level admin section — driven by the URL (each has its own real,
+// bookmarkable/refreshable path) rather than local component state, so
+// switching sections pushes a route instead of just flipping a ref.
+const routeNameForView = {
+    agenda: 'admin-agenda',
+    insights: 'admin-insights',
+    edit: 'admin-edit',
+};
+const view = computed(() => Object.keys(routeNameForView).find((key) => routeNameForView[key] === route.name) ?? 'edit');
+const goToView = (key) => router.push({ name: routeNameForView[key] });
 
 const inquiries = ref([]);
 const inquiriesLoading = ref(true);
 
-const adminTabs = [
-    { value: 'profile', label: 'Profile' },
-    { value: 'metrics', label: 'Experience' },
-    { value: 'expertise', label: 'Expertise' },
-    { value: 'process', label: 'Process' },
-    { value: 'projects', label: 'Projects' },
-    { value: 'inquiries', label: 'Inquiries' },
-];
+// computed (not a plain array) so labels re-render when the admin switches
+// their own working language via the header EN/NL toggle.
+const navItems = computed(() => [
+    { key: 'agenda', label: copy('agenda'), icon: Calendar },
+    { key: 'insights', label: copy('insights'), icon: Inbox },
+    { key: 'edit', label: copy('editPage'), icon: Pencil },
+]);
+
+const adminTabs = computed(() => [
+    { value: 'profile', label: copy('tabProfile') },
+    { value: 'metrics', label: copy('tabExperience') },
+    { value: 'expertise', label: copy('tabExpertise') },
+    { value: 'process', label: copy('tabProcess') },
+    { value: 'projects', label: copy('tabProjects') },
+    { value: 'language', label: copy('tabLanguage'), right: true },
+    { value: 'reset', label: copy('tabReset') },
+]);
 
 const fetchInquiries = async () => {
     inquiriesLoading.value = true;
@@ -52,7 +84,6 @@ fetchInquiries();
 
 const savePortfolio = async () => {
     saving.value = true;
-    message.value = '';
 
     const response = await fetch('/control-room-ao/portfolio', {
         method: 'PUT',
@@ -65,19 +96,18 @@ const savePortfolio = async () => {
     });
 
     if (!response.ok) {
-        message.value = copy('error');
+        toast.error(copy('error'));
         saving.value = false;
         return;
     }
 
     await fetchPortfolio();
-    message.value = copy('saved');
+    toast.success(copy('saved'));
     saving.value = false;
 };
 
 const restoreDefaults = async () => {
     restoring.value = true;
-    message.value = '';
 
     const response = await fetch('/control-room-ao/portfolio/seed-defaults', {
         method: 'POST',
@@ -88,13 +118,13 @@ const restoreDefaults = async () => {
     });
 
     if (!response.ok) {
-        message.value = copy('error');
+        toast.error(copy('error'));
         restoring.value = false;
         return;
     }
 
     await fetchPortfolio();
-    message.value = copy('restored');
+    toast.success(copy('restored'));
     restoring.value = false;
 };
 
@@ -122,55 +152,37 @@ const updateTags = (project, value) => {
 </script>
 
 <template>
-    <main v-if="loading" class="min-h-screen bg-[#f4efe7] px-6 py-10 text-[#071523]">
+    <main v-if="loading" class="min-h-screen bg-white px-6 py-10 text-ink">
         <div class="mx-auto max-w-7xl">{{ copy('loading') }}</div>
     </main>
 
-    <main v-else class="min-h-screen bg-[#f4efe7] text-[#071523]">
-        <header class="sticky top-0 z-30 border-b border-[#d8cbbb] bg-[#f4efe7]/90 backdrop-blur">
-            <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
-                <a href="/" class="text-3xl font-semibold tracking-normal">{{ profile.initials }}</a>
-                <nav class="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.18em]">
-                    <button v-for="item in adminTabs" :key="item.value" class="admin-tab" :class="{ active: tab === item.value }" @click="tab = item.value">
-                        {{ item.label }}
-                    </button>
-                </nav>
-                <div class="flex items-center gap-3">
-                    <AppButton variant="primary" size="sm" :disabled="saving" @click="savePortfolio">
-                        {{ saving ? copy('saving') : copy('save') }}
-                        <ArrowRight :size="16" />
-                    </AppButton>
-                    <form method="POST" action="/logout">
-                        <input type="hidden" name="_token" :value="csrfToken()">
-                        <AppButton variant="secondary" size="sm" type="submit" :aria-label="copy('logout')">
-                            <LogOut :size="16" />
-                        </AppButton>
-                    </form>
-                </div>
-            </div>
-        </header>
+    <AdminLayout v-else :nav-items="navItems" :active-key="view" :initials="profile.initials" :profile="profile" @navigate="goToView">
+        <ToastStack />
+        <ConfirmDialog />
 
-        <section class="mx-auto grid max-w-7xl gap-6 px-5 py-8 lg:grid-cols-[280px_1fr]">
-            <aside class="rounded-lg border border-[#d8cbbb] border-t-2 border-t-[#071523] bg-white/55 p-5">
-                <p class="eyebrow">{{ copy('admin') }}</p>
-                <h1 class="mt-3 font-serif text-4xl leading-tight">{{ copy('studio') }} {{ profile.initials }}</h1>
-                <p class="mt-4 text-sm leading-6 text-[#516070]">{{ copy('studioCopy') }}</p>
-                <p v-if="message" class="mt-5 rounded-md border border-[#b99a62]/40 bg-[#fff8ea] px-3 py-2 text-sm text-[#805d23]">{{ message }}</p>
-                <AppButton variant="secondary" class="mt-5 w-full justify-center" :disabled="restoring" @click="restoreDefaults">
-                    <RefreshCcw :size="16" />
-                    {{ restoring ? copy('restoring') : copy('restore') }}
-                </AppButton>
-                <p class="mt-3 text-xs leading-5 text-[#7b6d5f]">{{ copy('restoreHint') }}</p>
-            </aside>
+        <AgendaPage v-if="view === 'agenda'" />
 
-            <div class="admin-panel">
-                <ProfileTab v-if="tab === 'profile'" :profile="profile" />
-                <MetricsTab v-else-if="tab === 'metrics'" :metrics="metrics" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
-                <ExpertiseTab v-else-if="tab === 'expertise'" :expertise="expertise" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
-                <ProcessTab v-else-if="tab === 'process'" :process-steps="processSteps" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
-                <ProjectsTab v-else-if="tab === 'projects'" :projects="projects" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :update-tags="updateTags" />
-                <InquiriesTab v-else-if="tab === 'inquiries'" :inquiries="inquiries" :inquiries-loading="inquiriesLoading" />
-            </div>
-        </section>
-    </main>
+        <InsightsPage v-else-if="view === 'insights'" :inquiries="inquiries" :inquiries-loading="inquiriesLoading" />
+
+        <SectionTabs v-else v-model="tab" :tabs="adminTabs">
+            <ProfileTab v-if="tab === 'profile'" :profile="profile" />
+            <MetricsTab v-else-if="tab === 'metrics'" :metrics="metrics" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
+            <ExpertiseTab v-else-if="tab === 'expertise'" :expertise="expertise" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
+            <ProcessTab v-else-if="tab === 'process'" :process-steps="processSteps" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
+            <ProjectsTab v-else-if="tab === 'projects'" :projects="projects" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :update-tags="updateTags" />
+            <LanguageTab v-else-if="tab === 'language'" :profile="profile" />
+            <ResetContentTab v-else-if="tab === 'reset'" :restoring="restoring" :restore-defaults="restoreDefaults" />
+        </SectionTabs>
+
+        <template #fab>
+            <!-- Editor-only: this saves the portfolio content payload, which
+                 means nothing on Agenda or Insights (both persist through
+                 their own endpoints) — and it was overlapping their own save
+                 buttons. -->
+            <AppButton v-if="view === 'edit'" variant="primary" size="sm" class="fab-save" :disabled="saving" @click="savePortfolio">
+                {{ saving ? copy('saving') : copy('save') }}
+                <ArrowRight :size="16" />
+            </AppButton>
+        </template>
+    </AdminLayout>
 </template>

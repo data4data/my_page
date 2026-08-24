@@ -1,0 +1,234 @@
+/* Imported by app.css. Part of the split described there. */
+
+/* Height threshold lowered from 700 to 600 — the old value hid the rail on any
+   window with DevTools docked at the bottom, which is where it was most often
+   lost. Width stays at 1024: below that the tablet rules pull .hero-copy left
+   to use the space, and the rail measurably overlaps it (-25px at 900px wide). */
+@media (min-width: 64rem) and (min-height: 37.5rem) {
+    .social-rail {
+        display: flex;
+    }
+}
+
+/* Small: single column, one card at a time. Raised from the old 760px so it
+   meets Tailwind's md (48rem) with no dead band — 761-767px previously fell
+   through to the desktop layout. */
+@media (max-width: 47.9375rem) {
+    .site-header-inner {
+        width: calc(100% - 28px);
+        grid-template-columns: auto 1fr;
+        height: 66px;
+    }
+
+    .site-logo {
+        font-size: 28px;
+    }
+
+    .site-nav {
+        display: none;
+    }
+
+    .site-actions {
+        justify-self: end;
+    }
+
+    .hero-shell {
+        min-height: 880px;
+        padding-top: 88px;
+    }
+
+    .hero-inner {
+        display: block;
+        min-height: auto;
+    }
+
+    .hero-copy {
+        width: min(100%, 560px);
+        margin-left: 18px;
+        padding-top: 42px;
+    }
+
+    .hero-title {
+        max-width: 440px;
+        font-size: clamp(52px, 14vw, 76px);
+    }
+
+    .hero-summary {
+        max-width: 430px;
+        font-size: 16px;
+        line-height: 1.65;
+    }
+
+    .hero-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: min(100%, 440px);
+        margin-top: 30px;
+    }
+
+    .expertise-carousel {
+        --cards: 1;
+        padding-left: 42px;
+        padding-right: 42px;
+    }
+
+    .expertise-arrow-left {
+        left: 0;
+    }
+
+    .expertise-arrow-right {
+        right: 0;
+    }
+
+    .metric {
+        border-left: 0;
+        border-top: 1px solid var(--color-sand-light);
+    }
+
+    .process-panel {
+        padding: 24px;
+    }
+
+    .process-visual {
+        min-height: 520px;
+    }
+
+    .process-visual-image {
+        inset: 0;
+    }
+
+    .process-flow-card {
+        width: calc(100% - 28px);
+        padding: 14px;
+    }
+
+    .process-flow-card-input {
+        top: 14px;
+        left: 14px;
+    }
+
+    .process-flow-card-output {
+        right: 14px;
+        bottom: 14px;
+    }
+
+    .process-overview,
+    .process-expertise {
+        padding: 20px;
+    }
+
+    .process-overview h2 {
+        font-size: 40px;
+    }
+
+    .quote-card span,
+    .quote-card p,
+    .quote-card strong {
+        margin-left: clamp(48px, 18vw, 90px);
+    }
+
+    .contact-copy {
+        margin-left: 0;
+        max-width: 280px;
+    }
+
+    .contact-headline {
+        font-size: 30px;
+    }
+
+    .contact-headline span {
+        white-space: normal;
+    }
+}
+
+/* Medium: 768-1023px. This range previously had no rules at all and fell
+   through to the desktop layout — three expertise cards at ~220px each, and a
+   hero sized for a viewport twice this wide. The social rail is already
+   hidden here (it's lg:flex), so the hero reclaims its reserved column. */
+@media (min-width: 48rem) and (max-width: 63.9375rem) {
+    .expertise-carousel {
+        --cards: 2;
+    }
+
+    /* The full-size header doesn't fit here: the logo's fixed 120px column
+       plus a 54px-gap nav pushed .site-actions ~120px past the viewport at
+       768px (clipped, not scrollable, so it read as a truncated button). */
+    .site-header-inner {
+        grid-template-columns: auto 1fr auto;
+        gap: 16px;
+    }
+
+    .site-logo {
+        font-size: 30px;
+    }
+
+    .site-nav {
+        gap: 20px;
+        font-size: 11px;
+    }
+
+    .hero-shell {
+        --hero-copy-left: clamp(1.5rem, 4vw, 3rem);
+        min-height: clamp(680px, 82vh, 820px);
+    }
+
+    .hero-inner {
+        grid-template-columns: 1fr;
+        min-height: 0;
+    }
+
+    .hero-copy {
+        width: min(100%, 640px);
+    }
+
+    .hero-title {
+        max-width: 560px;
+        font-size: clamp(46px, 6.4vw, 62px);
+    }
+
+    /* 2x2 rather than a full-width row: .hero-photo-shade only scrims the left
+       ~52% of the hero, so a fourth column would put the last metric on top of
+       the dark laptop with no contrast. */
+    .hero-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: min(100%, 420px);
+    }
+}
+
+/* Note: the right-hand gutter is intentionally left to the ambient wash. A
+   section-index rail (01/02/03/04 with the active section marked) was built
+   and removed — labels only fit from 1600px up, so between 1440 and 1600 it
+   could show nothing but unexplained numbers.
+
+   Note: the quote card and contact band deliberately sit in the content column
+   too, not a wider `u-wide` bleed. Widening them was tried and reverted — the
+   fixed rails sit just outside the content edge, so a wider band closed the gap
+   to them and broke the alignment with the project cards directly above.
+   Consistent left/right edges beat the wide/narrow rhythm here.
+
+   Note: section eyebrows deliberately stay in the content column. Moving them
+   into the left gutter as sidenotes was tried and reverted — .social-rail is
+   fixed in that gutter, and because both it and the content column derive from
+   the same tokens, the ~100px gap between them is constant at every width
+   above 1480px. A sidenote wide enough to be readable overlaps the rail at any
+   scroll position that puts a section head beside it. Both gutters are already
+   occupied (social rail left, section rail right), so there's no space to
+   reclaim here anyway. */
+
+/* Ultra-wide: >=1800px. The content column has stepped up (see :root above),
+   so a fourth expertise card fits — real content in the reclaimed space
+   rather than more decoration. */
+@media (min-width: 112.5rem) {
+    .expertise-carousel {
+        --cards: 4;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    body::before {
+        transition: none;
+    }
+}

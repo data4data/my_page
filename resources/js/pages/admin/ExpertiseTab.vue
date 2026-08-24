@@ -41,6 +41,6 @@ defineProps({
             <div class="admin-full"><AppTranslatedField label="Description" v-model="item.description" multiline rows="2" /></div>
             <AppCheckbox v-model="item.is_visible">Visible</AppCheckbox>
         </EditableCard>
-        <AppButton variant="primary" size="sm" class="fab-add" @click="addItem('expertise_items', { title: { en: 'New expertise', nl: 'Nieuwe expertise' }, description: { en: 'Describe the result and capability.', nl: 'Beschrijf het resultaat en de expertise.' }, icon: 'sparkles', category: 'general' })"><Plus :size="16" /> Add expertise</AppButton>
+        <AppButton variant="accent" size="sm" class="fab-add" @click="addItem('expertise_items', { title: { en: 'New expertise', nl: 'Nieuwe expertise' }, description: { en: 'Describe the result and capability.', nl: 'Beschrijf het resultaat en de expertise.' }, icon: 'sparkles', category: 'general' })"><Plus :size="16" /> Add expertise</AppButton>
     </div>
 </template>

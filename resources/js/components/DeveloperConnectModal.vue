@@ -85,9 +85,9 @@ const submit = async () => {
             <template v-else>
                 <p class="eyebrow">{{ copy('forDevelopers') }}</p>
                 <h2 class="mt-3 font-serif text-2xl leading-tight">{{ copy('connectTitle') }}</h2>
-                <p class="mt-3 text-sm leading-6 text-[#516070]">{{ copy('connectCopy') }}</p>
+                <p class="mt-3 text-sm leading-6 text-graphite">{{ copy('connectCopy') }}</p>
 
-                <p v-if="error" class="mt-4 rounded-md border border-[#c0503f]/40 bg-[#fdecea] px-4 py-3 text-sm text-[#8a2f22]">{{ error }}</p>
+                <p v-if="error" class="mt-4 rounded-md border border-danger/40 bg-danger-bg px-4 py-3 text-sm text-danger-text">{{ error }}</p>
 
                 <form class="mt-6 space-y-4" novalidate @submit.prevent="submit">
                     <label class="block text-sm font-semibold">

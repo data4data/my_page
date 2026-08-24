@@ -45,6 +45,6 @@ const processGroupOptions = [
             <div class="admin-full"><AppTranslatedField label="Description" v-model="item.description" multiline rows="2" /></div>
             <AppCheckbox v-model="item.is_visible">Visible</AppCheckbox>
         </EditableCard>
-        <AppButton variant="primary" size="sm" class="fab-add" @click="addItem('process_steps', { group: 'core', title: { en: 'New step', nl: 'Nieuwe stap' }, description: { en: 'Short description', nl: 'Korte beschrijving' }, icon: 'sparkles' })"><Plus :size="16" /> Add process step</AppButton>
+        <AppButton variant="accent" size="sm" class="fab-add" @click="addItem('process_steps', { group: 'core', title: { en: 'New step', nl: 'Nieuwe stap' }, description: { en: 'Short description', nl: 'Korte beschrijving' }, icon: 'sparkles' })"><Plus :size="16" /> Add process step</AppButton>
     </div>
 </template>
