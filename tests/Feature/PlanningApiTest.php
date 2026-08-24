@@ -28,8 +28,8 @@ class PlanningApiTest extends TestCase
 
     public function test_guest_cannot_reach_any_planning_endpoint(): void
     {
-        $this->get('/control-room-ao/tasks?start=2026-01-01&end=2026-01-31')->assertRedirect('/login');
-        $this->get('/control-room-ao/categories')->assertRedirect('/login');
+        $this->get($this->adminUrl('/tasks?start=2026-01-01&end=2026-01-31'))->assertRedirect('/login');
+        $this->get($this->adminUrl('/categories'))->assertRedirect('/login');
     }
 
     public function test_category_index_returns_global_and_own_categories(): void
@@ -41,7 +41,7 @@ class PlanningApiTest extends TestCase
         Category::create(['name' => 'Mine', 'color' => '#c5a064', 'user_id' => $admin->id]);
         Category::create(['name' => 'Someone else\'s', 'color' => '#c0503f', 'user_id' => $other->id]);
 
-        $response = $this->actingAs($admin)->getJson('/control-room-ao/categories');
+        $response = $this->actingAs($admin)->getJson($this->adminUrl('/categories'));
 
         $names = collect($response->json('categories'))->pluck('name');
         $response->assertOk();
@@ -54,7 +54,7 @@ class PlanningApiTest extends TestCase
     {
         $admin = $this->admin();
 
-        $response = $this->actingAs($admin)->postJson('/control-room-ao/categories', [
+        $response = $this->actingAs($admin)->postJson($this->adminUrl('/categories'), [
             'name' => 'Freelance',
             'color' => '#7c9a6b',
         ]);
@@ -70,7 +70,7 @@ class PlanningApiTest extends TestCase
         $category = Category::create(['name' => 'Not yours', 'color' => '#c0503f', 'user_id' => $other->id]);
 
         $this->actingAs($admin)
-            ->putJson("/control-room-ao/categories/{$category->id}", ['name' => 'Hijacked', 'color' => '#000000'])
+            ->putJson($this->adminUrl("/categories/{$category->id}"), ['name' => 'Hijacked', 'color' => '#000000'])
             ->assertForbidden();
     }
 
@@ -83,7 +83,7 @@ class PlanningApiTest extends TestCase
         Task::create(['user_id' => $admin->id, 'title' => 'Out of range', 'start_datetime' => '2026-07-01 09:00:00', 'status' => TaskStatus::Planned, 'source' => TaskSource::Manual]);
         Task::create(['user_id' => $other->id, 'title' => 'Someone else', 'start_datetime' => '2026-06-11 09:00:00', 'status' => TaskStatus::Planned, 'source' => TaskSource::Manual]);
 
-        $response = $this->actingAs($admin)->getJson('/control-room-ao/tasks?start=2026-06-01&end=2026-06-30');
+        $response = $this->actingAs($admin)->getJson($this->adminUrl('/tasks?start=2026-06-01&end=2026-06-30'));
 
         $titles = collect($response->json('tasks'))->pluck('title');
         $response->assertOk();
@@ -94,7 +94,7 @@ class PlanningApiTest extends TestCase
     {
         $admin = $this->admin();
 
-        $store = $this->actingAs($admin)->postJson('/control-room-ao/tasks', [
+        $store = $this->actingAs($admin)->postJson($this->adminUrl('/tasks'), [
             'title' => 'New task',
             'start_datetime' => '2026-06-10 09:00:00',
         ]);
@@ -104,7 +104,7 @@ class PlanningApiTest extends TestCase
 
         $taskId = $store->json('task.id');
 
-        $update = $this->actingAs($admin)->putJson("/control-room-ao/tasks/{$taskId}", ['status' => TaskStatus::Done->value]);
+        $update = $this->actingAs($admin)->putJson($this->adminUrl("/tasks/{$taskId}"), ['status' => TaskStatus::Done->value]);
         $update->assertOk();
         $this->assertSame(TaskStatus::Done->value, $update->json('task.status'));
     }
@@ -115,8 +115,8 @@ class PlanningApiTest extends TestCase
         $other = User::factory()->create();
         $task = Task::create(['user_id' => $other->id, 'title' => 'Not yours', 'start_datetime' => '2026-06-10 09:00:00', 'status' => TaskStatus::Planned, 'source' => TaskSource::Manual]);
 
-        $this->actingAs($admin)->putJson("/control-room-ao/tasks/{$task->id}", ['title' => 'Hijacked'])->assertForbidden();
-        $this->actingAs($admin)->deleteJson("/control-room-ao/tasks/{$task->id}")->assertForbidden();
+        $this->actingAs($admin)->putJson($this->adminUrl("/tasks/{$task->id}"), ['title' => 'Hijacked'])->assertForbidden();
+        $this->actingAs($admin)->deleteJson($this->adminUrl("/tasks/{$task->id}"))->assertForbidden();
     }
 
     public function test_timer_start_creates_a_running_log_and_flips_status(): void
@@ -124,7 +124,7 @@ class PlanningApiTest extends TestCase
         $admin = $this->admin();
         $task = Task::create(['user_id' => $admin->id, 'title' => 'Focus block', 'start_datetime' => '2026-06-10 09:00:00', 'status' => TaskStatus::Planned, 'source' => TaskSource::Manual]);
 
-        $response = $this->actingAs($admin)->postJson("/control-room-ao/tasks/{$task->id}/timer/start");
+        $response = $this->actingAs($admin)->postJson($this->adminUrl("/tasks/{$task->id}/timer/start"));
 
         $response->assertOk();
         $this->assertSame(TaskStatus::InProgress->value, $response->json('task.status'));
@@ -137,8 +137,8 @@ class PlanningApiTest extends TestCase
         $admin = $this->admin();
         $task = Task::create(['user_id' => $admin->id, 'title' => 'Focus block', 'start_datetime' => '2026-06-10 09:00:00', 'status' => TaskStatus::Planned, 'source' => TaskSource::Manual]);
 
-        $this->actingAs($admin)->postJson("/control-room-ao/tasks/{$task->id}/timer/start");
-        $response = $this->actingAs($admin)->postJson("/control-room-ao/tasks/{$task->id}/timer/start");
+        $this->actingAs($admin)->postJson($this->adminUrl("/tasks/{$task->id}/timer/start"));
+        $response = $this->actingAs($admin)->postJson($this->adminUrl("/tasks/{$task->id}/timer/start"));
 
         $this->assertCount(1, $response->json('task.time_logs'));
     }
@@ -151,7 +151,7 @@ class PlanningApiTest extends TestCase
 
         $first->timeLogs()->create(['started_at' => Carbon::now()->subMinutes(30)]);
 
-        $response = $this->actingAs($admin)->postJson("/control-room-ao/tasks/{$second->id}/timer/start");
+        $response = $this->actingAs($admin)->postJson($this->adminUrl("/tasks/{$second->id}/timer/start"));
 
         $response->assertOk();
 
@@ -176,7 +176,7 @@ class PlanningApiTest extends TestCase
 
         $mine = Task::create(['user_id' => $admin->id, 'title' => 'Mine', 'start_datetime' => '2026-06-10 11:00:00', 'status' => TaskStatus::Planned, 'source' => TaskSource::Manual]);
 
-        $this->actingAs($admin)->postJson("/control-room-ao/tasks/{$mine->id}/timer/start")->assertOk();
+        $this->actingAs($admin)->postJson($this->adminUrl("/tasks/{$mine->id}/timer/start"))->assertOk();
 
         $this->assertSame(1, $theirs->fresh()->timeLogs()->whereNull('ended_at')->count());
         $this->assertSame(TaskStatus::InProgress, $theirs->fresh()->status);
@@ -188,7 +188,7 @@ class PlanningApiTest extends TestCase
         $task = Task::create(['user_id' => $admin->id, 'title' => 'Focus block', 'start_datetime' => '2026-06-10 09:00:00', 'status' => TaskStatus::Planned, 'source' => TaskSource::Manual]);
         $task->timeLogs()->create(['started_at' => Carbon::now()->subMinutes(25)]);
 
-        $response = $this->actingAs($admin)->postJson("/control-room-ao/tasks/{$task->id}/timer/stop");
+        $response = $this->actingAs($admin)->postJson($this->adminUrl("/tasks/{$task->id}/timer/stop"));
 
         $response->assertOk();
         $this->assertNotNull($response->json('task.time_logs.0.ended_at'));
@@ -200,7 +200,7 @@ class PlanningApiTest extends TestCase
         $admin = $this->admin();
         $task = Task::create(['user_id' => $admin->id, 'title' => 'Idle task', 'start_datetime' => '2026-06-10 09:00:00', 'status' => TaskStatus::Planned, 'source' => TaskSource::Manual]);
 
-        $this->actingAs($admin)->postJson("/control-room-ao/tasks/{$task->id}/timer/stop")->assertOk();
+        $this->actingAs($admin)->postJson($this->adminUrl("/tasks/{$task->id}/timer/stop"))->assertOk();
     }
 
     public function test_reflection_upsert_is_idempotent_by_period(): void
@@ -213,8 +213,8 @@ class PlanningApiTest extends TestCase
             'notes' => 'Good week overall.',
         ];
 
-        $this->actingAs($admin)->putJson('/control-room-ao/reflections', $payload)->assertOk();
-        $this->actingAs($admin)->putJson('/control-room-ao/reflections', [...$payload, 'notes' => 'Updated notes.'])->assertOk();
+        $this->actingAs($admin)->putJson($this->adminUrl('/reflections'), $payload)->assertOk();
+        $this->actingAs($admin)->putJson($this->adminUrl('/reflections'), [...$payload, 'notes' => 'Updated notes.'])->assertOk();
 
         $this->assertSame(1, Reflection::count());
         $this->assertSame('Updated notes.', Reflection::first()->notes);
@@ -223,14 +223,14 @@ class PlanningApiTest extends TestCase
     public function test_reflection_show_returns_the_matching_period(): void
     {
         $admin = $this->admin();
-        $this->actingAs($admin)->putJson('/control-room-ao/reflections', [
+        $this->actingAs($admin)->putJson($this->adminUrl('/reflections'), [
             'period_type' => 'month',
             'period_start' => '2026-06-01',
             'period_end' => '2026-06-30',
             'notes' => 'Solid month.',
         ]);
 
-        $response = $this->actingAs($admin)->getJson('/control-room-ao/reflections?'.http_build_query([
+        $response = $this->actingAs($admin)->getJson($this->adminUrl('/reflections?').http_build_query([
             'period_type' => 'month',
             'period_start' => '2026-06-01',
             'period_end' => '2026-06-30',
@@ -255,7 +255,7 @@ class PlanningApiTest extends TestCase
         ]);
         $task->timeLogs()->create(['started_at' => '2026-06-10 09:00:00', 'ended_at' => '2026-06-10 09:45:00']);
 
-        $response = $this->actingAs($admin)->getJson('/control-room-ao/reports?'.http_build_query([
+        $response = $this->actingAs($admin)->getJson($this->adminUrl('/reports?').http_build_query([
             'period_type' => 'week',
             'period_start' => '2026-06-08',
         ]));
@@ -306,7 +306,7 @@ class PlanningApiTest extends TestCase
             'source' => TaskSource::Manual,
         ]);
 
-        $response = $this->actingAs($admin)->getJson('/control-room-ao/reports?'.http_build_query([
+        $response = $this->actingAs($admin)->getJson($this->adminUrl('/reports?').http_build_query([
             'period_type' => 'week',
             'period_start' => '2026-06-08',
         ]));

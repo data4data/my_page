@@ -1,4 +1,5 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { adminUrl } from './admin-path';
 import { csrfToken } from './portfolio';
 
 // Monday-based week, matching the backend (Carbon's default startOfWeek()/
@@ -154,14 +155,14 @@ export function usePlanning() {
 
     const fetchTasks = async (start, end) => {
         loading.value = true;
-        const response = await fetch(`/control-room-ao/tasks?start=${toDateKey(start)}&end=${toDateKey(end)}`);
+        const response = await fetch(`${adminUrl('/tasks')}?start=${toDateKey(start)}&end=${toDateKey(end)}`);
         const body = await response.json();
         tasks.value = body.tasks ?? [];
         loading.value = false;
     };
 
     const fetchCategories = async () => {
-        const response = await fetch('/control-room-ao/categories');
+        const response = await fetch(adminUrl('/categories'));
         const body = await response.json();
         categories.value = body.categories ?? [];
     };
@@ -170,7 +171,7 @@ export function usePlanning() {
     // derives period_end from it (see ReportController).
     const fetchReport = async (periodType, periodStart) => {
         const query = new URLSearchParams({ period_type: periodType, period_start: toDateKey(periodStart) });
-        const response = await fetch(`/control-room-ao/reports?${query}`);
+        const response = await fetch(`${adminUrl('/reports')}?${query}`);
 
         if (!response.ok) {
             throw new Error('Could not load the report.');
@@ -186,7 +187,7 @@ export function usePlanning() {
     };
 
     const createCategory = async (payload) => {
-        const response = await fetch('/control-room-ao/categories', {
+        const response = await fetch(adminUrl('/categories'), {
             method: 'POST',
             headers: jsonHeaders,
             body: JSON.stringify(payload),
@@ -200,7 +201,7 @@ export function usePlanning() {
     };
 
     const updateCategory = async (id, payload) => {
-        const response = await fetch(`/control-room-ao/categories/${id}`, {
+        const response = await fetch(`${adminUrl('/categories')}/${id}`, {
             method: 'PUT',
             headers: jsonHeaders,
             body: JSON.stringify(payload),
@@ -214,7 +215,7 @@ export function usePlanning() {
     };
 
     const deleteCategory = async (id) => {
-        const response = await fetch(`/control-room-ao/categories/${id}`, {
+        const response = await fetch(`${adminUrl('/categories')}/${id}`, {
             method: 'DELETE',
             headers: jsonHeaders,
         });
@@ -225,7 +226,7 @@ export function usePlanning() {
     };
 
     const createTask = async (payload) => {
-        const response = await fetch('/control-room-ao/tasks', {
+        const response = await fetch(adminUrl('/tasks'), {
             method: 'POST',
             headers: jsonHeaders,
             body: JSON.stringify(payload),
@@ -239,7 +240,7 @@ export function usePlanning() {
     };
 
     const updateTask = async (id, payload) => {
-        const response = await fetch(`/control-room-ao/tasks/${id}`, {
+        const response = await fetch(`${adminUrl('/tasks')}/${id}`, {
             method: 'PUT',
             headers: jsonHeaders,
             body: JSON.stringify(payload),
@@ -253,7 +254,7 @@ export function usePlanning() {
     };
 
     const deleteTask = async (id) => {
-        const response = await fetch(`/control-room-ao/tasks/${id}`, {
+        const response = await fetch(`${adminUrl('/tasks')}/${id}`, {
             method: 'DELETE',
             headers: jsonHeaders,
         });
@@ -268,7 +269,7 @@ export function usePlanning() {
     // keyed to the same period the report summarises.
     const fetchReflection = async (periodType, periodStart, periodEnd) => {
         const query = new URLSearchParams({ period_type: periodType, period_start: periodStart, period_end: periodEnd });
-        const response = await fetch(`/control-room-ao/reflections?${query}`);
+        const response = await fetch(`${adminUrl('/reflections')}?${query}`);
 
         if (!response.ok) {
             throw new Error('Could not load the reflection.');
@@ -278,7 +279,7 @@ export function usePlanning() {
     };
 
     const saveReflection = async (payload) => {
-        const response = await fetch('/control-room-ao/reflections', {
+        const response = await fetch(adminUrl('/reflections'), {
             method: 'PUT',
             headers: jsonHeaders,
             body: JSON.stringify(payload),
@@ -292,7 +293,7 @@ export function usePlanning() {
     };
 
     const startTaskTimer = async (id) => {
-        const response = await fetch(`/control-room-ao/tasks/${id}/timer/start`, {
+        const response = await fetch(`${adminUrl('/tasks')}/${id}/timer/start`, {
             method: 'POST',
             headers: jsonHeaders,
         });
@@ -305,7 +306,7 @@ export function usePlanning() {
     };
 
     const stopTaskTimer = async (id) => {
-        const response = await fetch(`/control-room-ao/tasks/${id}/timer/stop`, {
+        const response = await fetch(`${adminUrl('/tasks')}/${id}/timer/stop`, {
             method: 'POST',
             headers: jsonHeaders,
         });

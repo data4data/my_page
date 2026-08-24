@@ -53,12 +53,15 @@ DB_CONNECTION=sqlite
 DB_DATABASE=/absolute/path/to/database/database.sqlite
 ```
 
-Choose your admin login **before** seeding — the seeder creates exactly one admin account from these:
+Choose your workspace URL and admin login **before** seeding:
 
 ```env
+ADMIN_PATH=control-room-ab
 ADMIN_EMAIL=you@example.com
 ADMIN_PASSWORD=choose-a-real-password
 ```
+
+`ADMIN_PATH` is the prefix the entire private workspace lives behind — `/` stays the public visit card. It is **not** hardcoded anywhere in the code: pick your own, e.g. your initials as `control-room-ab`. Nothing on the public page links to it, so beyond the login its protection is that it isn't guessable — an install that keeps the shipped default (`control-room`) has the same URL as every other install. `ADMIN_EMAIL` / `ADMIN_PASSWORD` become the one admin account the seeder creates.
 
 Make sure `APP_ENV=local` (it is in `.env.example`) — the demo tasks only seed in local. Then:
 
@@ -67,7 +70,13 @@ php artisan migrate --seed
 composer run dev
 ```
 
-Open `http://127.0.0.1:8000/control-room-ao` and sign in.
+Open `http://127.0.0.1:8000/<ADMIN_PATH>` — with the example above, `http://127.0.0.1:8000/control-room-ab` — and sign in.
+
+If you change `ADMIN_PATH` later, clear the cached routes so the new prefix takes effect:
+
+```bash
+php artisan route:clear && php artisan config:clear
+```
 
 ### What the demo seeds
 
@@ -118,12 +127,12 @@ npm run dev         # frontend (Vite)
 
 - Public page: `http://127.0.0.1:8000`
 - Developer connect form: `http://127.0.0.1:8000/hi-developer`
-- Admin: `http://127.0.0.1:8000/control-room-ao` — not linked anywhere on the public page. Sign in at `/login` with your `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
-  - `/control-room-ao/mijn-agenda` — planning workspace
-  - `/control-room-ao/insights` — connections and industry news
-  - `/control-room-ao/edit-content` — public page content
+- Admin: `http://127.0.0.1:8000/<ADMIN_PATH>` — not linked anywhere on the public page. Sign in at `/login` with your `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+  - `<ADMIN_PATH>/mijn-agenda` — planning workspace
+  - `<ADMIN_PATH>/insights` — connections and industry news
+  - `<ADMIN_PATH>/edit-content` — public page content
 
-> The admin path is deliberately obscure rather than `/admin`, but obscurity is not the protection — every one of those routes is behind `auth` + `role:admin`. If you deploy this, still use a real password.
+> The workspace path is deliberately obscure rather than `/admin`, and is yours to choose (`ADMIN_PATH`) so no two installs share it — but obscurity is not the protection. Every one of those routes is behind `auth` + `role:admin`. If you deploy this, still use a real password.
 
 ## Build
 

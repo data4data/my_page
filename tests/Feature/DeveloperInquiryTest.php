@@ -37,7 +37,7 @@ class DeveloperInquiryTest extends TestCase
 
     public function test_guest_cannot_list_inquiries(): void
     {
-        $this->get('/control-room-ao/inquiries')->assertRedirect('/login');
+        $this->get($this->adminUrl('/inquiries'))->assertRedirect('/login');
     }
 
     public function test_admin_can_list_submitted_inquiries_read_only(): void
@@ -52,7 +52,7 @@ class DeveloperInquiryTest extends TestCase
             'message' => 'Hello!',
         ]);
 
-        $response = $this->actingAs($user)->getJson('/control-room-ao/inquiries');
+        $response = $this->actingAs($user)->getJson($this->adminUrl('/inquiries'));
 
         $response->assertOk()->assertJsonCount(1, 'inquiries');
     }

@@ -35,7 +35,7 @@ vendor/bin/pint                         # PHP code style (Laravel Pint)
 php artisan db:seed --class=DemoWeekSeeder   # refresh the demo week onto the current week
 ```
 
-Note: `.env.example` defaults to MySQL; SQLite is simplest for local dev (`database/database.sqlite` exists in the repo). `phpunit.xml` runs tests against in-memory SQLite regardless. Set `ADMIN_EMAIL`/`ADMIN_PASSWORD` before seeding — `AdminUserSeeder` uses them to create the one admin login.
+Note: `.env.example` defaults to MySQL; SQLite is simplest for local dev (`database/database.sqlite` exists in the repo). `phpunit.xml` runs tests against in-memory SQLite regardless. Set `ADMIN_EMAIL`/`ADMIN_PASSWORD` before seeding — `AdminUserSeeder` uses them to create the one admin login. `ADMIN_PATH` sets the URL prefix the whole private workspace sits behind (see Auth below); it is per-install and never hardcoded.
 
 ## Seeding
 
@@ -64,32 +64,41 @@ Enums in `app/Enums/`: `TaskStatus` (planned, in_progress, paused, done, skipped
 
 ### Auth
 
-`spatie/laravel-permission` provides roles; one admin user holds the `admin` role. Login is plain Laravel session auth (`AuthController`), no Breeze/Fortify. All `/control-room-ao*` routes carry `['auth', 'role:admin']` (the `role` alias is registered in `bootstrap/app.php`, since Laravel 11+ has no `Kernel.php`).
+`spatie/laravel-permission` provides roles; one admin user holds the `admin` role. Login is plain Laravel session auth (`AuthController`), no Breeze/Fortify. All `{admin}*` routes carry `['auth', 'role:admin']` (the `role` alias is registered in `bootstrap/app.php`, since Laravel 11+ has no `Kernel.php`).
+
+**`{admin}` is a placeholder, not a literal path.** The private workspace's URL prefix is per-install — `ADMIN_PATH` in `.env` → `config/admin.php` → `config('admin.path')` — so nothing hardcodes it:
+
+- `routes/web.php` registers one `Route::prefix(config('admin.path'))` group for both the SPA shell routes and the JSON endpoints.
+- `AuthController` falls back to `'/'.config('admin.path')` for the post-login redirect.
+- `resources/views/app.blade.php` emits `<meta name="admin-path">`; `resources/js/shared/admin-path.js` reads it once and exports `adminBase` / `adminUrl(suffix)`. `router.js` builds its admin route paths from `adminUrl()`, and `planning.js` + `AdminPage.vue` build every fetch URL from it. Components navigate by route **name**, so none of them know the prefix.
+- `phpunit.xml` sets `ADMIN_PATH=test-workspace` — deliberately *not* the shipped default — and tests build URLs via `Tests\TestCase::adminUrl()`. Anything that reintroduces a literal prefix fails the suite rather than passing by coincidence.
+
+Changing `ADMIN_PATH` requires `php artisan route:clear` (a cached route table holds the old prefix).
 
 `bootstrap/app.php` also fixes a `shouldRenderJsonWhen()` gotcha — without the `|| $request->expectsJson()` clause, every non-`api/*` validation failure (e.g. a wrong login password) renders as an HTML redirect instead of JSON, breaking every `fetch()`-based form in `resources/js`.
 
 ## Backend API
 
-No `/api` prefix — admin JSON endpoints live under `/control-room-ao/...` alongside the SPA shell routes.
+No `/api` prefix — admin JSON endpoints live under `{admin}/...` alongside the SPA shell routes.
 
-**SPA shell** (all render the same Blade view; `resources/js/router.js` picks the page): `/`, `/login`, `/hi-developer`, `/control-room-ao`, `/control-room-ao/mijn-agenda`, `/control-room-ao/insights`, `/control-room-ao/edit-content`.
+**SPA shell** (all render the same Blade view; `resources/js/router.js` picks the page): `/`, `/login`, `/hi-developer`, `{admin}`, `{admin}/mijn-agenda`, `{admin}/insights`, `{admin}/edit-content`.
 
 **Portfolio** (`PortfolioController`):
 - `GET /portfolio` → public payload, `is_visible = true` only.
-- `GET|PUT /control-room-ao/portfolio` → unfiltered payload / full replace-on-save.
-- `POST /control-room-ao/portfolio/seed-defaults` → reset to `DefaultPortfolioContent`.
+- `GET|PUT {admin}/portfolio` → unfiltered payload / full replace-on-save.
+- `POST {admin}/portfolio/seed-defaults` → reset to `DefaultPortfolioContent`.
 
 `update()` wraps everything in a transaction, applies profile scalars via `Arr::only(...)`, then calls `replaceOrdered()` per child collection, which **deletes all rows for that relation and recreates them from the submitted array**, assigning `sort_order` by position. There is no per-row PATCH — the admin always submits complete collection state.
 
 *Adding a profile/child field:* migration → model `$fillable`/`$casts` → the relevant key-list in `PortfolioController` (the `Arr::only` call, or the `$keys` array passed to `replaceOrdered`) → `DefaultPortfolioContent::content()` if it should ship seeded.
 
 **Planner**:
-- `GET|POST /control-room-ao/tasks`, `PUT|DELETE /control-room-ao/tasks/{task}` — index requires `start`/`end` date params; the calendar fetches by visible range.
-- `POST /control-room-ao/tasks/{task}/timer/start|stop`.
-- `GET|POST /control-room-ao/categories`, `PUT|DELETE /control-room-ao/categories/{category}`.
-- `GET /control-room-ao/reports?period_type=week|month&period_start=Y-m-d`.
-- `GET|PUT /control-room-ao/reflections` (upsert by period).
-- `GET /control-room-ao/inquiries` — intentionally **view-only**; no update/destroy exists.
+- `GET|POST {admin}/tasks`, `PUT|DELETE {admin}/tasks/{task}` — index requires `start`/`end` date params; the calendar fetches by visible range.
+- `POST {admin}/tasks/{task}/timer/start|stop`.
+- `GET|POST {admin}/categories`, `PUT|DELETE {admin}/categories/{category}`.
+- `GET {admin}/reports?period_type=week|month&period_start=Y-m-d`.
+- `GET|PUT {admin}/reflections` (upsert by period).
+- `GET {admin}/inquiries` — intentionally **view-only**; no update/destroy exists.
 
 Every planner controller checks ownership (`abort_unless($task->user_id === $request->user()->id, 403)`).
 
@@ -112,6 +121,7 @@ For the panel to stretch to the bottom of the page, its ancestors must form an u
 **Agenda** (`resources/js/pages/admin/agenda/`): `CalendarView` (mode switching, filters, period navigation, task CRUD wiring) → `DayView` / `WeekView` / `MonthView` / `CategoriesView` / `ReportView`, plus `TaskCard`, `TaskModal`, `CategoryModal`.
 
 **Shared** (`resources/js/shared/`):
+- `admin-path.js` — `adminBase` / `adminUrl(suffix)`, read once from the `admin-path` meta tag. Every admin URL in the frontend goes through it; never write the prefix out by hand.
 - `portfolio.js` — fetch/normalize + `usePortfolioSource`.
 - `planning.js` — date helpers, `usePlanning` (all planner fetches/mutations), `useRunningElapsed` (the ticking timer label, shared by `TaskCard` and `TaskModal` so they can't drift).
 - `i18n.js` — the `ui` EN/NL dictionary plus `lang`/`copy`/`t`. `lang` is a module-level singleton persisted to `localStorage`.

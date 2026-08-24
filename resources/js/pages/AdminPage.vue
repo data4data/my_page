@@ -17,6 +17,7 @@ import AgendaPage from './admin/AgendaPage.vue';
 import ToastStack from '../components/ui/ToastStack.vue';
 import ConfirmDialog from '../components/ui/ConfirmDialog.vue';
 import { copy } from '../shared/i18n';
+import { adminUrl } from '../shared/admin-path';
 import { csrfToken, usePortfolioSource } from '../shared/portfolio';
 import { useToast } from '../shared/toast';
 
@@ -33,7 +34,7 @@ const {
     expertise,
     projects,
     processSteps,
-} = usePortfolioSource('/control-room-ao/portfolio');
+} = usePortfolioSource(adminUrl('/portfolio'));
 
 const saving = ref(false);
 const restoring = ref(false);
@@ -73,7 +74,7 @@ const adminTabs = computed(() => [
 
 const fetchInquiries = async () => {
     inquiriesLoading.value = true;
-    const response = await fetch('/control-room-ao/inquiries');
+    const response = await fetch(adminUrl('/inquiries'));
     const body = await response.json();
     inquiries.value = body.inquiries ?? [];
     inquiriesLoading.value = false;
@@ -85,7 +86,7 @@ fetchInquiries();
 const savePortfolio = async () => {
     saving.value = true;
 
-    const response = await fetch('/control-room-ao/portfolio', {
+    const response = await fetch(adminUrl('/portfolio'), {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -109,7 +110,7 @@ const savePortfolio = async () => {
 const restoreDefaults = async () => {
     restoring.value = true;
 
-    const response = await fetch('/control-room-ao/portfolio/seed-defaults', {
+    const response = await fetch(adminUrl('/portfolio/seed-defaults'), {
         method: 'POST',
         headers: {
             Accept: 'application/json',

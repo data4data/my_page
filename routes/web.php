@@ -16,44 +16,48 @@ Route::get('/', [PortfolioController::class, 'app']);
 Route::get('/login', [PortfolioController::class, 'app'])->name('login')->middleware('guest');
 Route::get('/hi-developer', [PortfolioController::class, 'app']);
 
-// The real admin editor intentionally lives at an unlinked, non-obvious path
-// (no button/link anywhere on the public page points at it) rather than
-// /admin — reachable only by whoever already knows the URL. Each top-level
-// admin section has its own real, bookmarkable/refreshable URL — vue-router
-// (resources/js/router.js) reads the path to decide which one is active.
-Route::get('/control-room-ao', [PortfolioController::class, 'app'])->middleware(['auth', 'role:admin']);
-Route::get('/control-room-ao/mijn-agenda', [PortfolioController::class, 'app'])->middleware(['auth', 'role:admin']);
-Route::get('/control-room-ao/insights', [PortfolioController::class, 'app'])->middleware(['auth', 'role:admin']);
-Route::get('/control-room-ao/edit-content', [PortfolioController::class, 'app'])->middleware(['auth', 'role:admin']);
-
 Route::get('/portfolio', [PortfolioController::class, 'show']);
 Route::post('/hi-developer', [DeveloperInquiryController::class, 'store'])->middleware('throttle:10,1');
 
 Route::post('/login', [AuthController::class, 'store'])->name('login.attempt')->middleware(['guest', 'throttle:6,1']);
 Route::post('/logout', [AuthController::class, 'destroy'])->name('logout')->middleware('auth');
 
-Route::middleware(['auth', 'role:admin'])->group(function () {
-    Route::get('/control-room-ao/portfolio', [PortfolioController::class, 'edit']);
-    Route::put('/control-room-ao/portfolio', [PortfolioController::class, 'update']);
-    Route::post('/control-room-ao/portfolio/seed-defaults', [PortfolioController::class, 'seedDefaults']);
-    Route::get('/control-room-ao/inquiries', [DeveloperInquiryController::class, 'index']);
+// The private workspace — admin editor and planning calendar — lives behind a
+// per-install prefix (ADMIN_PATH in .env, see config/admin.php) rather than
+// /admin, and nothing on the public page links to it. The prefix is read from
+// config, not written here, so no install ships with the same guessable URL.
+// The Blade shell passes the same value to the frontend as a <meta> tag, which
+// is what resources/js/shared/admin-path.js reads.
+Route::prefix(config('admin.path'))->middleware(['auth', 'role:admin'])->group(function () {
+    // SPA shell routes. Each top-level admin section has its own real,
+    // bookmarkable/refreshable URL — vue-router reads the path to decide
+    // which one is active.
+    Route::get('/', [PortfolioController::class, 'app']);
+    Route::get('/mijn-agenda', [PortfolioController::class, 'app']);
+    Route::get('/insights', [PortfolioController::class, 'app']);
+    Route::get('/edit-content', [PortfolioController::class, 'app']);
+
+    Route::get('/portfolio', [PortfolioController::class, 'edit']);
+    Route::put('/portfolio', [PortfolioController::class, 'update']);
+    Route::post('/portfolio/seed-defaults', [PortfolioController::class, 'seedDefaults']);
+    Route::get('/inquiries', [DeveloperInquiryController::class, 'index']);
 
     // Planning Calendar (Agenda) — all scoped to the authenticated admin.
-    Route::get('/control-room-ao/categories', [CategoryController::class, 'index']);
-    Route::post('/control-room-ao/categories', [CategoryController::class, 'store']);
-    Route::put('/control-room-ao/categories/{category}', [CategoryController::class, 'update']);
-    Route::delete('/control-room-ao/categories/{category}', [CategoryController::class, 'destroy']);
+    Route::get('/categories', [CategoryController::class, 'index']);
+    Route::post('/categories', [CategoryController::class, 'store']);
+    Route::put('/categories/{category}', [CategoryController::class, 'update']);
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
 
-    Route::get('/control-room-ao/tasks', [TaskController::class, 'index']);
-    Route::post('/control-room-ao/tasks', [TaskController::class, 'store']);
-    Route::put('/control-room-ao/tasks/{task}', [TaskController::class, 'update']);
-    Route::delete('/control-room-ao/tasks/{task}', [TaskController::class, 'destroy']);
+    Route::get('/tasks', [TaskController::class, 'index']);
+    Route::post('/tasks', [TaskController::class, 'store']);
+    Route::put('/tasks/{task}', [TaskController::class, 'update']);
+    Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
 
-    Route::post('/control-room-ao/tasks/{task}/timer/start', [TimeLogController::class, 'start']);
-    Route::post('/control-room-ao/tasks/{task}/timer/stop', [TimeLogController::class, 'stop']);
+    Route::post('/tasks/{task}/timer/start', [TimeLogController::class, 'start']);
+    Route::post('/tasks/{task}/timer/stop', [TimeLogController::class, 'stop']);
 
-    Route::get('/control-room-ao/reports', [ReportController::class, 'show']);
+    Route::get('/reports', [ReportController::class, 'show']);
 
-    Route::get('/control-room-ao/reflections', [ReflectionController::class, 'show']);
-    Route::put('/control-room-ao/reflections', [ReflectionController::class, 'upsert']);
+    Route::get('/reflections', [ReflectionController::class, 'show']);
+    Route::put('/reflections', [ReflectionController::class, 'upsert']);
 });

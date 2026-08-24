@@ -27,7 +27,11 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return response()->json(['redirect' => $request->session()->pull('url.intended', '/control-room-ao')]);
+        // Fall back to the private workspace's configured prefix (config/admin.php)
+        // rather than a literal path, so a renamed ADMIN_PATH still lands correctly.
+        return response()->json([
+            'redirect' => $request->session()->pull('url.intended', '/'.config('admin.path')),
+        ]);
     }
 
     public function destroy(Request $request): RedirectResponse
