@@ -10,7 +10,7 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    // Called via fetch from resources/js/pages/LoginPage.vue, same JSON
+    // Called via fetch from resources/js/pages/admin/LoginPage.vue, same JSON
     // request/response pattern as the rest of the admin API.
     public function store(Request $request): JsonResponse
     {

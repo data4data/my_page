@@ -129,7 +129,9 @@ Controllers validate, authorize, delegate, and return JSON. Rules that outlive a
 
 ## Frontend
 
-`resources/js/router.js` maps paths to lazily-loaded pages: `PublicPage.vue` (also renders `DeveloperConnectModal` on `/hi-developer`), `LoginPage.vue`, and `AdminPage.vue` for all four admin routes — `AdminPage` derives its active section from the route name, so each section is a real bookmarkable/refreshable URL.
+`resources/js/pages/` is split by audience: `public/` holds what an anonymous visitor sees, `admin/` everything behind the login (including `LoginPage.vue`, which is the door to it).
+
+`resources/js/router.js` maps paths to lazily-loaded pages: `public/PublicPage.vue` (also renders `DeveloperConnectModal` on `/hi-developer`), `admin/LoginPage.vue`, and `admin/AdminPage.vue` for all four admin routes — `AdminPage` derives its active section from the route name, so each section is a real bookmarkable/refreshable URL.
 
 **Admin shell** (`resources/js/components/admin/`):
 - `AdminLayout.vue` — header + left nav rail + content column. The rail and header share `bg-cream/90` so the chrome reads as one surface; the rail's right border is the single vertical divider, which is why `.admin-panel` drops its own left/bottom border at `lg` and runs flush into it.
