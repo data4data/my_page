@@ -15,14 +15,14 @@ const routes = [
     {
         path: '/',
         name: 'public',
-        component: () => import('./pages/PublicPage.vue'),
+        component: () => import('./pages/public/PublicPage.vue'),
     },
     {
         path: '/hi-developer',
         name: 'hi-developer',
         // Same component as '/' — the connect form renders as a popup over
         // the already-fetched public page rather than being its own page.
-        component: () => import('./pages/PublicPage.vue'),
+        component: () => import('./pages/public/PublicPage.vue'),
     },
     {
         path: adminUrl(),
@@ -31,22 +31,22 @@ const routes = [
     {
         path: adminUrl('/mijn-agenda'),
         name: 'admin-agenda',
-        component: () => import('./pages/AdminPage.vue'),
+        component: () => import('./pages/admin/AdminPage.vue'),
     },
     {
         path: adminUrl('/insights'),
         name: 'admin-insights',
-        component: () => import('./pages/AdminPage.vue'),
+        component: () => import('./pages/admin/AdminPage.vue'),
     },
     {
         path: adminUrl('/edit-content'),
         name: 'admin-edit',
-        component: () => import('./pages/AdminPage.vue'),
+        component: () => import('./pages/admin/AdminPage.vue'),
     },
     {
         path: '/login',
         name: 'login',
-        component: () => import('./pages/LoginPage.vue'),
+        component: () => import('./pages/admin/LoginPage.vue'),
     },
 ];
 

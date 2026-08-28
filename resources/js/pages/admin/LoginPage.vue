@@ -1,9 +1,9 @@
 <script setup>
 import { onMounted, ref } from 'vue';
-import AppInput from '../components/ui/AppInput.vue';
-import AppButton from '../components/ui/AppButton.vue';
-import AppCheckbox from '../components/ui/AppCheckbox.vue';
-import { csrfToken } from '../shared/portfolio';
+import AppInput from '../../components/ui/AppInput.vue';
+import AppButton from '../../components/ui/AppButton.vue';
+import AppCheckbox from '../../components/ui/AppCheckbox.vue';
+import { csrfToken } from '../../shared/portfolio';
 
 const email = ref('');
 const password = ref('');

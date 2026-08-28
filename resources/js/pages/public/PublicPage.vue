@@ -2,11 +2,11 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ArrowRight, ChevronLeft, ChevronRight } from '@lucide/vue';
-import AppButton from '../components/ui/AppButton.vue';
-import DeveloperConnectModal from '../components/DeveloperConnectModal.vue';
-import { resolveIcon } from '../shared/icons';
-import { applyLanguagePolicy, copy, lang, LANGUAGES, languageSwitcherShown, setLang, t } from '../shared/i18n';
-import { usePortfolioSource } from '../shared/portfolio';
+import AppButton from '../../components/ui/AppButton.vue';
+import DeveloperConnectModal from '../../components/DeveloperConnectModal.vue';
+import { resolveIcon } from '../../shared/icons';
+import { applyLanguagePolicy, copy, lang, LANGUAGES, languageSwitcherShown, setLang, t } from '../../shared/i18n';
+import { usePortfolioSource } from '../../shared/portfolio';
 
 const route = useRoute();
 const showConnectModal = computed(() => route.name === 'hi-developer');
