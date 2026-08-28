@@ -49,6 +49,8 @@ Both planner seeders are re-runnable: `CategorySeeder` uses `updateOrCreate`; `D
 
 `PortfolioProfile` is the root model (`slug` unique, `is_active` selects which profile is live) with four `hasMany` children: `metrics`, `expertiseItems`, `projects`, `processSteps`. Each child carries its own `sort_order` and `is_visible`. Free-text fields on profile and children are cast `array` and store `{en: ..., nl: ...}` — there is no translations table. `default_language` and `show_language_toggle` on the profile control what a first-time visitor sees and whether the EN/NL switcher renders at all.
 
+`PortfolioRevision` is the page's undo history: one row per save holding the **complete** payload as a JSON snapshot, plus who saved it and when. Snapshots rather than soft deletes, because `update()` *updates* the profile row rather than deleting it — soft-deleted child rows would have left the 15 profile fields with no history at all, and carry nothing that groups them into a version. `user_id` is null only for the baseline snapshot taken before the very first save, which is what makes that first save undoable. Capped at the newest 20 per profile.
+
 `DeveloperInquiry` (flat, untranslated) holds public connect-form submissions.
 
 ### Planner aggregate
@@ -87,10 +89,14 @@ No `/api` prefix — admin JSON endpoints live under `{admin}/...` alongside the
 - `GET /portfolio` → public payload, `is_visible = true` only.
 - `GET|PUT {admin}/portfolio` → unfiltered payload / full replace-on-save.
 - `POST {admin}/portfolio/seed-defaults` → reset to `DefaultPortfolioContent`.
+- `GET {admin}/portfolio/revisions` → saved-version list (`id`, `created_at`, `author`). Deliberately **excludes** `payload`, which runs to tens of KB per row.
+- `POST {admin}/portfolio/revisions/{revision}/restore` → re-applies that snapshot; 404 if it belongs to another profile.
 
-`update()` wraps everything in a transaction, applies profile scalars via `Arr::only(...)`, then calls `replaceOrdered()` per child collection, which **deletes all rows for that relation and recreates them from the submitted array**, assigning `sort_order` by position. There is no per-row PATCH — the admin always submits complete collection state.
+All four writes go through `PortfolioContentService` — `save()`, `seedDefaults()` and `restore()` share one transaction and one write path, so a restored version can never be built differently from a saved one, and all three record history without any of them remembering to. `save()` applies profile scalars via `Arr::only(...)`, then `replaceOrdered()` per child collection, which **deletes all rows for that relation and recreates them from the submitted array**, assigning `sort_order` by position. There is no per-row PATCH — the admin always submits complete collection state. `restore()` is literally `save($revision->payload)`, which is why it has no logic of its own.
 
-*Adding a profile/child field:* migration → model `$fillable`/`$casts` → the relevant key-list in `PortfolioController` (the `Arr::only` call, or the `$keys` array passed to `replaceOrdered`) → `DefaultPortfolioContent::content()` if it should ship seeded.
+*Adding a profile/child field:* migration → model `$fillable`/`$casts` → the matching key-list constant in `PortfolioContentService` (`PROFILE_KEYS` or `CHILD_KEYS`) → a rule in `UpdatePortfolioRequest` → `DefaultPortfolioContent::content()` if it should ship seeded.
+
+`UpdatePortfolioRequest` validates **types and lengths, not presence**: the editor lets fields be cleared, so `required` on free text would reject payloads the UI legitimately produces. Presence is demanded only where the column is NOT NULL (`metrics.*.value`), because Laravel's `ConvertEmptyStringsToNull` middleware turns a cleared field into `null` and the insert would otherwise 500 instead of returning a readable 422. Two tests in `PortfolioContentTest` guard this by fetching the admin payload and PUTting it straight back — the same round trip pressing Save performs.
 
 **Planner**:
 - `GET|POST {admin}/tasks`, `PUT|DELETE {admin}/tasks/{task}` — index requires `start`/`end` date params; the calendar fetches by visible range.
@@ -100,13 +106,26 @@ No `/api` prefix — admin JSON endpoints live under `{admin}/...` alongside the
 - `GET|PUT {admin}/reflections` (upsert by period).
 - `GET {admin}/inquiries` — intentionally **view-only**; no update/destroy exists.
 
-Every planner controller checks ownership (`abort_unless($task->user_id === $request->user()->id, 403)`).
+Ownership lives in `app/Policies/` (`TaskPolicy`, `CategoryPolicy`), found by naming convention — nothing registers them. `CategoryPolicy` keeps the rule that a **global** category (`user_id` null) is editable by anyone. The base `Controller` carries `AuthorizesRequests`, which Laravel 11+ leaves off, so `$this->authorize()` works. Write endpoints with a request body check ownership in their Form Request's `authorize()`; `destroy` and the timer endpoints (no body, so no Form Request) call `$this->authorize()` directly.
+
+### Where the logic lives
+
+Controllers validate, authorize, delegate, and return JSON. Rules that outlive a request live elsewhere:
+
+- **`app/Services/`** — `PortfolioContentService` (the single write path for the public page, above) and `TimerService`. Plain concrete classes injected via `__construct()`; the container resolves them by reflection, so **`AppServiceProvider` stays empty** — no bindings, no interfaces. Add one only when a second implementation actually exists.
+- **`app/Http/Requests/`** — `Store`/`Update` pairs for Task and Category, plus `UpdatePortfolioRequest`. Pairs, not single classes: the partial-update path swaps `required` for `sometimes`, so one rule set genuinely cannot serve both.
+- **`app/Policies/`** — ownership, as above.
+- **The models themselves** — `Task::plannedMinutes()`.
+
+`AuthController`, `DeveloperInquiryController`, `ReflectionController` and `ReportController` deliberately keep inline `$request->validate()`. Their rules are short and single-use; converting them would be ceremony.
 
 ### Two rules worth knowing before editing planner code
 
-**Only one timer runs at a time.** `TimeLogController::start()` calls `pauseOtherRunningTasks()`, which closes any other open log for that user and sets those tasks to `paused`. Without it the same minutes count against several tasks and every report total overstates the day. Those logs are closed **one model at a time** (`$log->update(...)`), not via a mass query update — a builder `update()` bypasses `TimeLog::booted()` and would silently skip computing `duration_minutes`.
+**Only one timer runs at a time.** `TimerService::start()` calls `pauseOtherRunningTasks()`, which closes any other open log for that user and sets those tasks to `paused`. Without it the same minutes count against several tasks and every report total overstates the day. Those logs are closed **one model at a time** (`$log->update(...)`), not via a mass query update — a builder `update()` bypasses `TimeLog::booted()` and would silently skip computing `duration_minutes`. `TimerServiceTest` calls the service directly, with no HTTP involved.
 
-**Planned time has a fallback.** `ReportController::plannedMinutes()` prefers `planned_duration_minutes`, falls back to the scheduled `start → end` span (tasks added via the calendar set times but no explicit duration), and returns 0 for open-ended tasks.
+`Carbon::now()` is called directly here on purpose — `Carbon::setTestNow()` already makes it controllable, so a Clock abstraction would solve a problem the framework has solved.
+
+**Planned time has a fallback.** `Task::plannedMinutes()` prefers `planned_duration_minutes`, falls back to the scheduled `start → end` span (tasks added via the calendar set times but no explicit duration), and returns 0 for open-ended tasks.
 
 ## Frontend
 
@@ -115,6 +134,8 @@ Every planner controller checks ownership (`abort_unless($task->user_id === $req
 **Admin shell** (`resources/js/components/admin/`):
 - `AdminLayout.vue` — header + left nav rail + content column. The rail and header share `bg-cream/90` so the chrome reads as one surface; the rail's right border is the single vertical divider, which is why `.admin-panel` drops its own left/bottom border at `lg` and runs flush into it.
 - `SectionTabs.vue` — the shared "folder bookmark" tab strip + `.admin-panel` card. **The only place the panel is rendered.** Passing `:tabs="[]"` still yields the card, just with no tab row.
+
+The **Reset content** tab (`pages/admin/ResetContentTab.vue`) holds both the seed-defaults button and the change-history list. `AdminPage.vue` owns the state (`revisions`, `revisionsLoading`, `restoringId`) and refreshes the list after every save, reset and restore, so a new version appears without a reload. Restore goes through the shared `confirm()` — it overwrites the live public page.
 
 For the panel to stretch to the bottom of the page, its ancestors must form an unbroken flex column. `AdminLayout`'s content column and `CalendarView`'s wrapper both participate — Agenda nests the panel one level deeper than Insights/Edit, so a change there needs checking on all three sections.
 

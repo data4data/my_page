@@ -7,26 +7,26 @@ use Illuminate\Support\Facades\DB;
 
 class DefaultPortfolioContent
 {
-    public static function seed(): PortfolioProfile
+    public function seed(): PortfolioProfile
     {
         return DB::transaction(function (): PortfolioProfile {
-            $content = self::content();
+            $content = $this->content();
 
             $profile = PortfolioProfile::updateOrCreate(
                 ['slug' => 'oa'],
                 $content['profile'],
             );
 
-            self::replace($profile, 'metrics', $content['metrics']);
-            self::replace($profile, 'expertiseItems', $content['expertise_items']);
-            self::replace($profile, 'projects', $content['projects']);
-            self::replace($profile, 'processSteps', $content['process_steps']);
+            $this->replace($profile, 'metrics', $content['metrics']);
+            $this->replace($profile, 'expertiseItems', $content['expertise_items']);
+            $this->replace($profile, 'projects', $content['projects']);
+            $this->replace($profile, 'processSteps', $content['process_steps']);
 
             return $profile;
         });
     }
 
-    public static function content(): array
+    public function content(): array
     {
         return [
             'profile' => [
@@ -147,7 +147,7 @@ class DefaultPortfolioContent
         ];
     }
 
-    private static function replace(PortfolioProfile $profile, string $relation, array $items): void
+    private function replace(PortfolioProfile $profile, string $relation, array $items): void
     {
         $profile->{$relation}()->delete();
 

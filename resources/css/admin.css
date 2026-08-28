@@ -52,6 +52,34 @@
         @apply rounded-lg border border-info bg-info-bg px-4 py-3 text-sm leading-6 text-info-text;
     }
 
+    /* Saved-version list on the Reset content tab (ResetContentTab.vue).
+       Deliberately lighter than .editable-card — these rows are a log to scan,
+       not content to edit. */
+    .history-heading {
+        @apply mb-3 flex items-center gap-2 text-sm font-semibold uppercase text-ink;
+        letter-spacing: 0.12em;
+    }
+
+    .history-list {
+        @apply mt-4 divide-y divide-sand overflow-hidden rounded-lg border border-sand bg-parchment/50;
+    }
+
+    .history-row {
+        @apply flex flex-wrap items-center justify-between gap-3 px-4 py-3;
+    }
+
+    .history-meta {
+        @apply flex min-w-0 flex-col gap-0.5;
+    }
+
+    .history-time {
+        @apply text-sm font-semibold text-ink;
+    }
+
+    .history-author {
+        @apply text-xs text-taupe;
+    }
+
     /* Toast notifications (ToastStack.vue) — one color per type, stacked
        top-to-bottom in DOM/push order via TransitionGroup below. */
     .app-toast {

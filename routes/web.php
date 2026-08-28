@@ -40,6 +40,10 @@ Route::prefix(config('admin.path'))->middleware(['auth', 'role:admin'])->group(f
     Route::get('/portfolio', [PortfolioController::class, 'edit']);
     Route::put('/portfolio', [PortfolioController::class, 'update']);
     Route::post('/portfolio/seed-defaults', [PortfolioController::class, 'seedDefaults']);
+
+    // Saved versions of the public page, listed on the Reset content tab.
+    Route::get('/portfolio/revisions', [PortfolioController::class, 'revisions']);
+    Route::post('/portfolio/revisions/{revision}/restore', [PortfolioController::class, 'restore']);
     Route::get('/inquiries', [DeveloperInquiryController::class, 'index']);
 
     // Planning Calendar (Agenda) — all scoped to the authenticated admin.

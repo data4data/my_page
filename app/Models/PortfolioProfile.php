@@ -62,4 +62,9 @@ class PortfolioProfile extends Model
     {
         return $this->hasMany(ProcessStep::class);
     }
+
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(PortfolioRevision::class);
+    }
 }

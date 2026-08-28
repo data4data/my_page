@@ -20,8 +20,10 @@ import { copy } from '../shared/i18n';
 import { adminUrl } from '../shared/admin-path';
 import { csrfToken, usePortfolioSource } from '../shared/portfolio';
 import { useToast } from '../shared/toast';
+import { useConfirm } from '../shared/confirm';
 
 const toast = useToast();
+const { confirm } = useConfirm();
 const route = useRoute();
 const router = useRouter();
 
@@ -39,6 +41,11 @@ const {
 const saving = ref(false);
 const restoring = ref(false);
 const tab = ref('profile');
+
+// Saved versions of the public page, listed on the Reset content tab.
+const revisions = ref([]);
+const revisionsLoading = ref(true);
+const restoringId = ref(null);
 
 // Top-level admin section — driven by the URL (each has its own real,
 // bookmarkable/refreshable path) rather than local component state, so
@@ -80,8 +87,17 @@ const fetchInquiries = async () => {
     inquiriesLoading.value = false;
 };
 
+const fetchRevisions = async () => {
+    revisionsLoading.value = true;
+    const response = await fetch(adminUrl('/portfolio/revisions'));
+    const body = await response.json();
+    revisions.value = body.revisions ?? [];
+    revisionsLoading.value = false;
+};
+
 fetchPortfolio();
 fetchInquiries();
+fetchRevisions();
 
 const savePortfolio = async () => {
     saving.value = true;
@@ -103,6 +119,9 @@ const savePortfolio = async () => {
     }
 
     await fetchPortfolio();
+    // The save just created a new version — refresh the list so it shows up
+    // without a page reload.
+    await fetchRevisions();
     toast.success(copy('saved'));
     saving.value = false;
 };
@@ -125,8 +144,38 @@ const restoreDefaults = async () => {
     }
 
     await fetchPortfolio();
+    await fetchRevisions();
     toast.success(copy('restored'));
     restoring.value = false;
+};
+
+// Restoring overwrites the live public page, so it asks first — via the shared
+// confirm() singleton rather than window.confirm.
+const restoreRevision = async (id) => {
+    if (!await confirm({ message: copy('historyConfirm'), confirmLabel: copy('historyRestore') })) {
+        return;
+    }
+
+    restoringId.value = id;
+
+    const response = await fetch(adminUrl(`/portfolio/revisions/${id}/restore`), {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'X-CSRF-TOKEN': csrfToken(),
+        },
+    });
+
+    if (!response.ok) {
+        toast.error(copy('error'));
+        restoringId.value = null;
+        return;
+    }
+
+    await fetchPortfolio();
+    await fetchRevisions();
+    toast.success(copy('historyRestored'));
+    restoringId.value = null;
 };
 
 const addItem = (collection, item) => {
@@ -172,7 +221,15 @@ const updateTags = (project, value) => {
             <ProcessTab v-else-if="tab === 'process'" :process-steps="processSteps" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
             <ProjectsTab v-else-if="tab === 'projects'" :projects="projects" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :update-tags="updateTags" />
             <LanguageTab v-else-if="tab === 'language'" :profile="profile" />
-            <ResetContentTab v-else-if="tab === 'reset'" :restoring="restoring" :restore-defaults="restoreDefaults" />
+            <ResetContentTab
+                v-else-if="tab === 'reset'"
+                :restoring="restoring"
+                :restore-defaults="restoreDefaults"
+                :revisions="revisions"
+                :revisions-loading="revisionsLoading"
+                :restore-revision="restoreRevision"
+                :restoring-id="restoringId"
+            />
         </SectionTabs>
 
         <template #fab>
