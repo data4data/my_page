@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreCategoryRequest;
+use App\Http\Requests\UpdateCategoryRequest;
 use App\Models\Category;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
 {
@@ -25,9 +26,9 @@ class CategoryController extends Controller
         return response()->json(['categories' => $categories]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreCategoryRequest $request): JsonResponse
     {
-        $data = $this->validated($request);
+        $data = $request->validated();
         $data['user_id'] = $request->user()->id;
 
         $category = Category::create($data);
@@ -35,46 +36,22 @@ class CategoryController extends Controller
         return response()->json(['category' => $category], 201);
     }
 
-    public function update(Request $request, Category $category): JsonResponse
+    // Ownership is checked by UpdateCategoryRequest::authorize(), which runs
+    // before this method is entered.
+    public function update(UpdateCategoryRequest $request, Category $category): JsonResponse
     {
-        $this->authorizeOwnership($request, $category);
-
-        $category->update($this->validated($request, $category));
+        $category->update($request->validated());
 
         return response()->json(['category' => $category]);
     }
 
+    // No request body, so no Form Request — the policy check stays here.
     public function destroy(Request $request, Category $category): JsonResponse
     {
-        $this->authorizeOwnership($request, $category);
+        $this->authorize('delete', $category);
 
         $category->delete();
 
         return response()->json(['message' => 'Category deleted.']);
-    }
-
-    private function validated(Request $request, ?Category $category = null): array
-    {
-        return $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'color' => ['required', 'string', 'max:7'],
-            'icon' => ['nullable', 'string', 'max:60'],
-            'parent_id' => [
-                'nullable',
-                Rule::exists('categories', 'id')->where(fn ($query) => $query->whereNull('parent_id')),
-                function ($attribute, $value, $fail) use ($category) {
-                    if ($category && $value == $category->id) {
-                        $fail('A category cannot be its own parent.');
-                    }
-                },
-            ],
-        ]);
-    }
-
-    // Single-admin app today, but scoped defensively: only the category's
-    // owner (or anyone, for a shared/global default) can edit or delete it.
-    private function authorizeOwnership(Request $request, Category $category): void
-    {
-        abort_unless($category->user_id === null || $category->user_id === $request->user()->id, 403);
     }
 }

@@ -15,7 +15,7 @@ class TimeLogController extends Controller
     // starting a second concurrent log.
     public function start(Request $request, Task $task): JsonResponse
     {
-        $this->authorizeOwnership($request, $task);
+        $this->authorize('update', $task);
 
         $running = $task->timeLogs()->whereNull('ended_at')->first();
 
@@ -37,7 +37,7 @@ class TimeLogController extends Controller
     // even if the timer was already stopped elsewhere.
     public function stop(Request $request, Task $task): JsonResponse
     {
-        $this->authorizeOwnership($request, $task);
+        $this->authorize('update', $task);
 
         $running = $task->timeLogs()->whereNull('ended_at')->latest('started_at')->first();
         $running?->update(['ended_at' => Carbon::now()]);
@@ -63,10 +63,5 @@ class TimeLogController extends Controller
 
             $other->update(['status' => TaskStatus::Paused]);
         }
-    }
-
-    private function authorizeOwnership(Request $request, Task $task): void
-    {
-        abort_unless($task->user_id === $request->user()->id, 403);
     }
 }

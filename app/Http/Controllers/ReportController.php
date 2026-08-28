@@ -39,7 +39,7 @@ class ReportController extends Controller
                 'category' => $name,
                 'color' => $group->first()->category?->color ?? '#9b9b9b',
                 'minutes' => $group->flatMap->timeLogs->sum('duration_minutes'),
-                'planned_minutes' => $group->sum(fn (Task $task) => $this->plannedMinutes($task)),
+                'planned_minutes' => $group->sum(fn (Task $task) => $task->plannedMinutes()),
                 'tasks' => $group->count(),
             ])
             ->values();
@@ -53,31 +53,10 @@ class ReportController extends Controller
             'period_start' => $start->toDateString(),
             'period_end' => $end->toDateString(),
             'total_minutes' => $tasks->flatMap->timeLogs->sum('duration_minutes'),
-            'total_planned_minutes' => $tasks->sum(fn (Task $task) => $this->plannedMinutes($task)),
+            'total_planned_minutes' => $tasks->sum(fn (Task $task) => $task->plannedMinutes()),
             'task_count' => $tasks->count(),
             'by_category' => $byCategory,
             'by_status' => $byStatus,
         ]);
-    }
-
-    /**
-     * How long the task was meant to take. Prefers the explicit
-     * planned_duration_minutes, falling back to the scheduled start→end span
-     * (tasks added through the calendar set times but not a duration), and 0
-     * when the task is open-ended.
-     */
-    private function plannedMinutes(Task $task): int
-    {
-        if ($task->planned_duration_minutes !== null) {
-            return $task->planned_duration_minutes;
-        }
-
-        if (! $task->end_datetime) {
-            return 0;
-        }
-
-        // Raw timestamps rather than diffInMinutes(), whose sign/abs handling
-        // varies by Carbon version — same reason TimeLog::booted() does it.
-        return max(0, (int) round(($task->end_datetime->timestamp - $task->start_datetime->timestamp) / 60));
     }
 }

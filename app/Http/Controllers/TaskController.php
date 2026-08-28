@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Enums\TaskSource;
 use App\Enums\TaskStatus;
+use App\Http\Requests\StoreTaskRequest;
+use App\Http\Requests\UpdateTaskRequest;
 use App\Models\Task;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class TaskController extends Controller
 {
@@ -34,9 +35,9 @@ class TaskController extends Controller
         return response()->json(['tasks' => $tasks]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreTaskRequest $request): JsonResponse
     {
-        $data = $this->validated($request);
+        $data = $request->validated();
         $data['user_id'] = $request->user()->id;
         $data['source'] ??= TaskSource::Manual->value;
         // The DB column defaults to 'planned' too, but only setting it there
@@ -49,45 +50,22 @@ class TaskController extends Controller
         return response()->json(['task' => $task->load(['category', 'timeLogs'])], 201);
     }
 
-    public function update(Request $request, Task $task): JsonResponse
+    // Ownership is checked by UpdateTaskRequest::authorize(), which runs before
+    // this method is entered.
+    public function update(UpdateTaskRequest $request, Task $task): JsonResponse
     {
-        $this->authorizeOwnership($request, $task);
-
-        $task->update($this->validated($request, partial: true));
+        $task->update($request->validated());
 
         return response()->json(['task' => $task->load(['category', 'timeLogs'])]);
     }
 
+    // No request body, so no Form Request — the policy check stays here.
     public function destroy(Request $request, Task $task): JsonResponse
     {
-        $this->authorizeOwnership($request, $task);
+        $this->authorize('delete', $task);
 
         $task->delete();
 
         return response()->json(['message' => 'Task deleted.']);
-    }
-
-    private function validated(Request $request, bool $partial = false): array
-    {
-        $required = $partial ? 'sometimes' : 'required';
-
-        return $request->validate([
-            'category_id' => ['nullable', 'exists:categories,id'],
-            'title' => [$required, 'string', 'max:190'],
-            'description' => ['nullable', 'string', 'max:4000'],
-            'start_datetime' => [$required, 'date'],
-            'end_datetime' => ['nullable', 'date', 'after_or_equal:start_datetime'],
-            'planned_duration_minutes' => ['nullable', 'integer', 'min:0'],
-            'status' => ['sometimes', Rule::enum(TaskStatus::class)],
-            'sort_order' => ['sometimes', 'integer', 'min:0'],
-            'result_notes' => ['nullable', 'string', 'max:4000'],
-            'source' => ['sometimes', Rule::enum(TaskSource::class)],
-            'external_ref' => ['nullable', 'string', 'max:190'],
-        ]);
-    }
-
-    private function authorizeOwnership(Request $request, Task $task): void
-    {
-        abort_unless($task->user_id === $request->user()->id, 403);
     }
 }
