@@ -7,9 +7,12 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    public function run(): void
+    // Laravel resolves seeder run() arguments through the container, so the
+    // now-instance-based content class arrives here the same way it does in
+    // PortfolioContentService.
+    public function run(DefaultPortfolioContent $defaults): void
     {
-        DefaultPortfolioContent::seed();
+        $defaults->seed();
         $this->call(AdminUserSeeder::class);
         $this->call(CategorySeeder::class);
 

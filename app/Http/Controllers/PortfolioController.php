@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdatePortfolioRequest;
 use App\Models\PortfolioProfile;
-use App\Support\DefaultPortfolioContent;
+use App\Models\PortfolioRevision;
+use App\Services\PortfolioContentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class PortfolioController extends Controller
 {
+    public function __construct(private PortfolioContentService $content) {}
+
     public function app(): View
     {
         // Soft lookup (not activeProfile()'s firstOrFail) so every page —
@@ -27,127 +29,63 @@ class PortfolioController extends Controller
 
     public function show(): JsonResponse
     {
-        $profile = $this->activeProfile();
-
-        return response()->json($this->payload($profile, publicOnly: true));
+        return response()->json(
+            $this->content->payload($this->content->activeProfile(), publicOnly: true)
+        );
     }
 
     public function edit(): JsonResponse
     {
-        $profile = $this->activeProfile();
-
-        return response()->json($this->payload($profile, publicOnly: false));
+        return response()->json(
+            $this->content->payload($this->content->activeProfile(), publicOnly: false)
+        );
     }
 
-    public function update(Request $request): JsonResponse
+    public function update(UpdatePortfolioRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'profile' => ['required', 'array'],
-            'metrics' => ['array'],
-            'expertise_items' => ['array'],
-            'projects' => ['array'],
-            'process_steps' => ['array'],
-        ]);
+        $profile = $this->content->save($request->validated(), $request->user());
 
-        $profile = $this->activeProfile();
+        return response()->json($this->content->payload($profile, publicOnly: false));
+    }
 
-        DB::transaction(function () use ($profile, $data): void {
-            $profile->update(Arr::only($data['profile'], [
-                'initials',
-                'role',
-                'headline',
-                'summary',
-                'primary_cta_label',
-                'primary_cta_url',
-                'secondary_cta_label',
-                'secondary_cta_url',
-                'location_note',
-                'availability_note',
-                'quote',
-                'quote_author',
-                'social_links',
-                'default_language',
-                'show_language_toggle',
-            ]));
+    public function seedDefaults(Request $request): JsonResponse
+    {
+        $profile = $this->content->seedDefaults($request->user());
 
-            $this->replaceOrdered($profile, 'metrics', $data['metrics'] ?? [], [
-                'value',
-                'label',
-                'is_visible',
+        return response()->json($this->content->payload($profile, publicOnly: false));
+    }
+
+    /**
+     * The saved-version list for the Reset content tab. Deliberately excludes
+     * `payload` — that column can run to tens of kilobytes per row, and the
+     * list only needs to show when and by whom.
+     */
+    public function revisions(): JsonResponse
+    {
+        $revisions = $this->content->activeProfile()
+            ->revisions()
+            ->with('user:id,name')
+            ->orderByDesc('id')
+            ->get(['id', 'user_id', 'created_at'])
+            ->map(fn (PortfolioRevision $revision) => [
+                'id' => $revision->id,
+                'created_at' => $revision->created_at,
+                'author' => $revision->user?->name,
             ]);
 
-            $this->replaceOrdered($profile, 'expertiseItems', $data['expertise_items'] ?? [], [
-                'title',
-                'description',
-                'icon',
-                'category',
-                'is_visible',
-            ]);
-
-            $this->replaceOrdered($profile, 'projects', $data['projects'] ?? [], [
-                'title',
-                'summary',
-                'result',
-                'tags',
-                'visual_style',
-                'is_visible',
-            ]);
-
-            $this->replaceOrdered($profile, 'processSteps', $data['process_steps'] ?? [], [
-                'group',
-                'title',
-                'description',
-                'icon',
-                'is_visible',
-            ]);
-        });
-
-        return response()->json($this->payload($this->activeProfile(), publicOnly: false));
+        return response()->json(['revisions' => $revisions]);
     }
 
-    public function seedDefaults(): JsonResponse
+    public function restore(Request $request, PortfolioRevision $revision): JsonResponse
     {
-        DefaultPortfolioContent::seed();
+        $profile = $this->content->activeProfile();
 
-        return response()->json($this->payload($this->activeProfile(), publicOnly: false));
-    }
+        // A revision belonging to a different profile is not this page's
+        // history, so it is not found here rather than merely forbidden.
+        abort_unless($revision->portfolio_profile_id === $profile->id, 404);
 
-    private function activeProfile(): PortfolioProfile
-    {
-        return PortfolioProfile::query()
-            ->where('is_active', true)
-            ->with([
-                'metrics' => fn ($query) => $query->orderBy('sort_order'),
-                'expertiseItems' => fn ($query) => $query->orderBy('sort_order'),
-                'projects' => fn ($query) => $query->orderBy('sort_order'),
-                'processSteps' => fn ($query) => $query->orderBy('sort_order'),
-            ])
-            ->firstOrFail();
-    }
+        $restored = $this->content->restore($revision, $request->user());
 
-    private function payload(PortfolioProfile $profile, bool $publicOnly): array
-    {
-        $visible = fn ($items) => $publicOnly ? $items->where('is_visible', true)->values() : $items->values();
-
-        return [
-            'profile' => $profile,
-            'metrics' => $visible($profile->metrics),
-            'expertise_items' => $visible($profile->expertiseItems),
-            'projects' => $visible($profile->projects),
-            'process_steps' => $visible($profile->processSteps),
-        ];
-    }
-
-    private function replaceOrdered(PortfolioProfile $profile, string $relation, array $items, array $keys): void
-    {
-        $profile->{$relation}()->delete();
-
-        foreach (array_values($items) as $index => $item) {
-            $payload = Arr::only($item, $keys);
-            $payload['sort_order'] = $index + 1;
-            $payload['is_visible'] = $item['is_visible'] ?? true;
-
-            $profile->{$relation}()->create($payload);
-        }
+        return response()->json($this->content->payload($restored, publicOnly: false));
     }
 }
