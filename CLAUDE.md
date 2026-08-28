@@ -37,6 +37,14 @@ php artisan db:seed --class=DemoWeekSeeder   # refresh the demo week onto the cu
 
 Note: `.env.example` defaults to MySQL; SQLite is simplest for local dev (`database/database.sqlite` exists in the repo). `phpunit.xml` runs tests against in-memory SQLite regardless. Set `ADMIN_EMAIL`/`ADMIN_PASSWORD` before seeding — `AdminUserSeeder` uses them to create the one admin login. `ADMIN_PATH` sets the URL prefix the whole private workspace sits behind (see Auth below); it is per-install and never hardcoded.
 
+## Working on this project
+
+**[`CONTRIBUTING.md`](CONTRIBUTING.md) is the single source for how work happens here** — branching, what must travel with a change, the verification gate, the by-hand checks automated tests cannot make, commit style, and the merge order. Read it before committing anything.
+
+Its rules are **not** repeated here or in `.claude/skills/ship/`, on purpose: a rule written in two places is a rule that will drift. If a workflow rule changes, `CONTRIBUTING.md` is the only file to edit.
+
+This file covers the other half — what the project *is*. Architecture, the aggregates, time handling, the design system.
+
 ## Seeding
 
 `DatabaseSeeder` runs `DefaultPortfolioContent::seed()`, `AdminUserSeeder`, `CategorySeeder`, and — **only when `app()->environment('local')`** — `DemoWeekSeeder`. That guard is deliberate: a `git pull` + `migrate --seed` on a live instance must never bury real planning data under sample rows.

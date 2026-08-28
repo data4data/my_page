@@ -1,0 +1,169 @@
+# Contributing
+
+**This file is the single source for how work happens in this repository.**
+`CLAUDE.md`, `.claude/skills/ship/` and the PR template all point here rather
+than repeating any of it — a rule written twice is a rule that will drift.
+
+`CLAUDE.md` covers something different: what the project *is*. Architecture, the
+two aggregates, time handling, the design system. Read it before changing code;
+read this before committing it.
+
+Nothing here names a particular install — no remote URL, no admin path, no
+persona. `git push origin main` works whatever `origin` points at; run
+`git remote -v` for yours. Keep it that way when editing: this project is meant
+to be forked and made someone else's, which is the same reason `ADMIN_PATH` is
+never hardcoded.
+
+---
+
+## 1. Set up
+
+```bash
+composer install && npm install
+cp .env.example .env && php artisan key:generate
+php artisan migrate --seed        # set ADMIN_EMAIL/ADMIN_PASSWORD first
+composer run dev                  # serve + queue + logs + vite
+```
+
+`.env.example` defaults to MySQL; SQLite is simpler locally and the file already
+exists in the repo. `ADMIN_PATH` sets the URL prefix the private workspace lives
+behind — per-install, never hardcoded. Changing it needs `php artisan route:clear`.
+
+## 2. Branch first
+
+Create the branch **before** the first commit. Nothing is committed onto `main`.
+
+```bash
+git checkout -b feat/short-name      # feat/ | refactor/ | bugfix/
+```
+
+Work already started on `main`? Move it rather than committing:
+`git stash && git checkout -b feat/x && git stash pop`.
+
+## 3. Make the change
+
+Business logic goes in `app/Services`, `app/Policies`, `app/Http/Requests` or on
+the model — not in a controller. If you cannot test it without an HTTP request,
+it is in the wrong place. `tests/Feature/TimerServiceTest.php` is the pattern.
+
+### Changes that must travel together
+
+Each of these fails **silently**, not loudly:
+
+| Change | Also update |
+|---|---|
+| A new UI string | **both** `en` and `nl` in `resources/js/shared/i18n.js` |
+| A new `icon` value in DB or seed data | `iconMap` in `resources/js/shared/icons.js`, or it renders nothing |
+| A new `TaskStatus` case | `TASK_STATUSES` in `resources/js/shared/planning.js` |
+| A profile/child field | migration → `$fillable`/`$casts` → key constant in `PortfolioContentService` → rule in `UpdatePortfolioRequest` → `DefaultPortfolioContent::content()` |
+| A new layer, endpoint or architectural decision | `CLAUDE.md` |
+| A workflow rule | **this file only** |
+
+Two standing prohibitions live in `CLAUDE.md`, with the reasoning next to the
+code they constrain: **never hardcode the admin URL prefix** (see its Auth
+section) and **never write a raw `z-index`** (see its Design system section).
+
+Check EN/NL parity:
+
+```bash
+node -e "const s=require('fs').readFileSync('resources/js/shared/i18n.js','utf8'),h=s.indexOf('    nl: {'),k=t=>new Set([...t.matchAll(/^        (\w+):/gm)].map(m=>m[1])),en=k(s.slice(0,h)),nl=k(s.slice(h));console.log(en.size,nl.size,[...en].filter(x=>!nl.has(x)),[...nl].filter(x=>!en.has(x)))"
+```
+
+## 4. Run the gate
+
+All four, every time.
+
+```bash
+vendor/bin/pint       # rewrites files — run before committing, not after
+composer test
+npm test
+npm run build         # catches template and import errors the tests never reach
+```
+
+## 5. Check what tests cannot
+
+Green is not enough for these two. Both have produced real bugs here.
+
+**Public-page content changed?** Start the app and save *every* tab in the admin
+editor — Profile, Experience, Expertise, Process, Projects, Language.
+`UpdatePortfolioRequest` can reject a payload the editor legitimately produces,
+and nothing automated will tell you.
+
+If a dev server is already running, reuse it rather than starting a second one on
+the same port. Touching real local content? Back the database up first:
+
+```bash
+cp database/database.sqlite /tmp/database.sqlite.backup-$(date +%H%M%S)
+```
+
+**Dates changed?** Re-read the time-handling section of `CLAUDE.md`, then look at
+a real calendar in the browser. `start_datetime` is wall-clock, `TimeLog.started_at`
+is a true instant; they serialise identically and differ by your UTC offset.
+
+## 6. Commit short
+
+A subject line saying what changed, plus at most two or three body lines — only
+for something a reader of the diff would find surprising.
+
+```
+Rename Reset content tab to Content versions
+
+Defaults become the first row of the version list, and now confirm
+before restoring like the saved versions already did.
+```
+
+*Why* belongs in a code comment or in `CLAUDE.md`, next to the code, rather than
+in a log nobody searches.
+
+Do not add `Co-Authored-By` or "Generated with" trailers — this is a personal
+portfolio repository and a trailer makes GitHub list a second contributor. If one
+slips in, amend **before** pushing; once pushed, say so rather than force-pushing.
+
+If the working tree holds unrelated work, stage paths explicitly instead of
+`git add -A`. Stage both halves of a move together so git records a rename and
+keeps the file's history.
+
+## 7. Catch up with `main` — on the branch
+
+`main` may have moved. Bring it into your branch first, so conflicts are resolved
+**here** and never on `main`.
+
+```bash
+git fetch origin
+git log --oneline HEAD..origin/main      # empty = nothing new, skip to step 8
+git merge origin/main                    # main INTO the branch, never the reverse
+# resolve conflicts, then commit
+```
+
+**Re-run the gate afterwards** — a merge can break code that passed ten minutes
+ago. That is the whole reason for doing this here. Re-check step 5 too if the
+incoming changes touched content, dates or i18n.
+
+Merging a stale branch straight into `main` either conflicts on `main` itself or
+quietly reverts someone else's commits.
+
+## 8. Push the branch, then merge
+
+```bash
+git push -u origin feat/short-name
+
+git checkout main
+git merge --ff-only origin/main          # sync; fails loudly if local main drifted
+git merge --no-ff feat/short-name
+```
+
+`--no-ff` is not optional: the branch already contains `main` by now, so git
+would fast-forward and erase any sign the branch existed.
+
+`--ff-only` on the sync is deliberate — if local `main` has drifted from the
+remote it stops rather than quietly creating a merge nobody asked for.
+
+Re-run `composer test` on `main`, then push it.
+
+## Running tests
+
+```bash
+php artisan test --filter=test_name       # one test
+php artisan test tests/Feature/Foo.php    # one file
+npm run test:watch                        # frontend, watch mode
+```
