@@ -135,7 +135,9 @@ Controllers validate, authorize, delegate, and return JSON. Rules that outlive a
 - `AdminLayout.vue` — header + left nav rail + content column. The rail and header share `bg-cream/90` so the chrome reads as one surface; the rail's right border is the single vertical divider, which is why `.admin-panel` drops its own left/bottom border at `lg` and runs flush into it.
 - `SectionTabs.vue` — the shared "folder bookmark" tab strip + `.admin-panel` card. **The only place the panel is rendered.** Passing `:tabs="[]"` still yields the card, just with no tab row.
 
-The **Reset content** tab (`pages/admin/ResetContentTab.vue`) holds both the seed-defaults button and the change-history list. `AdminPage.vue` owns the state (`revisions`, `revisionsLoading`, `restoringId`) and refreshes the list after every save, reset and restore, so a new version appears without a reload. Restore goes through the shared `confirm()` — it overwrites the live public page.
+The **Content versions** tab (`pages/admin/ContentVersionsTab.vue`) is a single list of states you can go back to. The seeded defaults are its **first row**, not a separate section — they are just another version to restore. `AdminPage.vue` owns the state (`revisions`, `revisionsLoading`, `restoring`, `restoringId`) and refreshes the list after every save, reset and restore, so a new version appears without a reload. Both restore paths go through the shared `confirm()` and both lock every button in the list while one is in flight: they overwrite the live public page, and the defaults row is now one click away from the saved versions rather than guarded by its own warning block.
+
+Like its sibling tabs it opens straight into an `.admin-note` with no `<h3>` — the tab strip already names the section.
 
 For the panel to stretch to the bottom of the page, its ancestors must form an unbroken flex column. `AdminLayout`'s content column and `CalendarView`'s wrapper both participate — Agenda nests the panel one level deeper than Insights/Edit, so a change there needs checking on all three sections.
 

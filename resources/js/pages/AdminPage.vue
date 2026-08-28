@@ -11,7 +11,7 @@ import ExpertiseTab from './admin/ExpertiseTab.vue';
 import ProcessTab from './admin/ProcessTab.vue';
 import ProjectsTab from './admin/ProjectsTab.vue';
 import InsightsPage from './admin/InsightsPage.vue';
-import ResetContentTab from './admin/ResetContentTab.vue';
+import ContentVersionsTab from './admin/ContentVersionsTab.vue';
 import LanguageTab from './admin/LanguageTab.vue';
 import AgendaPage from './admin/AgendaPage.vue';
 import ToastStack from '../components/ui/ToastStack.vue';
@@ -42,7 +42,7 @@ const saving = ref(false);
 const restoring = ref(false);
 const tab = ref('profile');
 
-// Saved versions of the public page, listed on the Reset content tab.
+// Saved versions of the public page, listed on the Content versions tab.
 const revisions = ref([]);
 const revisionsLoading = ref(true);
 const restoringId = ref(null);
@@ -76,7 +76,7 @@ const adminTabs = computed(() => [
     { value: 'process', label: copy('tabProcess') },
     { value: 'projects', label: copy('tabProjects') },
     { value: 'language', label: copy('tabLanguage'), right: true },
-    { value: 'reset', label: copy('tabReset') },
+    { value: 'versions', label: copy('tabVersions') },
 ]);
 
 const fetchInquiries = async () => {
@@ -126,7 +126,14 @@ const savePortfolio = async () => {
     saving.value = false;
 };
 
+// Asks first, like restoreRevision below. It sits in the same list now, one
+// click away from the saved versions, and it is the more destructive of the
+// two — the warning note that used to guard it is gone.
 const restoreDefaults = async () => {
+    if (!await confirm({ message: copy('restoreConfirm'), confirmLabel: copy('historyRestore') })) {
+        return;
+    }
+
     restoring.value = true;
 
     const response = await fetch(adminUrl('/portfolio/seed-defaults'), {
@@ -221,8 +228,8 @@ const updateTags = (project, value) => {
             <ProcessTab v-else-if="tab === 'process'" :process-steps="processSteps" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
             <ProjectsTab v-else-if="tab === 'projects'" :projects="projects" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :update-tags="updateTags" />
             <LanguageTab v-else-if="tab === 'language'" :profile="profile" />
-            <ResetContentTab
-                v-else-if="tab === 'reset'"
+            <ContentVersionsTab
+                v-else-if="tab === 'versions'"
                 :restoring="restoring"
                 :restore-defaults="restoreDefaults"
                 :revisions="revisions"
