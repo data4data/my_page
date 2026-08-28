@@ -121,10 +121,35 @@ class PortfolioContentService
 
             $this->defaults->seed();
 
+            $this->activate($this->activeProfile());
+
             $fresh = $this->activeProfile();
             $this->recordRevision($fresh, $author);
 
             return $fresh;
+        });
+    }
+
+    /**
+     * Exactly one profile is live at a time. activeProfile() takes the first
+     * is_active row it finds, so a second one would not error — it would
+     * quietly decide which page the public site serves.
+     *
+     * Enforced here rather than as a partial unique index: SQLite supports
+     * those and MySQL does not, and this project keeps behaviour identical on
+     * both (task statuses are strings, not DB enums, for the same reason).
+     */
+    public function activate(PortfolioProfile $profile): PortfolioProfile
+    {
+        return DB::transaction(function () use ($profile): PortfolioProfile {
+            PortfolioProfile::query()
+                ->whereKeyNot($profile->id)
+                ->where('is_active', true)
+                ->update(['is_active' => false]);
+
+            $profile->update(['is_active' => true]);
+
+            return $profile;
         });
     }
 

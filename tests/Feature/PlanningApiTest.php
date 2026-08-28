@@ -26,6 +26,18 @@ class PlanningApiTest extends TestCase
         return $user;
     }
 
+    private function task(User $user, string $start, ?string $end = null): Task
+    {
+        return Task::create([
+            'user_id' => $user->id,
+            'title' => 'Task',
+            'start_datetime' => $start,
+            'end_datetime' => $end,
+            'status' => TaskStatus::Planned,
+            'source' => TaskSource::Manual,
+        ]);
+    }
+
     public function test_guest_cannot_reach_any_planning_endpoint(): void
     {
         $this->get($this->adminUrl('/tasks?start=2026-01-01&end=2026-01-31'))->assertRedirect('/login');
@@ -167,6 +179,133 @@ class PlanningApiTest extends TestCase
             ])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['parent_id']);
+    }
+
+    // after_or_equal:start_datetime silently does nothing when start_datetime
+    // is absent — which is exactly what a partial update sends.
+    public function test_update_cannot_move_the_end_before_the_stored_start(): void
+    {
+        $admin = $this->admin();
+        $task = $this->task($admin, '2026-06-10 09:00:00', '2026-06-10 11:00:00');
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl("/tasks/{$task->id}"), ['end_datetime' => '2026-06-10 08:00:00'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['end_datetime']);
+    }
+
+    public function test_update_cannot_move_the_start_after_the_stored_end(): void
+    {
+        $admin = $this->admin();
+        $task = $this->task($admin, '2026-06-10 09:00:00', '2026-06-10 11:00:00');
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl("/tasks/{$task->id}"), ['start_datetime' => '2026-06-10 12:00:00'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['end_datetime']);
+    }
+
+    public function test_update_can_still_clear_the_end_datetime(): void
+    {
+        $admin = $this->admin();
+        $task = $this->task($admin, '2026-06-10 09:00:00', '2026-06-10 11:00:00');
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl("/tasks/{$task->id}"), ['end_datetime' => null])
+            ->assertOk();
+
+        $this->assertNull($task->fresh()->end_datetime);
+    }
+
+    public function test_update_accepts_a_valid_pair(): void
+    {
+        $admin = $this->admin();
+        $task = $this->task($admin, '2026-06-10 09:00:00', '2026-06-10 11:00:00');
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl("/tasks/{$task->id}"), [
+                'start_datetime' => '2026-06-11 09:00:00',
+                'end_datetime' => '2026-06-11 10:00:00',
+            ])
+            ->assertOk();
+    }
+
+    public function test_a_task_cannot_be_attached_to_another_users_category(): void
+    {
+        $admin = $this->admin();
+        $theirs = Category::create(['name' => 'Theirs', 'color' => '#c0503f', 'user_id' => User::factory()->create()->id]);
+
+        $this->actingAs($admin)
+            ->postJson($this->adminUrl('/tasks'), [
+                'title' => 'Sneaky',
+                'start_datetime' => '2026-06-10 09:00:00',
+                'category_id' => $theirs->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['category_id']);
+    }
+
+    // The scoped rule must not break the shared seeded categories, which are
+    // exactly the ones with a null user_id.
+    public function test_a_task_can_still_use_a_global_category(): void
+    {
+        $admin = $this->admin();
+        $global = Category::create(['name' => 'Global', 'color' => '#2f75a8']);
+
+        $this->actingAs($admin)
+            ->postJson($this->adminUrl('/tasks'), [
+                'title' => 'Fine',
+                'start_datetime' => '2026-06-10 09:00:00',
+                'category_id' => $global->id,
+            ])
+            ->assertCreated();
+    }
+
+    public function test_a_category_cannot_be_nested_under_another_users_category(): void
+    {
+        $admin = $this->admin();
+        $theirs = Category::create(['name' => 'Theirs', 'color' => '#c0503f', 'user_id' => User::factory()->create()->id]);
+
+        $this->actingAs($admin)
+            ->postJson($this->adminUrl('/categories'), [
+                'name' => 'Mine',
+                'color' => '#7c9a6b',
+                'parent_id' => $theirs->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['parent_id']);
+    }
+
+    // The tree is exactly one level deep, so a subcategory is never a valid
+    // parent — not even your own.
+    public function test_a_category_cannot_be_nested_under_a_subcategory(): void
+    {
+        $admin = $this->admin();
+        $parent = Category::create(['name' => 'Work', 'color' => '#2f75a8', 'user_id' => $admin->id]);
+        $child = Category::create(['name' => 'Deep work', 'color' => '#2f75a8', 'user_id' => $admin->id, 'parent_id' => $parent->id]);
+
+        $this->actingAs($admin)
+            ->postJson($this->adminUrl('/categories'), [
+                'name' => 'Grandchild',
+                'color' => '#7c9a6b',
+                'parent_id' => $child->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['parent_id']);
+    }
+
+    public function test_a_category_colour_must_be_a_hex_value(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)
+            ->postJson($this->adminUrl('/categories'), ['name' => 'Broken', 'color' => 'zzzzzzz'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['color']);
+
+        $this->actingAs($admin)
+            ->postJson($this->adminUrl('/categories'), ['name' => 'Fine', 'color' => '#2f75a8'])
+            ->assertCreated();
     }
 
     public function test_task_update_is_forbidden_for_a_task_owned_by_someone_else(): void

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\PortfolioProfile;
 use App\Models\PortfolioRevision;
 use App\Models\User;
+use App\Services\PortfolioContentService;
 use App\Support\DefaultPortfolioContent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -203,6 +204,33 @@ class PortfolioHistoryTest extends TestCase
         $this->actingAs($admin)
             ->postJson($this->adminUrl("/portfolio/revisions/{$foreign->id}/restore"))
             ->assertNotFound();
+    }
+
+    /**
+     * activeProfile() takes the first is_active row it finds, so a second one
+     * would not error — it would quietly decide which page the public site
+     * serves.
+     */
+    public function test_only_one_profile_stays_active(): void
+    {
+        $profile = $this->seededProfile();
+
+        $rival = PortfolioProfile::create([
+            'slug' => 'rival',
+            'is_active' => true,
+            'initials' => 'XX',
+            'role' => ['en' => 'Other', 'nl' => 'Ander'],
+            'headline' => ['en' => 'H', 'nl' => 'H'],
+            'summary' => ['en' => 'S', 'nl' => 'S'],
+        ]);
+
+        $this->assertSame(2, PortfolioProfile::where('is_active', true)->count());
+
+        app(PortfolioContentService::class)->activate($profile);
+
+        $this->assertSame(1, PortfolioProfile::where('is_active', true)->count());
+        $this->assertTrue($profile->fresh()->is_active);
+        $this->assertFalse($rival->fresh()->is_active);
     }
 
     public function test_a_guest_cannot_read_or_restore_history(): void

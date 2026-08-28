@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\TaskSource;
 use App\Enums\TaskStatus;
+use App\Rules\CategoryRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,7 +21,7 @@ class StoreTaskRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category_id' => ['nullable', 'exists:categories,id'],
+            'category_id' => ['nullable', CategoryRules::usable($this->user()->id)],
             'title' => ['required', 'string', 'max:190'],
             'description' => ['nullable', 'string', 'max:4000'],
             'start_datetime' => ['required', 'date'],
