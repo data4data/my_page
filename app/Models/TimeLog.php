@@ -25,9 +25,15 @@ class TimeLog extends Model
         // are one SUM() query instead of per-row date-diffing in PHP.
         static::saving(function (TimeLog $log): void {
             if ($log->started_at && $log->ended_at) {
-                $log->duration_minutes = (int) round(
+                // Floored at 0, matching Task::plannedMinutes(): the column is
+                // unsignedInteger, so a backwards pair would be rejected by
+                // MySQL in strict mode and stored silently by SQLite.
+                $log->duration_minutes = max(0, (int) round(
                     ($log->ended_at->timestamp - $log->started_at->timestamp) / 60
-                );
+                ));
+            } elseif (! $log->ended_at) {
+                // Reopened: the old duration no longer describes anything.
+                $log->duration_minutes = null;
             }
         });
     }

@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\CategoryRules;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateCategoryRequest extends FormRequest
 {
@@ -18,11 +18,11 @@ class UpdateCategoryRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:120'],
-            'color' => ['required', 'string', 'max:7'],
+            'color' => ['required', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'icon' => ['nullable', 'string', 'max:60'],
             'parent_id' => [
                 'nullable',
-                Rule::exists('categories', 'id')->where(fn ($query) => $query->whereNull('parent_id')),
+                CategoryRules::usableTopLevel($this->user()->id),
                 function ($attribute, $value, $fail) use ($category) {
                     if ($category && $value == $category->id) {
                         $fail('A category cannot be its own parent.');

@@ -88,6 +88,47 @@ class PlanningModelsTest extends TestCase
         $this->assertNull($log->duration_minutes);
     }
 
+    // duration_minutes is an unsignedInteger column: a backwards pair would be
+    // rejected by MySQL in strict mode and stored silently by SQLite.
+    public function test_a_backwards_time_log_never_stores_a_negative_duration(): void
+    {
+        $task = Task::create([
+            'user_id' => User::factory()->create()->id,
+            'title' => 'Backwards',
+            'start_datetime' => '2026-06-10 09:00:00',
+            'status' => TaskStatus::Planned,
+            'source' => TaskSource::Manual,
+        ]);
+
+        $log = $task->timeLogs()->create([
+            'started_at' => '2026-06-10 10:00:00',
+            'ended_at' => '2026-06-10 09:00:00',
+        ]);
+
+        $this->assertSame(0, $log->duration_minutes);
+    }
+
+    public function test_reopening_a_log_clears_its_duration(): void
+    {
+        $task = Task::create([
+            'user_id' => User::factory()->create()->id,
+            'title' => 'Reopened',
+            'start_datetime' => '2026-06-10 09:00:00',
+            'status' => TaskStatus::Planned,
+            'source' => TaskSource::Manual,
+        ]);
+
+        $log = $task->timeLogs()->create([
+            'started_at' => '2026-06-10 09:00:00',
+            'ended_at' => '2026-06-10 09:30:00',
+        ]);
+        $this->assertSame(30, $log->duration_minutes);
+
+        $log->update(['ended_at' => null]);
+
+        $this->assertNull($log->fresh()->duration_minutes);
+    }
+
     public function test_reflection_period_is_unique_per_user(): void
     {
         $user = User::factory()->create();
