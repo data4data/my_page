@@ -46,4 +46,25 @@ class Task extends Model
     {
         return $this->hasMany(TimeLog::class);
     }
+
+    /**
+     * How long the task was meant to take. Prefers the explicit
+     * planned_duration_minutes, falling back to the scheduled start→end span
+     * (tasks added through the calendar set times but not a duration), and 0
+     * when the task is open-ended.
+     */
+    public function plannedMinutes(): int
+    {
+        if ($this->planned_duration_minutes !== null) {
+            return $this->planned_duration_minutes;
+        }
+
+        if (! $this->end_datetime || ! $this->start_datetime) {
+            return 0;
+        }
+
+        // Raw timestamps rather than diffInMinutes(), whose sign/abs handling
+        // varies by Carbon version — same reason TimeLog::booted() does it.
+        return max(0, (int) round(($this->end_datetime->timestamp - $this->start_datetime->timestamp) / 60));
+    }
 }

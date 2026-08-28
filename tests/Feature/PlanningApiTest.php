@@ -109,6 +109,66 @@ class PlanningApiTest extends TestCase
         $this->assertSame(TaskStatus::Done->value, $update->json('task.status'));
     }
 
+    public function test_task_store_rejects_a_payload_missing_the_required_fields(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)
+            ->postJson($this->adminUrl('/tasks'), ['description' => 'No title, no start.'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['title', 'start_datetime']);
+    }
+
+    public function test_task_store_rejects_an_end_before_the_start(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)
+            ->postJson($this->adminUrl('/tasks'), [
+                'title' => 'Backwards',
+                'start_datetime' => '2026-06-10 12:00:00',
+                'end_datetime' => '2026-06-10 09:00:00',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['end_datetime']);
+    }
+
+    // The update path is deliberately partial: sending only one field must not
+    // trip the 'required' rules that apply when creating.
+    public function test_task_update_accepts_a_partial_payload(): void
+    {
+        $admin = $this->admin();
+        $task = Task::create([
+            'user_id' => $admin->id,
+            'title' => 'Original',
+            'start_datetime' => '2026-06-10 09:00:00',
+            'status' => TaskStatus::Planned,
+            'source' => TaskSource::Manual,
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->putJson($this->adminUrl("/tasks/{$task->id}"), ['result_notes' => 'Went well.']);
+
+        $response->assertOk();
+        $this->assertSame('Original', $response->json('task.title'));
+        $this->assertSame('Went well.', $response->json('task.result_notes'));
+    }
+
+    public function test_a_category_cannot_be_made_its_own_parent(): void
+    {
+        $admin = $this->admin();
+        $category = Category::create(['name' => 'Work', 'color' => '#2f75a8', 'user_id' => $admin->id]);
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl("/categories/{$category->id}"), [
+                'name' => 'Work',
+                'color' => '#2f75a8',
+                'parent_id' => $category->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['parent_id']);
+    }
+
     public function test_task_update_is_forbidden_for_a_task_owned_by_someone_else(): void
     {
         $admin = $this->admin();
