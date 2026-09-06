@@ -16,8 +16,10 @@ class DeveloperInquiryController extends Controller
             'email' => ['required', 'string', 'email', 'max:190'],
             'message' => ['required', 'string', 'max:4000'],
             'company' => ['nullable', 'string', 'max:120'],
-            'portfolio_url' => ['nullable', 'string', 'url', 'max:255'],
-            'linkedin_url' => ['nullable', 'string', 'url', 'max:255'],
+            // Protocols pinned: both are rendered as links in the Insights
+            // tab, and http(s) is the only thing a portfolio link should be.
+            'portfolio_url' => ['nullable', 'string', 'url:http,https', 'max:255'],
+            'linkedin_url' => ['nullable', 'string', 'url:http,https', 'max:255'],
         ]);
 
         DeveloperInquiry::create($data);

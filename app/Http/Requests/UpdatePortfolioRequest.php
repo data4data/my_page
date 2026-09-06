@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\SafeUrl;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -60,11 +61,17 @@ class UpdatePortfolioRequest extends FormRequest
             'profile.initials' => ['sometimes', 'string', 'max:12'],
             'profile.default_language' => ['sometimes', Rule::in(['en', 'nl'])],
             'profile.show_language_toggle' => ['sometimes', 'boolean'],
-            'profile.primary_cta_url' => ['nullable', 'string', 'max:255'],
-            'profile.secondary_cta_url' => ['nullable', 'string', 'max:255'],
-            // Shape is not pinned down further on purpose — the public page
-            // reads these defensively and the editor's format may still change.
+            // SafeUrl, not 'url': the seeded CTAs are fragments ("#work") and
+            // relative paths are valid here too. These three land in :href on
+            // the public page, which is why the scheme is checked at all.
+            'profile.primary_cta_url' => ['nullable', 'string', 'max:255', new SafeUrl],
+            'profile.secondary_cta_url' => ['nullable', 'string', 'max:255', new SafeUrl],
             'profile.social_links' => ['nullable', 'array'],
+            'profile.social_links.*.label' => ['nullable', 'string', 'max:60'],
+            'profile.social_links.*.url' => ['required', 'string', 'max:255', new SafeUrl],
+            // Resolved through iconMap in resources/js/shared/icons.js; an
+            // unknown key renders nothing rather than failing.
+            'profile.social_links.*.icon' => ['nullable', 'string', 'max:60'],
 
             'metrics' => ['array'],
             // Required, unlike the translated text below: the column is NOT
