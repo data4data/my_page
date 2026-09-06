@@ -3,7 +3,7 @@ import { ref } from 'vue';
 // Interface chrome strings (not page content — that comes from the DB as {en, nl}).
 export const ui = {
     en: {
-        loading: 'Loading OA page...',
+        loading: 'Loading...',
         admin: 'Admin',
         work: 'Projects',
         about: 'About',
@@ -162,7 +162,7 @@ export const ui = {
         connectClose: 'Close',
     },
     nl: {
-        loading: 'OA-pagina laden...',
+        loading: 'Laden...',
         admin: 'Admin',
         work: 'Projecten',
         about: 'Over mij',
@@ -328,13 +328,23 @@ export const LANGUAGES = [
     { value: 'nl', label: 'Nederlands' },
 ];
 
+// Nothing in this app is tied to one person's initials — the profile is
+// seeded and then edited, so a storage key naming a particular owner would
+// survive a fork that changed everything else.
+const STORAGE_KEY = 'site-language';
+const LEGACY_STORAGE_KEY = 'oa-language';
+
+// Reads the retired key once so a returning visitor keeps the language they
+// chose. Safe to delete once no browser can still be holding the old one.
+const storedLanguage = () => localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
+
 // Module-level singleton: the language toggle is global site state, shared
 // by whichever page (public/admin) happens to be mounted.
-export const lang = ref(localStorage.getItem('oa-language') || 'en');
+export const lang = ref(storedLanguage() || 'en');
 
 export const setLang = (value) => {
     lang.value = value;
-    localStorage.setItem('oa-language', value);
+    localStorage.setItem(STORAGE_KEY, value);
 };
 
 // The switcher is one on/off setting (admin Language tab). Off means the
@@ -348,7 +358,7 @@ export const languageSwitcherShown = (profile) => profile?.show_language_toggle 
 export const applyLanguagePolicy = (profile) => {
     const fallback = profile?.default_language || 'en';
 
-    if (!languageSwitcherShown(profile) || !localStorage.getItem('oa-language')) {
+    if (!languageSwitcherShown(profile) || !storedLanguage()) {
         // Assign rather than setLang: persisting here would make the default
         // indistinguishable from a deliberate choice on the next visit, so a
         // later change to default_language would never reach anyone who had
