@@ -3,8 +3,10 @@
 // so nothing in the JS bundle hardcodes it. Read once at module load rather
 // than per call: the tag is server-rendered and never changes afterwards.
 //
-// The fallback matches config/admin.php's own default, and only applies where
-// there is no shell to read from (unit tests under jsdom).
+// The fallback matches config/admin.php's own default and applies wherever the
+// tag is absent: unit tests under jsdom, and any page served to someone who
+// cannot reach the workspace, which is never told the real prefix. Nothing
+// there navigates into the admin routes, so the placeholder is never followed.
 const configured = document.querySelector('meta[name="admin-path"]')?.content?.trim();
 
 export const adminBase = `/${(configured || 'control-room').replace(/^\/+|\/+$/g, '')}`;

@@ -6,8 +6,12 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         {{-- The private workspace's per-install URL prefix (config/admin.php).
              resources/js/shared/admin-path.js reads it so no admin route or
-             fetch URL is hardcoded in the JS bundle. --}}
-        <meta name="admin-path" content="{{ config('admin.path') }}">
+             fetch URL is hardcoded in the JS bundle. Emitted only for someone
+             who can reach the workspace — PortfolioController::app() decides —
+             because every page renders this shell, public visit card included. --}}
+        @if ($adminPath)
+            <meta name="admin-path" content="{{ $adminPath }}">
+        @endif
         <title>{{ $siteTitle }}</title>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>

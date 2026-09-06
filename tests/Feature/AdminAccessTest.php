@@ -56,6 +56,29 @@ class AdminAccessTest extends TestCase
             ->assertSee('<meta name="admin-path" content="test-workspace">', false);
     }
 
+    public function test_the_public_page_does_not_leak_the_workspace_prefix(): void
+    {
+        // Every route renders the same Blade shell, so the tag that hands the
+        // prefix to the frontend used to go out on the public visit card too —
+        // putting the deliberately-unguessable private URL in page source for
+        // any anonymous visitor. Guests are told nothing.
+        foreach (['/', '/hi-developer', '/login'] as $path) {
+            $this->get($path)
+                ->assertOk()
+                ->assertDontSee('admin-path', false)
+                ->assertDontSee(config('admin.path'), false);
+        }
+    }
+
+    public function test_a_signed_in_non_admin_is_not_told_the_workspace_prefix(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertDontSee(config('admin.path'), false);
+    }
+
     public function test_authenticated_user_without_admin_role_is_forbidden(): void
     {
         $user = User::factory()->create();
