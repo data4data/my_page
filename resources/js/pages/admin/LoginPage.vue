@@ -48,7 +48,9 @@ const submit = async () => {
     const body = await response.json();
     // Full navigation (not a router push) so the freshly-set session cookie
     // is picked up by Laravel's auth/role middleware on the next request.
-    window.location.href = body.redirect ?? '/admin';
+    // The fallback is the public page, not a guessed workspace path: this page
+    // is served to guests, so it is never told the prefix (see app.blade.php).
+    window.location.href = body.redirect ?? '/';
 };
 </script>
 

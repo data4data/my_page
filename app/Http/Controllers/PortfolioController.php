@@ -14,7 +14,7 @@ class PortfolioController extends Controller
 {
     public function __construct(private PortfolioContentService $content) {}
 
-    public function app(): View
+    public function app(Request $request): View
     {
         // Soft lookup (not activeProfile()'s firstOrFail) so every page —
         // including /login — still renders on a fresh install before
@@ -24,7 +24,15 @@ class PortfolioController extends Controller
         $role = $profile ? ($profile->role['en'] ?? $profile->role['nl'] ?? '') : '';
         $title = $profile ? trim($profile->initials.($role ? " | {$role}" : '')) : 'Digital Visit Card';
 
-        return view('app', ['siteTitle' => $title]);
+        return view('app', [
+            'siteTitle' => $title,
+            // The workspace prefix is deliberately unguessable (config/admin.php)
+            // and every page in the app renders this same shell — so emitting it
+            // unconditionally served the private URL to anyone who viewed source
+            // on the public visit card. Only someone who can actually reach the
+            // workspace is told where it is; admin-path.js needs it nowhere else.
+            'adminPath' => $request->user()?->hasRole('admin') ? config('admin.path') : null,
+        ]);
     }
 
     public function show(): JsonResponse
