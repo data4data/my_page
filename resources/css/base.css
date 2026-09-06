@@ -5,10 +5,23 @@
         /* Stacking order, in one place. Previously every overlay picked its
            own number, and .connect-overlay and the toast container both landed
            on z-50 — with the toasts earlier in the DOM, an error raised while a
-           modal was open was painted behind the scrim and never seen. */
+           modal was open was painted behind the scrim and never seen.
+
+           This scale is for things that share the page's root stacking
+           context, which is where ties actually hurt. A local lift inside an
+           element's own stacking context — text over its card's decorative
+           pseudo-element, a focused input over its sibling — is a different
+           thing and stays a small local number at its call site. */
+        --z-raised: 10; /* section content, above that section's own decoration */
+        --z-section: 25; /* a section overlapping the one before it, still under the rail */
         --z-rail: 30;
         --z-header: 40;
+        --z-fab: 45; /* floating action button: over the chrome, under any modal */
         --z-overlay: 50;
+        /* Select and DatePicker panels append to <body>, so inside a modal
+           they are siblings of the scrim rather than children. Equal values
+           left the winner to DOM insertion order. */
+        --z-field: 55;
         --z-confirm: 60;
         --z-toast: 70;
 
@@ -27,7 +40,7 @@
     /* One deliberate step on ultra-wide rather than fluid growth: the type is
        set for a specific measure, and clamp()-driven columns make line lengths
        drift. This reclaims ~140px a side before any decoration is needed. */
-    @media (min-width: 112.5rem) {
+    @media (width >= theme(--breakpoint-2xl)) {
         :root {
             --content-max: 82.5rem; /* 1320 */
             --wide-max: 96rem; /* 1536 */

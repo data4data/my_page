@@ -108,7 +108,7 @@
 
     .hero-copy {
         position: relative;
-        z-index: 10;
+        z-index: var(--z-raised);
         width: min(720px, 48vw);
         margin-left: var(--hero-copy-left);
         padding-top: clamp(18px, 3vh, 38px);
@@ -283,7 +283,8 @@
     .expertise-section {
         margin-top: 0;
         position: relative;
-        z-index: 25;
+        /* Overlaps the hero above it, but must stay under the social rail. */
+        z-index: var(--z-section);
     }
 
 
