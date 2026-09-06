@@ -154,7 +154,8 @@ For the panel to stretch to the bottom of the page, its ancestors must form an u
 **Agenda** (`resources/js/pages/admin/agenda/`): `CalendarView` (mode switching, filters, period navigation, task CRUD wiring) → `DayView` / `WeekView` / `MonthView` / `CategoriesView` / `ReportView`, plus `TaskCard`, `TaskModal`, `CategoryModal`.
 
 **Shared** (`resources/js/shared/`):
-- `admin-path.js` — `adminBase` / `adminUrl(suffix)`, read once from the `admin-path` meta tag. Every admin URL in the frontend goes through it; never write the prefix out by hand.
+- `api.js` — `apiFetch(url, {method, body, message})` and `csrfToken()`. **Every** call to a JSON endpoint goes through it; no component calls `fetch()` directly. It sets `Accept: application/json` and the CSRF header, throws an `ApiError` carrying `status` and the parsed `body` on any non-2xx, and redirects to `/login` on a 401. The `Accept` header is the load-bearing part: without it an expired session takes the auth middleware's HTML redirect instead of a JSON 401, `response.json()` throws on the HTML, and whichever `loading` ref was in flight never clears. Loaders pair it with `try/finally` for the same reason.
+- `admin-path.js` — `adminBase` / `adminUrl(suffix)`, read once from the `admin-path` meta tag. Every admin URL in the frontend goes through it; never write the prefix out by hand. The tag is emitted only for a signed-in admin (`PortfolioController::app()`), since every page renders the same shell and the prefix is meant to be unguessable.
 - `portfolio.js` — fetch/normalize + `usePortfolioSource`.
 - `planning.js` — date helpers, `usePlanning` (all planner fetches/mutations), `useRunningElapsed` (the ticking timer label, shared by `TaskCard` and `TaskModal` so they can't drift).
 - `i18n.js` — the `ui` EN/NL dictionary plus `lang`/`copy`/`t`. `lang` is a module-level singleton persisted to `localStorage`.

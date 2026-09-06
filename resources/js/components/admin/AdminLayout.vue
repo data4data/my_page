@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { LogOut } from '@lucide/vue';
 import AppButton from '../ui/AppButton.vue';
 import { copy, lang, LANGUAGES, languageSwitcherShown, setLang } from '../../shared/i18n';
-import { csrfToken } from '../../shared/portfolio';
+import { csrfToken } from '../../shared/api';
 
 const props = defineProps({
     navItems: {

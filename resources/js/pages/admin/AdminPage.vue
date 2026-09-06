@@ -18,7 +18,8 @@ import ToastStack from '../../components/ui/ToastStack.vue';
 import ConfirmDialog from '../../components/ui/ConfirmDialog.vue';
 import { copy } from '../../shared/i18n';
 import { adminUrl } from '../../shared/admin-path';
-import { csrfToken, usePortfolioSource } from '../../shared/portfolio';
+import { usePortfolioSource } from '../../shared/portfolio';
+import { apiFetch } from '../../shared/api';
 import { useToast } from '../../shared/toast';
 import { useConfirm } from '../../shared/confirm';
 
@@ -79,51 +80,55 @@ const adminTabs = computed(() => [
     { value: 'versions', label: copy('tabVersions') },
 ]);
 
+// Each of the three initial loads clears its own flag in `finally` and reports
+// its own failure: one of them failing must not leave that panel spinning, nor
+// take the other two down with it.
 const fetchInquiries = async () => {
     inquiriesLoading.value = true;
-    const response = await fetch(adminUrl('/inquiries'));
-    const body = await response.json();
-    inquiries.value = body.inquiries ?? [];
-    inquiriesLoading.value = false;
+
+    try {
+        inquiries.value = (await apiFetch(adminUrl('/inquiries'))).inquiries ?? [];
+    } finally {
+        inquiriesLoading.value = false;
+    }
 };
 
 const fetchRevisions = async () => {
     revisionsLoading.value = true;
-    const response = await fetch(adminUrl('/portfolio/revisions'));
-    const body = await response.json();
-    revisions.value = body.revisions ?? [];
-    revisionsLoading.value = false;
+
+    try {
+        revisions.value = (await apiFetch(adminUrl('/portfolio/revisions'))).revisions ?? [];
+    } finally {
+        revisionsLoading.value = false;
+    }
 };
 
-fetchPortfolio();
-fetchInquiries();
-fetchRevisions();
+const reportFailure = (error) => toast.error(error.message || copy('error'));
+
+fetchPortfolio().catch(reportFailure);
+fetchInquiries().catch(reportFailure);
+fetchRevisions().catch(reportFailure);
 
 const savePortfolio = async () => {
     saving.value = true;
 
-    const response = await fetch(adminUrl('/portfolio'), {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            'X-CSRF-TOKEN': csrfToken(),
-        },
-        body: JSON.stringify(data.value),
-    });
+    try {
+        await apiFetch(adminUrl('/portfolio'), {
+            method: 'PUT',
+            body: data.value,
+            message: copy('error'),
+        });
 
-    if (!response.ok) {
-        toast.error(copy('error'));
+        await fetchPortfolio();
+        // The save just created a new version — refresh the list so it shows up
+        // without a page reload.
+        await fetchRevisions();
+        toast.success(copy('saved'));
+    } catch (error) {
+        reportFailure(error);
+    } finally {
         saving.value = false;
-        return;
     }
-
-    await fetchPortfolio();
-    // The save just created a new version — refresh the list so it shows up
-    // without a page reload.
-    await fetchRevisions();
-    toast.success(copy('saved'));
-    saving.value = false;
 };
 
 // Asks first, like restoreRevision below. It sits in the same list now, one
@@ -136,24 +141,17 @@ const restoreDefaults = async () => {
 
     restoring.value = true;
 
-    const response = await fetch(adminUrl('/portfolio/seed-defaults'), {
-        method: 'POST',
-        headers: {
-            Accept: 'application/json',
-            'X-CSRF-TOKEN': csrfToken(),
-        },
-    });
+    try {
+        await apiFetch(adminUrl('/portfolio/seed-defaults'), { method: 'POST', message: copy('error') });
 
-    if (!response.ok) {
-        toast.error(copy('error'));
+        await fetchPortfolio();
+        await fetchRevisions();
+        toast.success(copy('restored'));
+    } catch (error) {
+        reportFailure(error);
+    } finally {
         restoring.value = false;
-        return;
     }
-
-    await fetchPortfolio();
-    await fetchRevisions();
-    toast.success(copy('restored'));
-    restoring.value = false;
 };
 
 // Restoring overwrites the live public page, so it asks first — via the shared
@@ -165,24 +163,17 @@ const restoreRevision = async (id) => {
 
     restoringId.value = id;
 
-    const response = await fetch(adminUrl(`/portfolio/revisions/${id}/restore`), {
-        method: 'POST',
-        headers: {
-            Accept: 'application/json',
-            'X-CSRF-TOKEN': csrfToken(),
-        },
-    });
+    try {
+        await apiFetch(adminUrl(`/portfolio/revisions/${id}/restore`), { method: 'POST', message: copy('error') });
 
-    if (!response.ok) {
-        toast.error(copy('error'));
+        await fetchPortfolio();
+        await fetchRevisions();
+        toast.success(copy('historyRestored'));
+    } catch (error) {
+        reportFailure(error);
+    } finally {
         restoringId.value = null;
-        return;
     }
-
-    await fetchPortfolio();
-    await fetchRevisions();
-    toast.success(copy('historyRestored'));
-    restoringId.value = null;
 };
 
 const addItem = (collection, item) => {
