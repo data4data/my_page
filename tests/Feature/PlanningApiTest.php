@@ -338,6 +338,67 @@ class PlanningApiTest extends TestCase
         $this->assertSame('Focus', $parent->fresh()->name);
     }
 
+    // Seeded categories are shared. Deleting one cascades to its children and
+    // unfiles the tasks under them, so it stays deletable only while nothing
+    // belonging to somebody else is hanging off it.
+    public function test_a_global_category_cannot_be_deleted_out_from_under_someone_else(): void
+    {
+        $admin = $this->admin();
+        $other = User::factory()->create();
+
+        $global = Category::create(['name' => 'Learning', 'color' => '#c5a064']);
+        $theirs = Category::create([
+            'name' => 'Their subcategory',
+            'color' => '#2f75a8',
+            'user_id' => $other->id,
+            'parent_id' => $global->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->deleteJson($this->adminUrl("/categories/{$global->id}"))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('categories', ['id' => $global->id]);
+        $this->assertDatabaseHas('categories', ['id' => $theirs->id]);
+    }
+
+    public function test_a_global_category_can_still_be_deleted_with_only_your_own_children(): void
+    {
+        $admin = $this->admin();
+
+        $global = Category::create(['name' => 'Learning', 'color' => '#c5a064']);
+        Category::create([
+            'name' => 'Mine',
+            'color' => '#2f75a8',
+            'user_id' => $admin->id,
+            'parent_id' => $global->id,
+        ]);
+        // A shared subcategory belongs to nobody in particular, so it is not
+        // somebody else's to lose.
+        Category::create(['name' => 'Shared', 'color' => '#2f75a8', 'parent_id' => $global->id]);
+
+        $this->actingAs($admin)
+            ->deleteJson($this->adminUrl("/categories/{$global->id}"))
+            ->assertOk();
+
+        $this->assertDatabaseMissing('categories', ['id' => $global->id]);
+    }
+
+    // Editing a shared row stays open to any admin — it is recoverable in a
+    // way that a cascading delete is not.
+    public function test_a_global_category_can_still_be_edited_by_anyone(): void
+    {
+        $admin = $this->admin();
+        $other = User::factory()->create();
+
+        $global = Category::create(['name' => 'Learning', 'color' => '#c5a064']);
+        Category::create(['name' => 'Theirs', 'color' => '#2f75a8', 'user_id' => $other->id, 'parent_id' => $global->id]);
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl("/categories/{$global->id}"), ['name' => 'Study', 'color' => '#c5a064'])
+            ->assertOk();
+    }
+
     public function test_a_category_colour_must_be_a_hex_value(): void
     {
         $admin = $this->admin();
