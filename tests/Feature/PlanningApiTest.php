@@ -40,8 +40,8 @@ class PlanningApiTest extends TestCase
 
     public function test_guest_cannot_reach_any_planning_endpoint(): void
     {
-        $this->get($this->adminUrl('/tasks?start=2026-01-01&end=2026-01-31'))->assertRedirect('/login');
-        $this->get($this->adminUrl('/categories'))->assertRedirect('/login');
+        $this->get($this->adminUrl('/tasks?start=2026-01-01&end=2026-01-31'))->assertRedirect($this->adminUrl('/login'));
+        $this->get($this->adminUrl('/categories'))->assertRedirect($this->adminUrl('/login'));
     }
 
     public function test_category_index_returns_global_and_own_categories(): void

@@ -29,10 +29,21 @@ class PortfolioController extends Controller
             // The workspace prefix is deliberately unguessable (config/admin.php)
             // and every page in the app renders this same shell — so emitting it
             // unconditionally served the private URL to anyone who viewed source
-            // on the public visit card. Only someone who can actually reach the
-            // workspace is told where it is; admin-path.js needs it nowhere else.
-            'adminPath' => $request->user()?->hasRole('admin') ? config('admin.path') : null,
+            // on the public visit card.
+            //
+            // Sent only to a request already inside the workspace, which now
+            // includes the login page. That tells nobody anything they did not
+            // have: you cannot reach one of these URLs without already knowing
+            // the prefix. The public page needs it nowhere.
+            'adminPath' => $this->insideWorkspace($request) ? config('admin.path') : null,
         ]);
+    }
+
+    private function insideWorkspace(Request $request): bool
+    {
+        $path = config('admin.path');
+
+        return $request->is($path) || $request->is($path.'/*');
     }
 
     public function show(): JsonResponse

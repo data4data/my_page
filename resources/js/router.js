@@ -44,7 +44,9 @@ const routes = [
         component: () => import('./pages/admin/AdminPage.vue'),
     },
     {
-        path: '/login',
+        // Behind the workspace prefix like everything else it leads to, so
+        // there is no login form at the guessable /login. See routes/web.php.
+        path: adminUrl('/login'),
         name: 'login',
         component: () => import('./pages/admin/LoginPage.vue'),
     },

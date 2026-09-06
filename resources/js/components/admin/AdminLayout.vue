@@ -4,6 +4,7 @@ import { LogOut } from '@lucide/vue';
 import AppButton from '../ui/AppButton.vue';
 import { copy, lang, LANGUAGES, languageSwitcherShown, setLang } from '../../shared/i18n';
 import { csrfToken } from '../../shared/api';
+import { adminUrl } from '../../shared/admin-path';
 
 const props = defineProps({
     navItems: {
@@ -51,7 +52,7 @@ defineEmits(['navigate']);
                             {{ language.value.toUpperCase() }}
                         </AppButton>
                     </div>
-                    <form method="POST" action="/logout">
+                    <form method="POST" :action="adminUrl('/logout')">
                         <input type="hidden" name="_token" :value="csrfToken()">
                         <AppButton variant="secondary" size="sm" type="submit" :aria-label="copy('logout')">
                             <LogOut :size="16" />

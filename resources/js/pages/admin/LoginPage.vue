@@ -4,6 +4,7 @@ import AppInput from '../../components/ui/AppInput.vue';
 import AppButton from '../../components/ui/AppButton.vue';
 import AppCheckbox from '../../components/ui/AppCheckbox.vue';
 import { apiFetch } from '../../shared/api';
+import { adminUrl } from '../../shared/admin-path';
 
 const email = ref('');
 const password = ref('');
@@ -29,7 +30,7 @@ const submit = async () => {
     let body;
 
     try {
-        body = await apiFetch('/login', {
+        body = await apiFetch(adminUrl('/login'), {
             method: 'POST',
             body: {
                 email: email.value,
