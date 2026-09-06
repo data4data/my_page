@@ -29,11 +29,11 @@ describe('applyLanguagePolicy', () => {
         // Writing the default here would make it indistinguishable from a
         // deliberate user choice on the next visit, permanently pinning the
         // visitor to whatever the default happened to be the first time.
-        expect(localStorage.getItem('oa-language')).toBeNull();
+        expect(localStorage.getItem('site-language')).toBeNull();
     });
 
     it('keeps a returning visitor on their own choice', async () => {
-        localStorage.setItem('oa-language', 'nl');
+        localStorage.setItem('site-language', 'nl');
 
         const { applyLanguagePolicy, lang } = await loadI18n();
 
@@ -43,7 +43,7 @@ describe('applyLanguagePolicy', () => {
     });
 
     it('lets the default override a stored choice when the switcher is off', async () => {
-        localStorage.setItem('oa-language', 'nl');
+        localStorage.setItem('site-language', 'nl');
 
         const { applyLanguagePolicy, lang } = await loadI18n();
 
@@ -53,7 +53,7 @@ describe('applyLanguagePolicy', () => {
     });
 
     it('preserves a stored choice through the switcher being turned off and back on', async () => {
-        localStorage.setItem('oa-language', 'nl');
+        localStorage.setItem('site-language', 'nl');
 
         const off = await loadI18n();
         off.applyLanguagePolicy({ default_language: 'en', show_language_toggle: false });
@@ -72,6 +72,18 @@ describe('setLang', () => {
         setLang('nl');
 
         expect(lang.value).toBe('nl');
-        expect(localStorage.getItem('oa-language')).toBe('nl');
+        expect(localStorage.getItem('site-language')).toBe('nl');
+    });
+
+    // The key used to name one particular owner. A visitor who chose a
+    // language before the rename keeps it rather than being reset.
+    it('still honours a choice stored under the retired key', async () => {
+        localStorage.setItem('oa-language', 'nl');
+
+        const { applyLanguagePolicy, lang } = await loadI18n();
+
+        applyLanguagePolicy({ default_language: 'en', show_language_toggle: true });
+
+        expect(lang.value).toBe('nl');
     });
 });
