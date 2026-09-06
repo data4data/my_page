@@ -38,6 +38,14 @@ class DefaultPortfolioContent
                     'en' => 'Building systems with precision that drive impact.',
                     'nl' => 'Systemen bouwen met precisie die impact maken.',
                 ],
+                // The accented words in the headline above. Both languages'
+                // terms sit in one list; only the ones present in whichever
+                // headline is on screen can match.
+                'headline_highlights' => [
+                    ['text' => 'precision', 'tone' => 'blue'],
+                    ['text' => 'precisie', 'tone' => 'blue'],
+                    ['text' => 'impact', 'tone' => 'gold'],
+                ],
                 'summary' => [
                     'en' => 'I build digital systems that solve real business problems with clean code, automation, and measurable results.',
                     'nl' => 'Ik bouw digitale systemen die echte bedrijfsproblemen oplossen met heldere code, automatisering en meetbare resultaten.',

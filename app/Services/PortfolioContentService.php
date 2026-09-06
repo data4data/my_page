@@ -26,6 +26,7 @@ class PortfolioContentService
         'initials',
         'role',
         'headline',
+        'headline_highlights',
         'summary',
         'primary_cta_label',
         'primary_cta_url',

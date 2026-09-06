@@ -61,6 +61,12 @@ class UpdatePortfolioRequest extends FormRequest
             'profile.initials' => ['sometimes', 'string', 'max:12'],
             'profile.default_language' => ['sometimes', Rule::in(['en', 'nl'])],
             'profile.show_language_toggle' => ['sometimes', 'boolean'],
+            // Flat list of {text, tone}: which words in the headline take an
+            // accent colour. `tone` is closed because each value is a CSS
+            // class on the public page (.headline-blue / .headline-gold).
+            'profile.headline_highlights' => ['nullable', 'array'],
+            'profile.headline_highlights.*.text' => ['required', 'string', 'max:60'],
+            'profile.headline_highlights.*.tone' => ['required', Rule::in(['blue', 'gold'])],
             // SafeUrl, not 'url': the seeded CTAs are fragments ("#work") and
             // relative paths are valid here too. These three land in :href on
             // the public page, which is why the scheme is checked at all.

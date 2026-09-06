@@ -356,4 +356,54 @@ class PortfolioContentTest extends TestCase
 
         $this->assertSame(['shown'], $values);
     }
+
+    // The accented headline words used to be a regex in PublicPage.vue that
+    // matched one person's copy, so editing the headline lost the accent.
+    public function test_headline_highlights_round_trip_through_a_save(): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $highlights = [
+            ['text' => 'clarity', 'tone' => 'blue'],
+            ['text' => 'results', 'tone' => 'gold'],
+        ];
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'profile' => ['headline_highlights' => $highlights],
+            ]))
+            ->assertOk()
+            ->assertJsonPath('profile.headline_highlights', $highlights);
+
+        // And they reach the public payload, which is where they are used.
+        $this->getJson('/portfolio')
+            ->assertOk()
+            ->assertJsonPath('profile.headline_highlights', $highlights);
+    }
+
+    public function test_a_highlight_tone_outside_the_two_css_classes_is_rejected(): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'profile' => ['headline_highlights' => [['text' => 'clarity', 'tone' => 'chartreuse']]],
+            ]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['profile.headline_highlights.0.tone']);
+    }
+
+    public function test_the_seeded_defaults_carry_highlights_for_both_languages(): void
+    {
+        $profile = $this->seededProfile();
+
+        $terms = array_column($profile->headline_highlights, 'text');
+
+        // Both spellings live in the one list, since only the words in the
+        // headline actually on screen can match.
+        $this->assertContains('precision', $terms);
+        $this->assertContains('precisie', $terms);
+    }
 }
