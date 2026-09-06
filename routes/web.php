@@ -9,6 +9,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SecurityEventController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TimeLogController;
+use App\Http\Controllers\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
 // Every path below renders the same Vue SPA shell (resources/views/app.blade.php);
@@ -35,6 +36,9 @@ Route::post('/hi-developer', [DeveloperInquiryController::class, 'store'])->midd
 Route::prefix(config('admin.path'))->group(function () {
     Route::get('/login', [PortfolioController::class, 'app'])->name('login')->middleware('guest');
     Route::post('/login', [AuthController::class, 'store'])->name('login.attempt')->middleware(['guest', 'throttle:login']);
+    // Second step for an account with two-factor on. Throttled like the
+    // password step: a six-digit code is otherwise cheap to guess.
+    Route::post('/two-factor-challenge', [AuthController::class, 'challenge'])->name('two-factor.challenge')->middleware(['guest', 'throttle:login']);
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout')->middleware('auth');
 });
 
@@ -58,6 +62,15 @@ Route::prefix(config('admin.path'))->middleware(['auth', 'role:admin'])->group(f
 
     // Sign-in attempts against this install, successful or not.
     Route::get('/security-events', [SecurityEventController::class, 'index']);
+
+    // Two-factor enrolment. Turning it off changes how you get in, so that
+    // one endpoint asks for the password again in the request body rather
+    // than riding on whatever session happens to be open.
+    Route::get('/two-factor', [TwoFactorController::class, 'show']);
+    Route::post('/two-factor', [TwoFactorController::class, 'store']);
+    Route::post('/two-factor/confirm', [TwoFactorController::class, 'confirm']);
+    Route::post('/two-factor/recovery-codes', [TwoFactorController::class, 'recoveryCodes']);
+    Route::delete('/two-factor', [TwoFactorController::class, 'destroy']);
 
     // Planning Calendar (Agenda) — all scoped to the authenticated admin.
     Route::get('/categories', [CategoryController::class, 'index']);
