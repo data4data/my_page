@@ -6,6 +6,7 @@ use App\Http\Controllers\DeveloperInquiryController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ReflectionController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SecurityEventController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TimeLogController;
 use Illuminate\Support\Facades\Route;
@@ -54,6 +55,9 @@ Route::prefix(config('admin.path'))->middleware(['auth', 'role:admin'])->group(f
     Route::get('/portfolio/revisions', [PortfolioController::class, 'revisions']);
     Route::post('/portfolio/revisions/{revision}/restore', [PortfolioController::class, 'restore']);
     Route::get('/inquiries', [DeveloperInquiryController::class, 'index']);
+
+    // Sign-in attempts against this install, successful or not.
+    Route::get('/security-events', [SecurityEventController::class, 'index']);
 
     // Planning Calendar (Agenda) — all scoped to the authenticated admin.
     Route::get('/categories', [CategoryController::class, 'index']);

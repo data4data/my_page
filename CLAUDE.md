@@ -89,6 +89,8 @@ Changing `ADMIN_PATH` requires `php artisan route:clear` (a cached route table h
 
 Login is rate-limited by the named `login` limiter defined in `AppServiceProvider::boot()` — per address *and* per account, since keying on one alone leaves either a distributed attempt on a single account or a lockout of the owner.
 
+**Every sign-in attempt is recorded.** `SecurityEvent` holds one row per attempt with its outcome (`SecurityEventType`), address and the email that was typed. `AppServiceProvider::boot()` listens for Laravel's `Login` and `Failed` events, and the limiter's own `response()` callback records the blocked ones — those never reach a controller, so without that hook the trail would go quiet exactly when an attack got loud. Rows carry IP addresses and pile up fastest when something is wrong, so they expire: `MassPrunable` plus a daily `model:prune` scheduled in `routes/console.php`, keeping `SecurityEvent::RETENTION_DAYS`.
+
 `bootstrap/app.php` also fixes a `shouldRenderJsonWhen()` gotcha — without the `|| $request->expectsJson()` clause, every non-`api/*` validation failure (e.g. a wrong login password) renders as an HTML redirect instead of JSON, breaking every `fetch()`-based form in `resources/js`.
 
 ## Backend API
@@ -116,6 +118,7 @@ All four writes go through `PortfolioContentService` — `save()`, `seedDefaults
 - `GET|POST {admin}/categories`, `PUT|DELETE {admin}/categories/{category}`.
 - `GET {admin}/reports?period_type=week|month&period_start=Y-m-d` — totals come from `withSum` on `time_logs.duration_minutes`, so the stored column is summed in SQL rather than in PHP. `by_category` groups by `category_id`, not by name, and leaves the uncategorized bucket's label to the frontend.
 - `GET|PUT {admin}/reflections` (upsert by period).
+- `GET {admin}/security-events` — the sign-in trail: a per-address rollup over the last 12 hours, outcome totals for that window, and the 50 most recent attempts. Rendered by the **Security** tab under Insights.
 - `GET {admin}/inquiries?page=N` — intentionally **view-only**; no update/destroy exists. `simplePaginate`d into `{inquiries, page, has_more}`, since the public form that fills it is throttled per minute rather than in total.
 
 Ownership lives in `app/Policies/` (`TaskPolicy`, `CategoryPolicy`), found by naming convention — nothing registers them. `CategoryPolicy` keeps the rule that a **global** category (`user_id` null) is editable by anyone, but *deletable* only while no other user's subcategory hangs off it — `parent_id` cascades and `tasks.category_id` nulls, so deleting a shared row takes someone else's subcategories with it and unfiles their tasks. The base `Controller` carries `AuthorizesRequests`, which Laravel 11+ leaves off, so `$this->authorize()` works. Write endpoints with a request body check ownership in their Form Request's `authorize()`; `destroy` and the timer endpoints (no body, so no Form Request) call `$this->authorize()` directly.
