@@ -363,4 +363,32 @@
     .security-row-login_blocked .security-row-outcome {
         @apply text-warning-text;
     }
+
+    /* Two-step sign-in (Insights -> Security). */
+    .two-factor {
+        @apply rounded-md border border-sand bg-parchment/60 p-4;
+    }
+
+    .two-factor-setup {
+        @apply flex flex-wrap items-start gap-5;
+    }
+
+    /* White plate behind the code: the panel's parchment ground lowers the
+       contrast a scanner needs. */
+    .two-factor-qr {
+        @apply shrink-0 rounded-md border border-sand bg-white p-2;
+    }
+
+    .two-factor-key {
+        @apply mt-1 inline-block break-all rounded border border-sand bg-white px-2 py-1 font-mono text-xs text-ink;
+    }
+
+    .two-factor-codes {
+        @apply grid gap-2;
+        grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    }
+
+    .two-factor-codes code {
+        @apply block rounded border border-sand bg-white px-2 py-1 text-center font-mono text-xs text-ink;
+    }
 }

@@ -11,6 +11,9 @@ enum SecurityEventType: string
     // The rate limiter turned the request away before it reached the
     // controller, so no credential check happened at all.
     case LoginBlocked = 'login_blocked';
+    // Password was right, second factor was not.
+    case TwoFactorFailed = 'two_factor_failed';
+    case TwoFactorRecoveryUsed = 'two_factor_recovery_used';
 
     public function isFailure(): bool
     {

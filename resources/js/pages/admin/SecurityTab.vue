@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { copy } from '../../shared/i18n';
+import TwoFactorCard from './TwoFactorCard.vue';
 
 const props = defineProps({
     events: {
@@ -50,6 +51,8 @@ const formatDate = (value) => new Date(value).toLocaleString(undefined, {
         <div class="admin-note">
             {{ fill('securityInfo', { days: props.events?.retention_days ?? 30 }) }}
         </div>
+
+        <TwoFactorCard />
 
         <p v-if="loading" class="admin-note">{{ copy('securityLoading') }}</p>
 
