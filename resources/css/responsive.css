@@ -224,6 +224,32 @@
     }
 }
 
+/* Below lg the workspace navigation is a fixed bottom bar, so anything that
+   sits at the bottom of the viewport has to clear it. One source for the
+   height: --admin-bottom-nav in base.css. */
+@media (width < theme(--breakpoint-lg)) {
+    .admin-content {
+        padding-bottom: calc(var(--admin-bottom-nav) + env(safe-area-inset-bottom, 0px) + 1.5rem);
+    }
+
+    .fab-add {
+        bottom: calc(var(--admin-bottom-nav) + env(safe-area-inset-bottom, 0px) + 1rem);
+    }
+
+    /* Keeps the 4.5rem gap the two floating buttons have on desktop. */
+    .fab-save {
+        bottom: calc(var(--admin-bottom-nav) + env(safe-area-inset-bottom, 0px) + 5.5rem);
+    }
+}
+
+/* The header's two headline words are set for a desktop bar; at phone widths
+   they wrap into two lines and push the content down. */
+@media (width < theme(--breakpoint-md)) {
+    .admin-header-title {
+        font-size: 1.5rem;
+    }
+}
+
 /* The sign-in trail's four columns do not fit a phone; stack them and let the
    outcome label lead each row. */
 @media (width < theme(--breakpoint-md)) {

@@ -40,6 +40,20 @@
        an accent fill marks the active one instead of .admin-tab's top-border
        mark, and padding/gap is sized for an icon + label row rather than a
        condensed uppercase text pill. */
+    /* The rail is capped with the rest of the row at max-w-7xl, so on a wide
+       screen the page's own white showed to the left of it and the chrome
+       stopped looking like one surface. This carries the rail's background out
+       to the viewport edge without moving the divider, which stays on the
+       aside itself. */
+    .admin-rail {
+        /* A solid, unblurred shadow offset a full viewport to the left, rather
+           than an absolutely positioned pseudo-element: a shadow paints
+           outside the box without taking part in layout, so it cannot push the
+           page wide enough to earn a horizontal scrollbar. Same colour the
+           rail itself uses, so the two read as one surface. */
+        box-shadow: -100vw 0 0 0 color-mix(in oklab, var(--color-cream) 90%, transparent);
+    }
+
     .admin-nav-item {
         @apply flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-semibold text-graphite transition hover:bg-accent-soft hover:text-accent;
     }
@@ -390,5 +404,39 @@
 
     .two-factor-codes code {
         @apply block rounded border border-sand bg-white px-2 py-1 text-center font-mono text-xs text-ink;
+    }
+
+    /* Small-screen navigation. A bottom bar rather than the stacked rail:
+       four sections is squarely what this pattern is for, and it sits where
+       a thumb already is instead of at the top of a scrolled page. */
+    .admin-bottom-nav {
+        @apply fixed inset-x-0 bottom-0 grid grid-flow-col justify-stretch border-t border-sand bg-cream/95 backdrop-blur;
+        /* Chrome, like the header — and below --z-fab, so a floating button
+           still floats over it rather than under. */
+        z-index: var(--z-header);
+        /* Clears the iOS home indicator without adding dead space elsewhere. */
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .admin-bottom-nav-item {
+        @apply flex flex-col items-center justify-center gap-1 px-2 text-[0.6875rem] font-semibold leading-none text-graphite transition;
+        /* 44px is the smallest comfortable touch target; the bar is taller so
+           the icon and its label both fit inside one. */
+        min-height: var(--admin-bottom-nav);
+    }
+
+    .admin-bottom-nav-item span {
+        @apply max-w-full truncate;
+    }
+
+    /* Colour plus a top marker, so the active section is not signalled by
+       hue alone. */
+    .admin-bottom-nav-item.active {
+        @apply relative text-accent;
+    }
+
+    .admin-bottom-nav-item.active::before {
+        content: '';
+        @apply absolute inset-x-3 top-0 h-0.5 rounded-full bg-accent;
     }
 }

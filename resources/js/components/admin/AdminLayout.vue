@@ -36,8 +36,8 @@ defineEmits(['navigate']);
         <header class="layer-header sticky top-0 shrink-0 border-b border-sand bg-cream/90 backdrop-blur">
             <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
                 <div class="flex flex-wrap items-baseline gap-3">
-                    <a href="/" class="text-3xl font-semibold tracking-normal">{{ initials }}</a>
-                    <span class="text-3xl font-semibold tracking-normal text-accent">{{ copy('contentStudio') }}</span>
+                    <a href="/" class="admin-header-title text-3xl font-semibold tracking-normal">{{ initials }}</a>
+                    <span class="admin-header-title text-3xl font-semibold tracking-normal text-accent">{{ copy('contentStudio') }}</span>
                 </div>
                 <div class="flex items-center gap-3">
                     <div v-if="showLanguageSwitcher" class="flex items-center gap-1">
@@ -71,14 +71,15 @@ defineEmits(['navigate']);
         <div class="mx-auto flex w-full max-w-7xl flex-1 flex-col lg:flex-row">
             <!-- Same cream as the header, so the chrome (top bar + rail)
                  reads as one surface against the white content area. -->
-            <aside class="border-b border-sand bg-cream/90 px-5 py-8 lg:w-60 lg:shrink-0 lg:border-b-0 lg:border-r">
-                <nav class="flex flex-col gap-2">
+            <aside class="admin-rail hidden bg-cream/90 px-5 py-8 lg:block lg:w-60 lg:shrink-0 lg:border-r lg:border-sand">
+                <nav :aria-label="copy('contentStudio')" class="flex flex-col gap-2">
                     <button
                         v-for="item in navItems"
                         :key="item.key"
                         type="button"
                         class="admin-nav-item"
                         :class="{ active: item.key === activeKey }"
+                        :aria-current="item.key === activeKey ? 'page' : undefined"
                         @click="$emit('navigate', item.key)"
                     >
                         <component :is="item.icon" :size="18" />
@@ -91,10 +92,29 @@ defineEmits(['navigate']);
                  against the aside's divider and runs off the bottom of the
                  page. flex-col so .admin-panel's lg:flex-1 has a column to
                  grow in. -->
-            <div class="flex min-w-0 flex-1 flex-col px-5 py-8 lg:pb-0 lg:pl-0">
+            <div class="admin-content flex min-w-0 flex-1 flex-col px-5 py-8 lg:pb-0 lg:pl-0">
                 <slot />
             </div>
         </div>
+
+        <!-- Small screens get a bottom bar instead of the rail: four sections
+             is what a bottom bar is for, it stays in reach of a thumb, and the
+             stacked rail was spending most of a phone's first screenful on
+             navigation before any content appeared. -->
+        <nav class="admin-bottom-nav lg:hidden" :aria-label="copy('contentStudio')">
+            <button
+                v-for="item in navItems"
+                :key="item.key"
+                type="button"
+                class="admin-bottom-nav-item"
+                :class="{ active: item.key === activeKey }"
+                :aria-current="item.key === activeKey ? 'page' : undefined"
+                @click="$emit('navigate', item.key)"
+            >
+                <component :is="item.icon" :size="20" aria-hidden="true" />
+                <span>{{ item.label }}</span>
+            </button>
+        </nav>
 
         <slot name="fab" />
     </main>

@@ -30,6 +30,11 @@
            three separate numbers (1180 content, 1400 hero, 1480 header) each
            lived at its own call site, so wide screens showed three misaligned
            edges stacked down the page. */
+        /* Height of the small-screen bottom navigation. Shared, because the
+           content column's padding and the floating buttons both have to
+           clear it and must not drift apart from it. */
+        --admin-bottom-nav: 3.75rem;
+
         --gutter: clamp(1.25rem, 4vw, 3rem);
         --measure: 68ch; /* readable line length — caps prose, never layout */
         --content-max: 73.75rem; /* 1180 */
