@@ -78,9 +78,9 @@ Enums in `app/Enums/`: `TaskStatus` (planned, in_progress, paused, done, skipped
 
 **`{admin}` is a placeholder, not a literal path.** The private workspace's URL prefix is per-install — `ADMIN_PATH` in `.env` → `config/admin.php` → `config('admin.path')` — so nothing hardcodes it:
 
-- `routes/web.php` registers one `Route::prefix(config('admin.path'))` group for both the SPA shell routes and the JSON endpoints.
+- `routes/web.php` registers two `Route::prefix(config('admin.path'))` groups: one carrying `['auth', 'role:admin']` for the SPA shell routes and JSON endpoints, and one without it for `login` and `logout`, which cannot require a session you do not have yet. **There is no `/login`** — it 404s, so the commodity scanners that probe for a login form find nothing, and the workspace being unguessable is not undone by the door to it sitting at the web's most predictable URL.
 - `AuthController` falls back to `'/'.config('admin.path')` for the post-login redirect.
-- `resources/views/app.blade.php` emits `<meta name="admin-path">`; `resources/js/shared/admin-path.js` reads it once and exports `adminBase` / `adminUrl(suffix)`. `router.js` builds its admin route paths from `adminUrl()`, and `planning.js` + `AdminPage.vue` build every fetch URL from it. Components navigate by route **name**, so none of them know the prefix.
+- `resources/views/app.blade.php` emits `<meta name="admin-path">` **only for a request already inside the workspace prefix**, login page included — every route renders this one shell, so emitting it unconditionally put the private URL in the public page's source. The login page is told the prefix because it must build its own form action and router path, and reaching that URL already required knowing it. `AdminAccessTest` covers both directions; `resources/js/shared/admin-path.js` reads it once and exports `adminBase` / `adminUrl(suffix)`. `router.js` builds its admin route paths from `adminUrl()`, and `planning.js` + `AdminPage.vue` build every fetch URL from it. Components navigate by route **name**, so none of them know the prefix.
 - `phpunit.xml` sets `ADMIN_PATH=test-workspace` — deliberately *not* the shipped default — and tests build URLs via `Tests\TestCase::adminUrl()`. Anything that reintroduces a literal prefix fails the suite rather than passing by coincidence.
 
 Changing `ADMIN_PATH` requires `php artisan route:clear` (a cached route table holds the old prefix).
@@ -95,7 +95,7 @@ Login is rate-limited by the named `login` limiter defined in `AppServiceProvide
 
 No `/api` prefix — admin JSON endpoints live under `{admin}/...` alongside the SPA shell routes.
 
-**SPA shell** (all render the same Blade view; `resources/js/router.js` picks the page): `/`, `/login`, `/hi-developer`, `{admin}`, `{admin}/mijn-agenda`, `{admin}/insights`, `{admin}/edit-content`.
+**SPA shell** (all render the same Blade view; `resources/js/router.js` picks the page): `/`, `/hi-developer`, `{admin}/login`, `{admin}`, `{admin}/mijn-agenda`, `{admin}/insights`, `{admin}/edit-content`.
 
 **Portfolio** (`PortfolioController`):
 - `GET /portfolio` → public payload, `is_visible = true` only.

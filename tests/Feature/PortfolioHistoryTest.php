@@ -237,8 +237,8 @@ class PortfolioHistoryTest extends TestCase
     {
         $this->seededProfile();
 
-        $this->get($this->adminUrl('/portfolio/revisions'))->assertRedirect('/login');
-        $this->post($this->adminUrl('/portfolio/revisions/1/restore'))->assertRedirect('/login');
+        $this->get($this->adminUrl('/portfolio/revisions'))->assertRedirect($this->adminUrl('/login'));
+        $this->post($this->adminUrl('/portfolio/revisions/1/restore'))->assertRedirect($this->adminUrl('/login'));
     }
 
     public function test_resetting_to_defaults_is_recorded_in_history(): void

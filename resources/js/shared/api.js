@@ -1,3 +1,5 @@
+import { adminUrl } from './admin-path';
+
 /**
  * Every call to this app's JSON endpoints goes through here.
  *
@@ -28,10 +30,16 @@ export class ApiError extends Error {
 
 // A session that lapsed mid-visit is the one failure every caller would handle
 // identically, so it is handled once: send the browser to the login page and
-// let it come back. Guarded, because /login itself must not bounce to itself.
+// let it come back. Guarded, so the login page cannot bounce to itself.
+//
+// Only admin endpoints ever answer 401, and only the admin SPA calls those —
+// which runs solely on pages that carry the prefix, so adminUrl() is real
+// here rather than its fallback.
 const returnToLogin = () => {
-    if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+    const login = adminUrl('/login');
+
+    if (window.location.pathname !== login) {
+        window.location.href = login;
     }
 };
 

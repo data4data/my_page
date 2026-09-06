@@ -13,17 +13,43 @@ class AdminAccessTest extends TestCase
 
     public function test_guest_is_redirected_to_login_when_visiting_admin(): void
     {
-        $this->get($this->adminUrl())->assertRedirect('/login');
+        $this->get($this->adminUrl())->assertRedirect($this->adminUrl('/login'));
     }
 
     public function test_guest_cannot_read_admin_portfolio_data(): void
     {
-        $this->get($this->adminUrl('/portfolio'))->assertRedirect('/login');
+        $this->get($this->adminUrl('/portfolio'))->assertRedirect($this->adminUrl('/login'));
     }
 
     public function test_the_old_admin_path_no_longer_exists(): void
     {
         $this->get('/admin')->assertNotFound();
+    }
+
+    // The workspace being unguessable is worth little while the door to it
+    // sits at the URL every credential scanner tries first.
+    public function test_there_is_no_login_form_at_the_guessable_path(): void
+    {
+        $this->get('/login')->assertNotFound();
+        $this->post('/login', ['email' => 'a@b.test', 'password' => 'x'])->assertNotFound();
+        $this->post('/logout')->assertNotFound();
+    }
+
+    public function test_the_login_page_lives_behind_the_workspace_prefix(): void
+    {
+        $this->get($this->adminUrl('/login'))->assertOk();
+    }
+
+    /**
+     * The login page has to build its own form action and its vue-router path,
+     * so it needs the prefix. Handing it over there gives away nothing: you
+     * cannot have asked for this URL without already knowing the prefix.
+     */
+    public function test_the_login_page_is_told_the_prefix_it_is_already_served_from(): void
+    {
+        $this->get($this->adminUrl('/login'))
+            ->assertOk()
+            ->assertSee('<meta name="admin-path" content="test-workspace">', false);
     }
 
     public function test_the_workspace_prefix_comes_from_config_and_no_other_prefix_answers(): void
@@ -62,7 +88,7 @@ class AdminAccessTest extends TestCase
         // prefix to the frontend used to go out on the public visit card too —
         // putting the deliberately-unguessable private URL in page source for
         // any anonymous visitor. Guests are told nothing.
-        foreach (['/', '/hi-developer', '/login'] as $path) {
+        foreach (['/', '/hi-developer'] as $path) {
             $this->get($path)
                 ->assertOk()
                 ->assertDontSee('admin-path', false)
@@ -109,7 +135,7 @@ class AdminAccessTest extends TestCase
     public function test_guest_is_redirected_to_login_from_each_admin_section_path(): void
     {
         foreach ([$this->adminUrl('/mijn-agenda'), $this->adminUrl('/insights'), $this->adminUrl('/edit-content')] as $path) {
-            $this->get($path)->assertRedirect('/login');
+            $this->get($path)->assertRedirect($this->adminUrl('/login'));
         }
     }
 
@@ -119,7 +145,7 @@ class AdminAccessTest extends TestCase
         $user = User::factory()->create(['password' => 'secret-password']);
         $user->assignRole('admin');
 
-        $response = $this->postJson('/login', [
+        $response = $this->postJson($this->adminUrl('/login'), [
             'email' => $user->email,
             'password' => 'secret-password',
         ]);
@@ -132,7 +158,7 @@ class AdminAccessTest extends TestCase
     {
         $user = User::factory()->create(['password' => 'secret-password']);
 
-        $response = $this->postJson('/login', [
+        $response = $this->postJson($this->adminUrl('/login'), [
             'email' => $user->email,
             'password' => 'wrong-password',
         ]);
@@ -152,19 +178,19 @@ class AdminAccessTest extends TestCase
         // per-account limit can be what stops them.
         for ($attempt = 0; $attempt < 12; $attempt++) {
             $this->withServerVariables(['REMOTE_ADDR' => "10.0.0.{$attempt}"])
-                ->postJson('/login', ['email' => $user->email, 'password' => 'wrong'])
+                ->postJson($this->adminUrl('/login'), ['email' => $user->email, 'password' => 'wrong'])
                 ->assertStatus(422);
         }
 
         $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.99'])
-            ->postJson('/login', ['email' => $user->email, 'password' => 'wrong'])
+            ->postJson($this->adminUrl('/login'), ['email' => $user->email, 'password' => 'wrong'])
             ->assertStatus(429);
 
         // A different account from a fresh address is unaffected.
         $other = User::factory()->create(['password' => 'secret-password']);
 
         $this->withServerVariables(['REMOTE_ADDR' => '10.0.1.1'])
-            ->postJson('/login', ['email' => $other->email, 'password' => 'wrong'])
+            ->postJson($this->adminUrl('/login'), ['email' => $other->email, 'password' => 'wrong'])
             ->assertStatus(422);
     }
 
@@ -172,7 +198,7 @@ class AdminAccessTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->actingAs($user)->post('/logout')->assertRedirect('/');
+        $this->actingAs($user)->post($this->adminUrl('/logout'))->assertRedirect('/');
         $this->assertGuest();
     }
 }

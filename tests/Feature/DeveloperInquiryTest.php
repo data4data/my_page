@@ -38,7 +38,7 @@ class DeveloperInquiryTest extends TestCase
 
     public function test_guest_cannot_list_inquiries(): void
     {
-        $this->get($this->adminUrl('/inquiries'))->assertRedirect('/login');
+        $this->get($this->adminUrl('/inquiries'))->assertRedirect($this->adminUrl('/login'));
     }
 
     public function test_admin_can_list_submitted_inquiries_read_only(): void
