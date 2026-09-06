@@ -118,7 +118,7 @@ All four writes go through `PortfolioContentService` — `save()`, `seedDefaults
 - `GET|PUT {admin}/reflections` (upsert by period).
 - `GET {admin}/inquiries?page=N` — intentionally **view-only**; no update/destroy exists. `simplePaginate`d into `{inquiries, page, has_more}`, since the public form that fills it is throttled per minute rather than in total.
 
-Ownership lives in `app/Policies/` (`TaskPolicy`, `CategoryPolicy`), found by naming convention — nothing registers them. `CategoryPolicy` keeps the rule that a **global** category (`user_id` null) is editable by anyone. The base `Controller` carries `AuthorizesRequests`, which Laravel 11+ leaves off, so `$this->authorize()` works. Write endpoints with a request body check ownership in their Form Request's `authorize()`; `destroy` and the timer endpoints (no body, so no Form Request) call `$this->authorize()` directly.
+Ownership lives in `app/Policies/` (`TaskPolicy`, `CategoryPolicy`), found by naming convention — nothing registers them. `CategoryPolicy` keeps the rule that a **global** category (`user_id` null) is editable by anyone, but *deletable* only while no other user's subcategory hangs off it — `parent_id` cascades and `tasks.category_id` nulls, so deleting a shared row takes someone else's subcategories with it and unfiles their tasks. The base `Controller` carries `AuthorizesRequests`, which Laravel 11+ leaves off, so `$this->authorize()` works. Write endpoints with a request body check ownership in their Form Request's `authorize()`; `destroy` and the timer endpoints (no body, so no Form Request) call `$this->authorize()` directly.
 
 ### Where the logic lives
 
