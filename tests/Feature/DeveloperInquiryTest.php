@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\DeveloperInquiryController;
 use App\Models\DeveloperInquiry;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -55,5 +56,39 @@ class DeveloperInquiryTest extends TestCase
         $response = $this->actingAs($user)->getJson($this->adminUrl('/inquiries'));
 
         $response->assertOk()->assertJsonCount(1, 'inquiries');
+    }
+
+    // The public form feeding this table is rate-limited per minute, not in
+    // total, so the admin list has to be bounded.
+    public function test_the_inquiry_list_is_paginated(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $perPage = DeveloperInquiryController::PER_PAGE;
+
+        foreach (range(1, $perPage + 3) as $index) {
+            DeveloperInquiry::create([
+                'name' => "Sender {$index}",
+                'email' => "sender{$index}@example.com",
+                'message' => 'Hello',
+            ]);
+        }
+
+        $first = $this->actingAs($admin)->getJson($this->adminUrl('/inquiries'))->assertOk();
+        $first->assertJsonCount($perPage, 'inquiries');
+        $this->assertTrue($first->json('has_more'));
+
+        $second = $this->actingAs($admin)->getJson($this->adminUrl('/inquiries?page=2'))->assertOk();
+        $second->assertJsonCount(3, 'inquiries');
+        $this->assertFalse($second->json('has_more'));
+
+        // No row appears on both pages.
+        $ids = array_merge(
+            array_column($first->json('inquiries'), 'id'),
+            array_column($second->json('inquiries'), 'id'),
+        );
+        $this->assertSame($ids, array_unique($ids));
     }
 }

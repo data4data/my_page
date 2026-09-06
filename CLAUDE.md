@@ -107,12 +107,12 @@ All four writes go through `PortfolioContentService` — `save()`, `seedDefaults
 `UpdatePortfolioRequest` validates **types and lengths, not presence**: the editor lets fields be cleared, so `required` on free text would reject payloads the UI legitimately produces. Presence is demanded only where the column is NOT NULL (`metrics.*.value`), because Laravel's `ConvertEmptyStringsToNull` middleware turns a cleared field into `null` and the insert would otherwise 500 instead of returning a readable 422. Two tests in `PortfolioContentTest` guard this by fetching the admin payload and PUTting it straight back — the same round trip pressing Save performs.
 
 **Planner**:
-- `GET|POST {admin}/tasks`, `PUT|DELETE {admin}/tasks/{task}` — index requires `start`/`end` date params; the calendar fetches by visible range.
+- `GET|POST {admin}/tasks`, `PUT|DELETE {admin}/tasks/{task}` — index requires `start`/`end` date params and rejects a span wider than a year; the calendar fetches by visible range.
 - `POST {admin}/tasks/{task}/timer/start|stop`.
 - `GET|POST {admin}/categories`, `PUT|DELETE {admin}/categories/{category}`.
 - `GET {admin}/reports?period_type=week|month&period_start=Y-m-d` — totals come from `withSum` on `time_logs.duration_minutes`, so the stored column is summed in SQL rather than in PHP. `by_category` groups by `category_id`, not by name, and leaves the uncategorized bucket's label to the frontend.
 - `GET|PUT {admin}/reflections` (upsert by period).
-- `GET {admin}/inquiries` — intentionally **view-only**; no update/destroy exists.
+- `GET {admin}/inquiries?page=N` — intentionally **view-only**; no update/destroy exists. `simplePaginate`d into `{inquiries, page, has_more}`, since the public form that fills it is throttled per minute rather than in total.
 
 Ownership lives in `app/Policies/` (`TaskPolicy`, `CategoryPolicy`), found by naming convention — nothing registers them. `CategoryPolicy` keeps the rule that a **global** category (`user_id` null) is editable by anyone. The base `Controller` carries `AuthorizesRequests`, which Laravel 11+ leaves off, so `$this->authorize()` works. Write endpoints with a request body check ownership in their Form Request's `authorize()`; `destroy` and the timer endpoints (no body, so no Form Request) call `$this->authorize()` directly.
 

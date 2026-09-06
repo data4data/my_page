@@ -61,6 +61,10 @@ const goToView = (key) => router.push({ name: routeNameForView[key] });
 
 const inquiries = ref([]);
 const inquiriesLoading = ref(true);
+// The connect form is public, so this list grows without bound over time and
+// arrives one page at a time.
+const inquiriesHasMore = ref(false);
+const inquiriesPage = ref(1);
 
 // computed (not a plain array) so labels re-render when the admin switches
 // their own working language via the header EN/NL toggle.
@@ -83,11 +87,18 @@ const adminTabs = computed(() => [
 // Each of the three initial loads clears its own flag in `finally` and reports
 // its own failure: one of them failing must not leave that panel spinning, nor
 // take the other two down with it.
-const fetchInquiries = async () => {
+const fetchInquiries = async (page = 1) => {
     inquiriesLoading.value = true;
 
     try {
-        inquiries.value = (await apiFetch(adminUrl('/inquiries'))).inquiries ?? [];
+        const body = await apiFetch(`${adminUrl('/inquiries')}?page=${page}`);
+        const rows = body.inquiries ?? [];
+
+        // Page one replaces, later pages append — so "load more" grows the
+        // list while a refresh still starts clean.
+        inquiries.value = page === 1 ? rows : [...inquiries.value, ...rows];
+        inquiriesHasMore.value = body.has_more ?? false;
+        inquiriesPage.value = body.page ?? page;
     } finally {
         inquiriesLoading.value = false;
     }
@@ -104,6 +115,8 @@ const fetchRevisions = async () => {
 };
 
 const reportFailure = (error) => toast.error(error.message || copy('error'));
+
+const loadMoreInquiries = () => fetchInquiries(inquiriesPage.value + 1).catch(reportFailure);
 
 fetchPortfolio().catch(reportFailure);
 fetchInquiries().catch(reportFailure);
@@ -210,7 +223,13 @@ const updateTags = (project, value) => {
 
         <AgendaPage v-if="view === 'agenda'" />
 
-        <InsightsPage v-else-if="view === 'insights'" :inquiries="inquiries" :inquiries-loading="inquiriesLoading" />
+        <InsightsPage
+            v-else-if="view === 'insights'"
+            :inquiries="inquiries"
+            :inquiries-loading="inquiriesLoading"
+            :inquiries-has-more="inquiriesHasMore"
+            @load-more="loadMoreInquiries"
+        />
 
         <SectionTabs v-else v-model="tab" :tabs="adminTabs">
             <ProfileTab v-if="tab === 'profile'" :profile="profile" />
