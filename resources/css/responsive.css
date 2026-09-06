@@ -4,16 +4,17 @@
    window with DevTools docked at the bottom, which is where it was most often
    lost. Width stays at 1024: below that the tablet rules pull .hero-copy left
    to use the space, and the rail measurably overlaps it (-25px at 900px wide). */
-@media (min-width: 64rem) and (min-height: 37.5rem) {
+@media (width >= theme(--breakpoint-lg)) and (height >= 37.5rem) {
     .social-rail {
         display: flex;
     }
 }
 
-/* Small: single column, one card at a time. Raised from the old 760px so it
-   meets Tailwind's md (48rem) with no dead band — 761-767px previously fell
-   through to the desktop layout. */
-@media (max-width: 47.9375rem) {
+/* Small: single column, one card at a time. Expressed against the md token
+   rather than a hand-computed 47.9375rem, so the boundary cannot drift away
+   from the one Tailwind's own md: variants use — a gap between the two is
+   what once let 761-767px fall through to the desktop layout. */
+@media (width < theme(--breakpoint-md)) {
     .site-header-inner {
         width: calc(100% - 28px);
         grid-template-columns: auto 1fr;
@@ -144,7 +145,7 @@
    through to the desktop layout — three expertise cards at ~220px each, and a
    hero sized for a viewport twice this wide. The social rail is already
    hidden here (it's lg:flex), so the hero reclaims its reserved column. */
-@media (min-width: 48rem) and (max-width: 63.9375rem) {
+@media (width >= theme(--breakpoint-md)) and (width < theme(--breakpoint-lg)) {
     .expertise-carousel {
         --cards: 2;
     }
@@ -217,7 +218,7 @@
 /* Ultra-wide: >=1800px. The content column has stepped up (see :root above),
    so a fourth expertise card fits — real content in the reclaimed space
    rather than more decoration. */
-@media (min-width: 112.5rem) {
+@media (width >= theme(--breakpoint-2xl)) {
     .expertise-carousel {
         --cards: 4;
     }

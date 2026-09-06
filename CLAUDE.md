@@ -206,7 +206,11 @@ Styling is Tailwind v4 via `@tailwindcss/vite` (no `tailwind.config.js` — v4 i
 | `overlays.css` | modals shared by public and admin |
 | `responsive.css` | every media query, together so breakpoints stay reviewable |
 
-Two rules when editing: all `@import`s must stay above `@plugin`/`@source` (CSS requires `@import` first, and Lightning CSS enforces it), and **never set a raw `z-index`** — add a `--z-*` token in `base.css` and a matching `.layer-*` class. Equal ad-hoc `z-50` values on the toast container and the modal overlay are what once buried error toasts behind the modal scrim.
+Three rules when editing:
+
+1. All `@import`s must stay above `@plugin`/`@source` (CSS requires `@import` first, and Lightning CSS enforces it).
+2. **Anything competing in the page's root stacking context takes a `--z-*` token** from the scale in `base.css` — `raised`, `section`, `rail`, `header`, `fab`, `overlay`, `field`, `confirm`, `toast` — used as `z-index: var(--z-x)` in CSS or a `.layer-x` class in a template. Never a bare number at that level. Equal ad-hoc `z-50` values on the toast container and the modal overlay are what once buried error toasts behind the modal scrim, and `field` exists because `AppSelect`/`AppDatePicker` panels append to `<body>`, so inside a modal they are the scrim's sibling rather than its child. A small literal lift *inside* an element's own stacking context — text over its card's decorative pseudo-element, a focused input over its sibling — is a different thing and stays local. `layering.test.js` enforces both halves.
+3. **Media queries reference the breakpoint tokens, not numbers** — `@media (width >= theme(--breakpoint-lg))`, and `(width < theme(--breakpoint-md))` for the "below" side. Hand-computed boundaries like `47.9375rem` drift away from the ones Tailwind's own `md:` variants use, which is how a band of widths once fell through to the desktop layout. The one literal left is the ambient-wash threshold in `base.css`, which corresponds to no breakpoint.
 
 ## Not yet built
 

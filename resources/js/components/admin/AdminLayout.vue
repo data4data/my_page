@@ -32,7 +32,7 @@ defineEmits(['navigate']);
 
 <template>
     <main class="flex min-h-screen flex-col bg-white text-ink">
-        <header class="sticky top-0 z-30 shrink-0 border-b border-sand bg-cream/90 backdrop-blur">
+        <header class="layer-header sticky top-0 shrink-0 border-b border-sand bg-cream/90 backdrop-blur">
             <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
                 <div class="flex flex-wrap items-baseline gap-3">
                     <a href="/" class="text-3xl font-semibold tracking-normal">{{ initials }}</a>

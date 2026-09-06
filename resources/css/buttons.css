@@ -37,7 +37,8 @@
        without scrolling. Shadow restated after .btn-compact's shadow-none
        (same specificity, later wins) — a floating button still needs it. */
     .fab-add {
-        @apply fixed bottom-6 right-6 z-40 shadow-[0_18px_45px_rgba(7,21,35,0.35)];
+        @apply fixed bottom-6 right-6 shadow-[0_18px_45px_rgba(7,21,35,0.35)];
+        z-index: var(--z-fab);
     }
 
     .fab-add.btn-compact {
@@ -49,7 +50,8 @@
        both are visible at once. Always on top: saving applies to every tab,
        not just the one currently open. */
     .fab-save {
-        @apply fixed bottom-24 right-6 z-40 shadow-[0_18px_45px_rgba(7,21,35,0.35)];
+        @apply fixed bottom-24 right-6 shadow-[0_18px_45px_rgba(7,21,35,0.35)];
+        z-index: var(--z-fab);
     }
 
     .fab-save.btn-compact {
