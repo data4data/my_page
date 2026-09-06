@@ -30,15 +30,28 @@ class ReportController extends Controller
         $tasks = Task::query()
             ->where('user_id', $request->user()->id)
             ->whereBetween('start_datetime', [$start, $end])
-            ->with(['category', 'timeLogs'])
+            ->with('category')
+            // The database does the adding up. duration_minutes is a stored
+            // column precisely so this is one SUM per task rather than every
+            // time_logs row being hydrated into PHP and diffed there.
+            ->withSum('timeLogs as tracked_minutes', 'duration_minutes')
             ->get();
 
+        $tracked = fn (Task $task) => (int) ($task->tracked_minutes ?? 0);
+
+        // Grouped by id, not by name: two categories can share a name — a
+        // seeded global one and a personal one, or two under different
+        // parents — and grouping by the label merged them into a single row
+        // whose colour came from whichever task happened to sort first.
+        // `null` is the uncategorized bucket; the frontend supplies its label,
+        // so the report carries no untranslated English.
         $byCategory = $tasks
-            ->groupBy(fn (Task $task) => $task->category?->name ?? 'Uncategorized')
-            ->map(fn ($group, $name) => [
-                'category' => $name,
+            ->groupBy(fn (Task $task) => $task->category_id)
+            ->map(fn ($group) => [
+                'category_id' => $group->first()->category_id,
+                'category' => $group->first()->category?->name,
                 'color' => $group->first()->category?->color ?? '#9b9b9b',
-                'minutes' => $group->flatMap->timeLogs->sum('duration_minutes'),
+                'minutes' => $group->sum($tracked),
                 'planned_minutes' => $group->sum(fn (Task $task) => $task->plannedMinutes()),
                 'tasks' => $group->count(),
             ])
@@ -52,7 +65,7 @@ class ReportController extends Controller
             'period_type' => $periodType->value,
             'period_start' => $start->toDateString(),
             'period_end' => $end->toDateString(),
-            'total_minutes' => $tasks->flatMap->timeLogs->sum('duration_minutes'),
+            'total_minutes' => $tasks->sum($tracked),
             'total_planned_minutes' => $tasks->sum(fn (Task $task) => $task->plannedMinutes()),
             'task_count' => $tasks->count(),
             'by_category' => $byCategory,

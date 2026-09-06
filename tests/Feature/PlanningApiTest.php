@@ -507,7 +507,64 @@ class PlanningApiTest extends TestCase
         $this->assertSame(45, $response->json('total_minutes'));
         $this->assertSame(1, $response->json('task_count'));
         $this->assertSame('Learning', $response->json('by_category.0.category'));
+        $this->assertSame($category->id, $response->json('by_category.0.category_id'));
         $this->assertSame(45, $response->json('by_category.0.minutes'));
+    }
+
+    // Two categories can legitimately share a name — a seeded global one and a
+    // personal one, or two sitting under different parents. Grouping by the
+    // label merged them into a single row carrying one category's colour.
+    public function test_report_keeps_same_named_categories_apart(): void
+    {
+        $admin = $this->admin();
+        $global = Category::create(['name' => 'Admin', 'color' => '#c5a064']);
+        $mine = Category::create(['name' => 'Admin', 'color' => '#2f75a8', 'user_id' => $admin->id]);
+
+        foreach ([$global, $mine] as $category) {
+            $task = Task::create([
+                'user_id' => $admin->id,
+                'category_id' => $category->id,
+                'title' => 'Paperwork',
+                'start_datetime' => '2026-06-10 09:00:00',
+                'status' => TaskStatus::Done,
+                'source' => TaskSource::Manual,
+            ]);
+            $task->timeLogs()->create(['started_at' => '2026-06-10 09:00:00', 'ended_at' => '2026-06-10 09:30:00']);
+        }
+
+        $rows = $this->actingAs($admin)->getJson($this->adminUrl('/reports?').http_build_query([
+            'period_type' => 'week',
+            'period_start' => '2026-06-08',
+        ]))->assertOk()->json('by_category');
+
+        $this->assertCount(2, $rows);
+        $this->assertEqualsCanonicalizing(
+            [$global->id, $mine->id],
+            array_column($rows, 'category_id'),
+        );
+        $this->assertEqualsCanonicalizing(
+            ['#c5a064', '#2f75a8'],
+            array_column($rows, 'color'),
+        );
+    }
+
+    // Uncategorized tasks keep their own bucket, labelled by the frontend so
+    // the report never returns untranslated English.
+    public function test_report_returns_a_null_category_bucket_rather_than_a_label(): void
+    {
+        $admin = $this->admin();
+        $task = $this->task($admin, '2026-06-10 09:00:00');
+        $task->timeLogs()->create(['started_at' => '2026-06-10 09:00:00', 'ended_at' => '2026-06-10 09:20:00']);
+
+        $rows = $this->actingAs($admin)->getJson($this->adminUrl('/reports?').http_build_query([
+            'period_type' => 'week',
+            'period_start' => '2026-06-08',
+        ]))->assertOk()->json('by_category');
+
+        $this->assertCount(1, $rows);
+        $this->assertNull($rows[0]['category_id']);
+        $this->assertNull($rows[0]['category']);
+        $this->assertSame(20, $rows[0]['minutes']);
     }
 
     public function test_report_reports_planned_minutes_alongside_tracked_minutes(): void

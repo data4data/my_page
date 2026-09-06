@@ -116,6 +116,10 @@ const categoryRows = computed(() => [...(report.value?.by_category ?? [])]
 
         return {
             ...row,
+            // The report groups by id and leaves the label to the client, so
+            // the uncategorized bucket is named here rather than in English
+            // on the server.
+            label: row.category ?? copy('uncategorized'),
             planned,
             tracked,
             // No plan to measure against, so a percentage would be meaningless.
@@ -206,9 +210,9 @@ load();
                     <p class="mt-1 text-xs leading-5 text-taupe">{{ copy('reportBarHint') }}</p>
 
                     <ul class="mt-3 flex flex-col gap-4">
-                        <li v-for="row in categoryRows" :key="row.category" :title="rowTooltip(row)">
+                        <li v-for="row in categoryRows" :key="row.category_id ?? 'uncategorized'" :title="rowTooltip(row)">
                             <div class="flex items-baseline justify-between gap-3">
-                                <span class="text-sm text-ink">{{ row.category }}</span>
+                                <span class="text-sm text-ink">{{ row.label }}</span>
                                 <span class="text-xs tabular-nums text-taupe">
                                     {{ formatMinutes(row.tracked) }} / {{ formatMinutes(row.planned) }}
                                     <template v-if="row.percent !== null"> · {{ row.percent }}%</template>
