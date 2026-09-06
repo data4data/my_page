@@ -181,7 +181,9 @@ Weeks are Monday-based everywhere: Carbon's default `startOfWeek()` server-side,
 
 `resources/js/components/ui/` wraps PrimeVue — installed **unstyled** and pinned to the **MIT-licensed v4 line** (v5 moved to a commercial licence requiring a key) — with this app's look, styled once in the `resources/css/` partials (see below).
 
-Components: `AppButton` (variants: primary/secondary/accent/menu/menu-gold/lang/link/icon/icon-danger), `AppInput`, `AppTextarea`, `AppSelect` (optional `filterable`), `AppMultiSelect`, `AppIconSelect`, `AppCheckbox`, `AppDatePicker`, `AppTranslatedField` (one label over grouped EN/NL inputs — the standard way every bilingual field is edited), plus `ConfirmDialog` and `ToastStack`. `EditableCard.vue` is the reorder/remove wrapper used across the editable content tabs.
+Components: `AppButton` (variants: primary/secondary/accent/menu/menu-gold/lang/link/icon/icon-danger), `AppInput`, `AppTextarea`, `AppSelect` (optional `filterable`), `AppMultiSelect`, `AppIconSelect`, `AppCheckbox`, `AppDatePicker`, `AppTranslatedField` (one label over grouped EN/NL inputs — the standard way every bilingual field is edited), `AppModal`, plus `ConfirmDialog` and `ToastStack`.
+
+**`AppModal` is the shell every modal uses** — overlay, card, close button, `role="dialog"`, Escape, a Tab trap, and returning focus to whatever opened it. `TaskModal`, `CategoryModal` and `DeveloperConnectModal` each had the first three copied by hand and none of the rest. It skips an Escape that another component already called `preventDefault()` on, and leaves focus alone when it sits outside the card, because `AppSelect` and `AppDatePicker` overlays are appended to `<body>`. `ConfirmDialog` stays separate: it is an `alertdialog` raised from inside these, so it carries its own higher `--z-confirm` layer. `EditableCard.vue` is the reorder/remove wrapper used across the editable content tabs.
 
 **Unstyled mode means PrimeVue ships no CSS at all** — every class comes from our `pt` map, and anything the default theme would have done for us has to be done by hand. Two consequences that have already bitten:
 

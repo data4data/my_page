@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { Play, Square, Trash2, X } from '@lucide/vue';
+import { Play, Square, Trash2 } from '@lucide/vue';
+import AppModal from '../../../components/ui/AppModal.vue';
 import AppInput from '../../../components/ui/AppInput.vue';
 import AppDatePicker from '../../../components/ui/AppDatePicker.vue';
 import AppTextarea from '../../../components/ui/AppTextarea.vue';
@@ -163,85 +164,79 @@ const submit = () => {
 </script>
 
 <template>
-    <div class="connect-overlay" @click.self="$emit('close')">
-        <div class="connect-modal connect-modal-wide">
-            <button type="button" class="connect-close" :aria-label="copy('connectClose')" @click="$emit('close')">
-                <X :size="18" />
+    <AppModal size="wide" :label="isEditing ? copy('editTask') : copy('addTask')" @close="$emit('close')">
+        <p class="eyebrow">{{ copy('agenda') }}</p>
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-serif text-2xl leading-tight">{{ isEditing ? copy('editTask') : copy('addTask') }}</h2>
+            <!-- Only for saved tasks: a timer needs a task id to attach to. -->
+            <button
+                v-if="isEditing"
+                type="button"
+                class="timer-button"
+                :class="{ 'timer-button-running': runningLog }"
+                :aria-label="copy(runningLog ? 'stopTimer' : 'startTimer')"
+                @click="onTimerClick"
+            >
+                <component :is="runningLog ? Square : Play" :size="11" />
+                <span>{{ elapsedLabel ?? copy('startTimer') }}</span>
             </button>
-
-            <p class="eyebrow">{{ copy('agenda') }}</p>
-            <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <h2 class="font-serif text-2xl leading-tight">{{ isEditing ? copy('editTask') : copy('addTask') }}</h2>
-                <!-- Only for saved tasks: a timer needs a task id to attach to. -->
-                <button
-                    v-if="isEditing"
-                    type="button"
-                    class="timer-button"
-                    :class="{ 'timer-button-running': runningLog }"
-                    :aria-label="copy(runningLog ? 'stopTimer' : 'startTimer')"
-                    @click="onTimerClick"
-                >
-                    <component :is="runningLog ? Square : Play" :size="11" />
-                    <span>{{ elapsedLabel ?? copy('startTimer') }}</span>
-                </button>
-            </div>
-
-            <form class="admin-grid mt-6" novalidate @submit.prevent="submit">
-                <label>
-                    {{ copy('taskCategory') }}
-                    <AppSelect v-model="form.category_id" :options="categoryOptions" />
-                </label>
-
-                <label>
-                    {{ copy('taskStatus') }}
-                    <AppSelect v-model="form.status" :options="statusOptions" />
-                </label>
-
-                <label>
-                    {{ copy('taskStart') }}
-                    <AppDatePicker v-model="form.start_datetime" show-time />
-                </label>
-
-                <label>
-                    {{ copy('taskEnd') }}
-                    <AppDatePicker v-model="form.end_datetime" show-time />
-                </label>
-
-                <label class="admin-full">
-                    {{ copy('taskPlannedDuration') }}
-                    <AppInput v-model="form.planned_duration_minutes" type="number" min="0" step="5" />
-                    <span class="mt-1 block text-xs leading-5 text-taupe">{{ copy('taskPlannedDurationHint') }}</span>
-                </label>
-
-                <label class="admin-full">
-                    {{ copy('taskTitle') }}
-                    <AppInput v-model="form.title" required />
-                </label>
-
-                <label class="admin-full">
-                    {{ copy('taskDescription') }}
-                    <AppTextarea v-model="form.description" rows="2" />
-                </label>
-
-                <label class="admin-full">
-                    {{ copy('taskResultNotes') }}
-                    <AppTextarea v-model="form.result_notes" rows="3" />
-                </label>
-
-                <div class="admin-full mt-2 flex items-center justify-between gap-3">
-                    <AppButton v-if="isEditing" type="button" variant="icon-danger" :aria-label="copy('taskDelete')" :disabled="saving" @click="$emit('delete')">
-                        <Trash2 :size="16" />
-                    </AppButton>
-                    <span v-else></span>
-
-                    <div class="flex items-center gap-2">
-                        <AppButton type="button" variant="secondary" size="sm" @click="$emit('close')">{{ copy('taskCancel') }}</AppButton>
-                        <AppButton type="submit" variant="accent" size="sm" :disabled="saving">
-                            {{ saving ? copy('saving') : copy('taskSave') }}
-                        </AppButton>
-                    </div>
-                </div>
-            </form>
         </div>
-    </div>
+
+        <form class="admin-grid mt-6" novalidate @submit.prevent="submit">
+            <label>
+                {{ copy('taskCategory') }}
+                <AppSelect v-model="form.category_id" :options="categoryOptions" />
+            </label>
+
+            <label>
+                {{ copy('taskStatus') }}
+                <AppSelect v-model="form.status" :options="statusOptions" />
+            </label>
+
+            <label>
+                {{ copy('taskStart') }}
+                <AppDatePicker v-model="form.start_datetime" show-time />
+            </label>
+
+            <label>
+                {{ copy('taskEnd') }}
+                <AppDatePicker v-model="form.end_datetime" show-time />
+            </label>
+
+            <label class="admin-full">
+                {{ copy('taskPlannedDuration') }}
+                <AppInput v-model="form.planned_duration_minutes" type="number" min="0" step="5" />
+                <span class="mt-1 block text-xs leading-5 text-taupe">{{ copy('taskPlannedDurationHint') }}</span>
+            </label>
+
+            <label class="admin-full">
+                {{ copy('taskTitle') }}
+                <AppInput v-model="form.title" required />
+            </label>
+
+            <label class="admin-full">
+                {{ copy('taskDescription') }}
+                <AppTextarea v-model="form.description" rows="2" />
+            </label>
+
+            <label class="admin-full">
+                {{ copy('taskResultNotes') }}
+                <AppTextarea v-model="form.result_notes" rows="3" />
+            </label>
+
+            <div class="admin-full mt-2 flex items-center justify-between gap-3">
+                <AppButton v-if="isEditing" type="button" variant="icon-danger" :aria-label="copy('taskDelete')" :disabled="saving" @click="$emit('delete')">
+                    <Trash2 :size="16" />
+                </AppButton>
+                <span v-else></span>
+
+                <div class="flex items-center gap-2">
+                    <AppButton type="button" variant="secondary" size="sm" @click="$emit('close')">{{ copy('taskCancel') }}</AppButton>
+                    <AppButton type="submit" variant="accent" size="sm" :disabled="saving">
+                        {{ saving ? copy('saving') : copy('taskSave') }}
+                    </AppButton>
+                </div>
+            </div>
+        </form>
+    </AppModal>
 </template>
