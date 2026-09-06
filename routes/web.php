@@ -50,6 +50,7 @@ Route::prefix(config('admin.path'))->middleware(['auth', 'role:admin'])->group(f
     Route::get('/mijn-agenda', [PortfolioController::class, 'app']);
     Route::get('/insights', [PortfolioController::class, 'app']);
     Route::get('/edit-content', [PortfolioController::class, 'app']);
+    Route::get('/settings', [PortfolioController::class, 'app']);
 
     Route::get('/portfolio', [PortfolioController::class, 'edit']);
     Route::put('/portfolio', [PortfolioController::class, 'update']);

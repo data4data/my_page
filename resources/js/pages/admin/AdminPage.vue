@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowRight, Calendar, Inbox, Pencil } from '@lucide/vue';
+import { ArrowRight, Calendar, Inbox, Pencil, Settings } from '@lucide/vue';
 import AppButton from '../../components/ui/AppButton.vue';
 import AdminLayout from '../../components/admin/AdminLayout.vue';
 import SectionTabs from '../../components/admin/SectionTabs.vue';
@@ -13,6 +13,7 @@ import ProjectsTab from './ProjectsTab.vue';
 import InsightsPage from './InsightsPage.vue';
 import ContentVersionsTab from './ContentVersionsTab.vue';
 import LanguageTab from './LanguageTab.vue';
+import TwoFactorCard from './TwoFactorCard.vue';
 import AgendaPage from './AgendaPage.vue';
 import ToastStack from '../../components/ui/ToastStack.vue';
 import ConfirmDialog from '../../components/ui/ConfirmDialog.vue';
@@ -42,6 +43,9 @@ const {
 const saving = ref(false);
 const restoring = ref(false);
 const tab = ref('profile');
+// Settings keeps its own tab state: switching sections should not carry an
+// Edit-page tab across into it.
+const settingsTab = ref('language');
 
 // Saved versions of the public page, listed on the Content versions tab.
 const revisions = ref([]);
@@ -55,6 +59,7 @@ const routeNameForView = {
     agenda: 'admin-agenda',
     insights: 'admin-insights',
     edit: 'admin-edit',
+    settings: 'admin-settings',
 };
 const view = computed(() => Object.keys(routeNameForView).find((key) => routeNameForView[key] === route.name) ?? 'edit');
 const goToView = (key) => router.push({ name: routeNameForView[key] });
@@ -75,17 +80,30 @@ const navItems = computed(() => [
     { key: 'agenda', label: copy('agenda'), icon: Calendar },
     { key: 'insights', label: copy('insights'), icon: Inbox },
     { key: 'edit', label: copy('editPage'), icon: Pencil },
+    { key: 'settings', label: copy('settings'), icon: Settings },
 ]);
 
+// Edit page is now only the content itself. Language and Content versions
+// moved to Settings: neither is page copy, and both are changed far less
+// often than the text around them.
 const adminTabs = computed(() => [
     { value: 'profile', label: copy('tabProfile') },
     { value: 'metrics', label: copy('tabExperience') },
     { value: 'expertise', label: copy('tabExpertise') },
     { value: 'process', label: copy('tabProcess') },
     { value: 'projects', label: copy('tabProjects') },
-    { value: 'language', label: copy('tabLanguage'), right: true },
+]);
+
+const settingsTabs = computed(() => [
+    { value: 'language', label: copy('tabLanguage') },
+    { value: 'two-factor', label: copy('tabTwoFactor') },
     { value: 'versions', label: copy('tabVersions') },
 ]);
+
+// The Language tab edits fields in the portfolio payload, so it needs the
+// same Save button the Edit page has. The other two settings persist through
+// their own endpoints the moment you act on them.
+const showSaveButton = computed(() => view.value === 'edit' || (view.value === 'settings' && settingsTab.value === 'language'));
 
 // Each of the three initial loads clears its own flag in `finally` and reports
 // its own failure: one of them failing must not leave that panel spinning, nor
@@ -247,15 +265,11 @@ const updateTags = (project, value) => {
             @load-more="loadMoreInquiries"
         />
 
-        <SectionTabs v-else v-model="tab" :tabs="adminTabs">
-            <ProfileTab v-if="tab === 'profile'" :profile="profile" />
-            <MetricsTab v-else-if="tab === 'metrics'" :metrics="metrics" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
-            <ExpertiseTab v-else-if="tab === 'expertise'" :expertise="expertise" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
-            <ProcessTab v-else-if="tab === 'process'" :process-steps="processSteps" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
-            <ProjectsTab v-else-if="tab === 'projects'" :projects="projects" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :update-tags="updateTags" />
-            <LanguageTab v-else-if="tab === 'language'" :profile="profile" />
+        <SectionTabs v-else-if="view === 'settings'" v-model="settingsTab" :tabs="settingsTabs">
+            <LanguageTab v-if="settingsTab === 'language'" :profile="profile" />
+            <TwoFactorCard v-else-if="settingsTab === 'two-factor'" />
             <ContentVersionsTab
-                v-else-if="tab === 'versions'"
+                v-else-if="settingsTab === 'versions'"
                 :restoring="restoring"
                 :restore-defaults="restoreDefaults"
                 :revisions="revisions"
@@ -265,12 +279,20 @@ const updateTags = (project, value) => {
             />
         </SectionTabs>
 
+        <SectionTabs v-else v-model="tab" :tabs="adminTabs">
+            <ProfileTab v-if="tab === 'profile'" :profile="profile" />
+            <MetricsTab v-else-if="tab === 'metrics'" :metrics="metrics" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
+            <ExpertiseTab v-else-if="tab === 'expertise'" :expertise="expertise" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
+            <ProcessTab v-else-if="tab === 'process'" :process-steps="processSteps" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
+            <ProjectsTab v-else-if="tab === 'projects'" :projects="projects" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :update-tags="updateTags" />
+        </SectionTabs>
+
         <template #fab>
-            <!-- Editor-only: this saves the portfolio content payload, which
-                 means nothing on Agenda or Insights (both persist through
-                 their own endpoints) — and it was overlapping their own save
-                 buttons. -->
-            <AppButton v-if="view === 'edit'" variant="primary" size="sm" class="fab-save" :disabled="saving" @click="savePortfolio">
+            <!-- Only where there is unsaved payload to write: the Edit page,
+                 and Settings' Language tab, which edits the same payload.
+                 Agenda, Insights and the other settings persist through their
+                 own endpoints, and the button was overlapping their own. -->
+            <AppButton v-if="showSaveButton" variant="primary" size="sm" class="fab-save" :disabled="saving" @click="savePortfolio">
                 {{ saving ? copy('saving') : copy('save') }}
                 <ArrowRight :size="16" />
             </AppButton>
