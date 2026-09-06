@@ -54,6 +54,22 @@
         box-shadow: -100vw 0 0 0 color-mix(in oklab, var(--color-cream) 90%, transparent);
     }
 
+    /* The rail itself keeps stretching the full height of the row, because
+       its right border is the one vertical divider and it has to reach the
+       bottom of the page. Only the nav inside it travels, so the sections
+       stay reachable on a long Agenda or a long editor without the divider
+       stopping short. */
+    .admin-rail-nav {
+        position: sticky;
+        /* Clear of the header, which is sticky and translucent — anything
+           passing under it shows through rather than being hidden. */
+        top: calc(var(--admin-header) + 1rem);
+        /* Only bites if the nav ever outgrows the viewport; with four
+           sections it never does, and without it a fifth would be unreachable. */
+        max-height: calc(100dvh - var(--admin-header) - 2rem);
+        overflow-y: auto;
+    }
+
     .admin-nav-item {
         @apply flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-semibold text-graphite transition hover:bg-accent-soft hover:text-accent;
     }

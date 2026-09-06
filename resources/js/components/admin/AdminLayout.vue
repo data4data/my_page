@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { LogOut } from '@lucide/vue';
 import AppButton from '../ui/AppButton.vue';
 import { copy, lang, LANGUAGES, languageSwitcherShown, setLang } from '../../shared/i18n';
@@ -29,11 +29,34 @@ const props = defineProps({
 const showLanguageSwitcher = computed(() => languageSwitcherShown(props.profile));
 
 defineEmits(['navigate']);
+
+// The rail's nav sticks below the header, so it needs the header's height.
+// Measured rather than written down: the header wraps to a second line when
+// its title, language switch and sign-out button stop fitting, and a number
+// hardcoded for the one-line case would let the nav slide underneath it.
+// The stylesheet carries a fallback for the first paint and for jsdom.
+const header = ref(null);
+const headerHeight = ref(null);
+let observer = null;
+
+onMounted(() => {
+    if (! header.value || typeof ResizeObserver === 'undefined') {
+        return;
+    }
+
+    observer = new ResizeObserver(([entry]) => {
+        headerHeight.value = `${Math.round(entry.target.getBoundingClientRect().height)}px`;
+    });
+
+    observer.observe(header.value);
+});
+
+onBeforeUnmount(() => observer?.disconnect());
 </script>
 
 <template>
-    <main class="flex min-h-screen flex-col bg-white text-ink">
-        <header class="layer-header sticky top-0 shrink-0 border-b border-sand bg-cream/90 backdrop-blur">
+    <main class="flex min-h-screen flex-col bg-white text-ink" :style="headerHeight ? { '--admin-header': headerHeight } : null">
+        <header ref="header" class="layer-header sticky top-0 shrink-0 border-b border-sand bg-cream/90 backdrop-blur">
             <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
                 <div class="flex flex-wrap items-baseline gap-3">
                     <a href="/" class="admin-header-title text-3xl font-semibold tracking-normal">{{ initials }}</a>
@@ -72,7 +95,7 @@ defineEmits(['navigate']);
             <!-- Same cream as the header, so the chrome (top bar + rail)
                  reads as one surface against the white content area. -->
             <aside class="admin-rail hidden bg-cream/90 px-5 py-8 lg:block lg:w-60 lg:shrink-0 lg:border-r lg:border-sand">
-                <nav :aria-label="copy('contentStudio')" class="flex flex-col gap-2">
+                <nav :aria-label="copy('contentStudio')" class="admin-rail-nav flex flex-col gap-2">
                     <button
                         v-for="item in navItems"
                         :key="item.key"

@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import AdminLayout from './AdminLayout.vue';
 
 const navItems = [
@@ -62,5 +62,43 @@ describe('AdminLayout navigation', () => {
         for (const nav of wrapper.findAll('nav')) {
             expect(nav.attributes('aria-label')).toBeTruthy();
         }
+    });
+});
+
+describe('AdminLayout sticky rail', () => {
+    // The rail's divider has to reach the bottom of the page, so the aside
+    // keeps stretching and only the nav inside it travels.
+    it('sticks the nav, not the aside', () => {
+        const wrapper = mountLayout();
+
+        expect(wrapper.get('aside nav').classes()).toContain('admin-rail-nav');
+        expect(wrapper.get('aside').classes()).not.toContain('admin-rail-nav');
+    });
+
+    it('falls back to the stylesheet header height when nothing has measured one', () => {
+        // jsdom has no ResizeObserver, which is the same position the page is
+        // in on its first paint: --admin-header must come from base.css then.
+        const wrapper = mountLayout();
+
+        expect(wrapper.get('main').attributes('style')).toBeUndefined();
+    });
+
+    it('writes the measured header height once it has one', async () => {
+        const observed = [];
+        vi.stubGlobal('ResizeObserver', class {
+            constructor(callback) { this.callback = callback; observed.push(this); }
+            observe(target) { this.target = target; }
+            disconnect() {}
+        });
+
+        const wrapper = mountLayout();
+        expect(observed).toHaveLength(1);
+
+        observed[0].callback([{ target: { getBoundingClientRect: () => ({ height: 91.4 }) } }]);
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.get('main').attributes('style')).toContain('--admin-header: 91px');
+
+        vi.unstubAllGlobals();
     });
 });

@@ -35,6 +35,12 @@
            clear it and must not drift apart from it. */
         --admin-bottom-nav: 3.75rem;
 
+        /* Fallback height of the sticky workspace header, used until
+           AdminLayout has measured the real one and written this over. Its
+           value is the one-line case: py-4 twice, plus a text-3xl line box,
+           plus the bottom border. */
+        --admin-header: 4.3125rem;
+
         --gutter: clamp(1.25rem, 4vw, 3rem);
         --measure: 68ch; /* readable line length — caps prose, never layout */
         --content-max: 73.75rem; /* 1180 */
