@@ -35,6 +35,8 @@ vendor/bin/pint                         # PHP code style (Laravel Pint)
 php artisan db:seed --class=DemoWeekSeeder   # refresh the demo week onto the current week
 ```
 
+Note: `AdminUserSeeder` reads `config('admin.seed.*')`, not `env()` — after `php artisan config:cache`, `env()` outside a config file returns null, and the seeder would have quietly used the placeholder credentials from `.env.example`. It also **refuses a weak `ADMIN_PASSWORD` outside local development**, so those placeholders cannot reach a live install.
+
 Note: `.env.example` defaults to MySQL; SQLite is simplest for local dev (`database/database.sqlite` exists in the repo). `phpunit.xml` runs tests against in-memory SQLite regardless. Set `ADMIN_EMAIL`/`ADMIN_PASSWORD` before seeding — `AdminUserSeeder` uses them to create the one admin login. `ADMIN_PATH` sets the URL prefix the whole private workspace sits behind (see Auth below); it is per-install and never hardcoded.
 
 ## Working on this project
@@ -86,6 +88,8 @@ Enums in `app/Enums/`: `TaskStatus` (planned, in_progress, paused, done, skipped
 Changing `ADMIN_PATH` requires `php artisan route:clear` (a cached route table holds the old prefix).
 
 `bootstrap/app.php` appends `SecurityHeaders` to the `web` group, so every route carries `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and a Content Security Policy. The CSP is `'self'`-only for script: Vite builds all the JS and CSS and `laravel-vite-plugin/fonts` self-hosts the fonts, so nothing legitimate loads from another origin, and the Vite dev server's origin is added back automatically by reading its hot file. That origin must be a *name* — `vite.config.js` pins `server.host` to `localhost` because Vite otherwise binds to IPv6 loopback and writes `http://[::1]:5173`, and CSP's host-source grammar has no form for a bracketed IPv6 literal. A browser drops a source it cannot parse and enforces the rest, so one such entry blocks the whole dev bundle and reports it only in the console. `SecurityHeadersTest` parses every source the policy emits. That policy is also what stops an owner-supplied link that slipped past `App\Rules\SafeUrl` from executing.
+
+Session cookies are hardened in `config/session.php` rather than left to whoever writes the `.env`: `secure` defaults to on everywhere except `APP_ENV=local`, and `same_site` is `strict` rather than Laravel's `lax`, since nothing here is meant to be reached from another site.
 
 Login is rate-limited by the named `login` limiter defined in `AppServiceProvider::boot()` — per address *and* per account, since keying on one alone leaves either a distributed attempt on a single account or a lockout of the owner.
 

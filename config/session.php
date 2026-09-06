@@ -169,7 +169,11 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // Secure everywhere but local development, rather than off unless someone
+    // remembers to switch it on. The workspace session is the key to the whole
+    // private half of the app; sending it over plain HTTP anywhere real is not
+    // a default worth having. Override explicitly if you must.
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') !== 'local'),
 
     /*
     |--------------------------------------------------------------------------
@@ -199,7 +203,11 @@ return [
     |
     */
 
-    'same_site' => env('SESSION_SAME_SITE', 'lax'),
+    // Strict, not Laravel's "lax" default: nothing here is meant to be reached
+    // from another site, so the session cookie has no reason to travel on a
+    // cross-site request. The cost is that following a link from elsewhere
+    // lands you signed out, which for a private workspace is the right trade.
+    'same_site' => env('SESSION_SAME_SITE', 'strict'),
 
     /*
     |--------------------------------------------------------------------------
