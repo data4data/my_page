@@ -36,13 +36,31 @@ const outputs = computed(() => processSteps.value.filter((item) => item.group ==
 
 const Icon = (name) => resolveIcon(name);
 
+const escapeForRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Which words in the headline take an accent colour comes from the profile
+// (admin: Profile tab), not from a pattern in here. It used to be a literal
+// /(precision|precisie|impact)/ matching one person's copy, so editing the
+// headline silently lost the accent and no other headline could gain one.
 const headlineSegments = computed(() => {
     const text = t(profile.value.headline);
-    const pattern = /(precision|precisie|impact)/gi;
+    const highlights = Array.isArray(profile.value.headline_highlights) ? profile.value.headline_highlights : [];
+    const terms = highlights.filter((item) => item?.text);
+
+    if (terms.length === 0) {
+        return text ? [{ text, tone: 'default' }] : [];
+    }
+
+    // Longest first, so "precision engineering" wins over a bare "precision"
+    // when both are configured.
+    const ordered = [...terms].sort((a, b) => b.text.length - a.text.length);
+    const pattern = new RegExp(`(${ordered.map((item) => escapeForRegex(item.text)).join('|')})`, 'gi');
+
+    const toneFor = (part) => ordered.find((item) => item.text.toLowerCase() === part.toLowerCase())?.tone ?? 'default';
 
     return text.split(pattern).filter(Boolean).map((part) => ({
         text: part,
-        tone: /^(precision|precisie)$/i.test(part) ? 'blue' : (/^impact$/i.test(part) ? 'gold' : 'default'),
+        tone: toneFor(part),
     }));
 });
 
