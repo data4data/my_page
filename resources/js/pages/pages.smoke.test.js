@@ -14,8 +14,12 @@ import AdminPage from './admin/AdminPage.vue';
 // Both pages call useRoute()/useRouter() through the Composition API, so the
 // module has to be mocked — a `mocks: { $route }` option does nothing here and
 // leaves useRoute() undefined.
+// AdminPage picks its section from the route name, so the mock is a ref the
+// tests move rather than a fixed value.
+const routeName = { current: 'admin-edit' };
+
 vi.mock('vue-router', () => ({
-    useRoute: () => ({ name: 'admin-edit', path: '/', params: {}, query: {} }),
+    useRoute: () => ({ get name() { return routeName.current; }, path: '/', params: {}, query: {} }),
     useRouter: () => ({ push: vi.fn() }),
 }));
 
@@ -48,6 +52,7 @@ describe('page smoke tests', () => {
 
     beforeEach(() => {
         errors = [];
+        routeName.current = 'admin-edit';
         global.fetch = vi.fn(() => Promise.resolve({
             ok: true,
             json: () => Promise.resolve(structuredClone(payload)),
@@ -82,6 +87,19 @@ describe('page smoke tests', () => {
         expect(errors).toEqual([]);
         // The tab strip only exists once the payload has loaded and the shell
         // has swapped out of its loading state.
+        expect(wrapper.text()).toContain('Projects');
+        // Language and Content versions are Settings now, not page content.
+        expect(wrapper.text()).not.toContain('Content versions');
+    });
+
+    it('AdminPage renders the settings section without errors', async () => {
+        routeName.current = 'admin-settings';
+
+        const wrapper = mountPage(AdminPage);
+        await flush();
+
+        expect(errors).toEqual([]);
         expect(wrapper.text()).toContain('Content versions');
+        expect(wrapper.text()).toContain('Two-step sign-in');
     });
 });

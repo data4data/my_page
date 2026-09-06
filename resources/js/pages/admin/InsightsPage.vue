@@ -34,10 +34,13 @@ defineEmits(['load-more']);
 const tab = ref('connections');
 
 // computed so the labels re-render when the admin switches EN/NL.
+// Security sits last and to the right: it is a log you check, not one of the
+// two feeds you read. `right: true` pushes it across the strip, the same way
+// SectionTabs handles any trailing tab.
 const insightsTabs = computed(() => [
     { value: 'connections', label: copy('insightsConnections') },
-    { value: 'security', label: copy('insightsSecurity') },
     { value: 'news', label: copy('insightsNews') },
+    { value: 'security', label: copy('insightsSecurity'), right: true },
 ]);
 
 const formatDate = (value) => new Date(value).toLocaleString(undefined, {
@@ -79,11 +82,11 @@ const formatDate = (value) => new Date(value).toLocaleString(undefined, {
             </AppButton>
         </div>
 
-        <SecurityTab v-else-if="tab === 'security'" :events="securityEvents" :loading="securityLoading" />
-
-        <div v-else class="space-y-4">
+        <div v-else-if="tab === 'news'" class="space-y-4">
             <div class="admin-note">{{ copy('insightsNewsInfo') }}</div>
             <p class="week-day-empty">{{ copy('underConstruction') }}</p>
         </div>
+
+        <SecurityTab v-else :events="securityEvents" :loading="securityLoading" />
     </SectionTabs>
 </template>

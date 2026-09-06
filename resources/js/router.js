@@ -44,6 +44,14 @@ const routes = [
         component: () => import('./pages/admin/AdminPage.vue'),
     },
     {
+        // Settings the owner changes rarely: what language the page opens in,
+        // two-step sign-in, and the saved versions to roll back to. Separate
+        // from Edit page, which is where the content itself is written.
+        path: adminUrl('/settings'),
+        name: 'admin-settings',
+        component: () => import('./pages/admin/AdminPage.vue'),
+    },
+    {
         // Behind the workspace prefix like everything else it leads to, so
         // there is no login form at the guessable /login. See routes/web.php.
         path: adminUrl('/login'),

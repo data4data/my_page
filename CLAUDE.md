@@ -103,7 +103,7 @@ Login is rate-limited by the named `login` limiter defined in `AppServiceProvide
 
 No `/api` prefix — admin JSON endpoints live under `{admin}/...` alongside the SPA shell routes.
 
-**SPA shell** (all render the same Blade view; `resources/js/router.js` picks the page): `/`, `/hi-developer`, `{admin}/login`, `{admin}`, `{admin}/mijn-agenda`, `{admin}/insights`, `{admin}/edit-content`.
+**SPA shell** (all render the same Blade view; `resources/js/router.js` picks the page): `/`, `/hi-developer`, `{admin}/login`, `{admin}`, `{admin}/mijn-agenda`, `{admin}/insights`, `{admin}/edit-content`, `{admin}/settings`.
 
 **Portfolio** (`PortfolioController`):
 - `GET /portfolio` → public payload, `is_visible = true` only.
@@ -154,13 +154,24 @@ Controllers validate, authorize, delegate, and return JSON. Rules that outlive a
 
 `resources/js/pages/` is split by audience: `public/` holds what an anonymous visitor sees, `admin/` everything behind the login (including `LoginPage.vue`, which is the door to it).
 
-`resources/js/router.js` maps paths to lazily-loaded pages: `public/PublicPage.vue` (also renders `DeveloperConnectModal` on `/hi-developer`), `admin/LoginPage.vue`, and `admin/AdminPage.vue` for all four admin routes — `AdminPage` derives its active section from the route name, so each section is a real bookmarkable/refreshable URL.
+`resources/js/router.js` maps paths to lazily-loaded pages: `public/PublicPage.vue` (also renders `DeveloperConnectModal` on `/hi-developer`), `admin/LoginPage.vue`, and `admin/AdminPage.vue` for every admin route — `AdminPage` derives its active section from the route name, so each section is a real bookmarkable/refreshable URL.
+
+**The four workspace sections**, and the split between them:
+
+| Section | Holds |
+|---|---|
+| Agenda | the planner |
+| Insights | connect-form messages, news, and the sign-in trail — `Security` last and `right: true`, since it is a log you check rather than a feed you read |
+| Edit page | the public page's content, and nothing else |
+| Settings | Language, two-step sign-in, Content versions — changed rarely, and none of it is page copy |
+
+Only the Edit page and Settings' Language tab put content in the unsaved payload, so `showSaveButton` in `AdminPage` is what decides whether the save button appears. Everything else in Settings and Insights persists through its own endpoint the moment you act on it.
 
 **Admin shell** (`resources/js/components/admin/`):
 - `AdminLayout.vue` — header + left nav rail + content column. The rail and header share `bg-cream/90` so the chrome reads as one surface; the rail's right border is the single vertical divider, which is why `.admin-panel` drops its own left/bottom border at `lg` and runs flush into it.
 - `SectionTabs.vue` — the shared "folder bookmark" tab strip + `.admin-panel` card. **The only place the panel is rendered.** Passing `:tabs="[]"` still yields the card, just with no tab row.
 
-The **Content versions** tab (`pages/admin/ContentVersionsTab.vue`) is a single list of states you can go back to. The seeded defaults are its **first row**, not a separate section — they are just another version to restore. `AdminPage.vue` owns the state (`revisions`, `revisionsLoading`, `restoring`, `restoringId`) and refreshes the list after every save, reset and restore, so a new version appears without a reload. Both restore paths go through the shared `confirm()` and both lock every button in the list while one is in flight: they overwrite the live public page, and the defaults row is now one click away from the saved versions rather than guarded by its own warning block.
+The **Content versions** tab (`pages/admin/ContentVersionsTab.vue`, under Settings) is a single list of states you can go back to. The seeded defaults are its **first row**, not a separate section — they are just another version to restore. `AdminPage.vue` owns the state (`revisions`, `revisionsLoading`, `restoring`, `restoringId`) and refreshes the list after every save, reset and restore, so a new version appears without a reload. Both restore paths go through the shared `confirm()` and both lock every button in the list while one is in flight: they overwrite the live public page, and the defaults row is now one click away from the saved versions rather than guarded by its own warning block.
 
 Like its sibling tabs it opens straight into an `.admin-note` with no `<h3>` — the tab strip already names the section.
 
