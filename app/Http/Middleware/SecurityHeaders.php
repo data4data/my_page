@@ -28,14 +28,32 @@ class SecurityHeaders
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-        $response->headers->set('Content-Security-Policy', $this->contentSecurityPolicy());
+
+        // Null only when the dev server sits on an origin CSP cannot express;
+        // see contentSecurityPolicy(). Better no policy for that local session
+        // than one the browser discards a source from and then enforces.
+        if ($policy = $this->contentSecurityPolicy()) {
+            $response->headers->set('Content-Security-Policy', $policy);
+        }
 
         return $response;
     }
 
-    private function contentSecurityPolicy(): string
+    private function contentSecurityPolicy(): ?string
     {
         $dev = $this->viteDevServerOrigins();
+
+        // CSP's host-source grammar has no form for a bracketed IPv6 literal,
+        // so a source like http://[::1]:5173 is discarded by the browser --
+        // and the rest of the directive is still enforced, which blocks the
+        // dev bundle outright. vite.config.js pins the dev server to
+        // "localhost" to keep this from happening; if some other setup still
+        // produces such an origin, send no policy rather than a broken one.
+        foreach ($dev['http'] as $origin) {
+            if (str_contains($origin, '[')) {
+                return null;
+            }
+        }
 
         // While `npm run dev` is running, the dev server serves the script,
         // the stylesheet and the fonts, so its origin belongs in every one of

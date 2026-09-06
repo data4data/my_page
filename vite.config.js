@@ -19,6 +19,12 @@ export default defineConfig({
         vue(),
     ],
     server: {
+        // A name, not whatever address Vite picks. Left to itself it binds to
+        // IPv6 loopback and writes "http://[::1]:5173" into public/hot, which
+        // every asset URL and the Content-Security-Policy are then built from.
+        // CSP's host-source grammar has no form for a bracketed IPv6 literal,
+        // so the browser discards that source and blocks the dev bundle.
+        host: 'localhost',
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },

@@ -5,12 +5,67 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Support\DefaultPortfolioContent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Vite;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class SecurityHeadersTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * Pins the Vite hot file, so these assertions do not change depending on
+     * whether someone happens to have `npm run dev` running.
+     */
+    private function withDevServer(?string $origin): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'vite-hot');
+
+        if ($origin === null) {
+            unlink($path);
+        } else {
+            file_put_contents($path, $origin);
+        }
+
+        $this->app->instance(Vite::class, (new Vite)->useHotFile($path));
+    }
+
+    private function policyFor(?string $devOrigin): ?string
+    {
+        $this->withDevServer($devOrigin);
+
+        return $this->get('/')->assertOk()->headers->get('Content-Security-Policy');
+    }
+
+    /**
+     * Every source must be something a browser will actually accept. CSP's
+     * host-source grammar allows a scheme, a dotted/hyphenated host name, a
+     * port and a path — and has no form at all for a bracketed IPv6 literal.
+     * A source it cannot parse is dropped while the rest of the directive
+     * stays in force, so one bad entry blocks the asset it was meant to allow
+     * and says so only in the browser console.
+     */
+    private function assertEverySourceIsValid(string $policy): void
+    {
+        $keywords = ["'self'", "'none'", "'unsafe-inline'", "'unsafe-eval'"];
+
+        foreach (explode(';', $policy) as $directive) {
+            $sources = preg_split('/\s+/', trim($directive), flags: PREG_SPLIT_NO_EMPTY);
+            array_shift($sources); // the directive name
+
+            foreach ($sources as $source) {
+                if (in_array($source, $keywords, true) || preg_match('/^[a-z][a-z0-9+.-]*:$/i', $source)) {
+                    continue;
+                }
+
+                $this->assertMatchesRegularExpression(
+                    '#^(?:[a-z][a-z0-9+.-]*://)?(?:\*\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)*(?::[0-9]+|:\*)?(?:/[^\s]*)?$#i',
+                    $source,
+                    "\"{$source}\" is not a source expression a browser can parse.",
+                );
+            }
+        }
+    }
 
     public function test_the_public_page_carries_the_security_headers(): void
     {
@@ -28,7 +83,7 @@ class SecurityHeadersTest extends TestCase
      */
     public function test_the_policy_refuses_inline_and_third_party_script(): void
     {
-        $policy = $this->get('/')->assertOk()->headers->get('Content-Security-Policy');
+        $policy = $this->policyFor(null);
 
         $this->assertStringContainsString("default-src 'self'", $policy);
         $this->assertStringContainsString("object-src 'none'", $policy);
@@ -62,5 +117,37 @@ class SecurityHeadersTest extends TestCase
             ->assertOk()
             ->assertHeader('X-Frame-Options', 'DENY')
             ->assertHeader('X-Content-Type-Options', 'nosniff');
+    }
+
+    public function test_the_shipping_policy_parses(): void
+    {
+        $this->assertEverySourceIsValid($this->policyFor(null));
+    }
+
+    public function test_the_dev_server_origin_is_added_and_still_parses(): void
+    {
+        $policy = $this->policyFor('http://localhost:5173');
+
+        $this->assertEverySourceIsValid($policy);
+        $this->assertStringContainsString('script-src \'self\' http://localhost:5173', $policy);
+        $this->assertStringContainsString('ws://localhost:5173', $policy);
+        // The stylesheet and fonts come from the dev server too, so allowing
+        // only script would leave the page unstyled.
+        $this->assertStringContainsString('style-src \'self\' http://localhost:5173', $policy);
+        $this->assertStringContainsString('font-src \'self\' http://localhost:5173', $policy);
+    }
+
+    /**
+     * Vite left to itself binds to IPv6 loopback and writes "http://[::1]:5173"
+     * into the hot file. CSP cannot express that host, so the browser dropped
+     * the source and enforced the rest, blocking the entire dev bundle.
+     * vite.config.js pins the host; this is the belt to that braces.
+     */
+    public function test_no_policy_is_sent_rather_than_one_that_would_block_the_dev_bundle(): void
+    {
+        $this->assertNull($this->policyFor('http://[::1]:5173'));
+
+        // The headers that do not depend on the dev origin still go out.
+        $this->get('/')->assertHeader('X-Frame-Options', 'DENY');
     }
 }
