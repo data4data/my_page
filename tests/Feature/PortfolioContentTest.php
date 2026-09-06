@@ -6,6 +6,7 @@ use App\Models\PortfolioProfile;
 use App\Models\User;
 use App\Support\DefaultPortfolioContent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -64,6 +65,74 @@ class PortfolioContentTest extends TestCase
         $profile = array_replace($base['profile'], $overrides['profile'] ?? []);
 
         return array_replace($base, $overrides, ['profile' => $profile]);
+    }
+
+    /** @return array<int, array{0: string}> */
+    public static function dangerousUrls(): array
+    {
+        return [
+            ['javascript:alert(1)'],
+            ['JaVaScRiPt:alert(1)'],
+            ['  javascript:alert(1)'],
+            ["java\nscript:alert(1)"],
+            ['data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=='],
+            ['vbscript:msgbox(1)'],
+        ];
+    }
+
+    /**
+     * PublicPage.vue binds the CTA URLs straight into :href, so a scheme the
+     * browser executes is stored XSS against every visitor to the public page.
+     */
+    #[DataProvider('dangerousUrls')]
+    public function test_a_cta_url_with_an_executable_scheme_is_rejected(string $url): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'profile' => ['primary_cta_url' => $url],
+            ]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['profile.primary_cta_url']);
+    }
+
+    #[DataProvider('dangerousUrls')]
+    public function test_a_social_link_with_an_executable_scheme_is_rejected(string $url): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'profile' => ['social_links' => [['label' => 'Evil', 'url' => $url, 'icon' => 'link']]],
+            ]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['profile.social_links.0.url']);
+    }
+
+    /**
+     * The rule must stay looser than Laravel's `url`, which would reject the
+     * app's own seeded content: both default CTAs are page fragments.
+     */
+    public function test_fragments_relative_paths_and_mailto_links_are_still_accepted(): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'profile' => [
+                    'primary_cta_url' => '#work',
+                    'secondary_cta_url' => '/hi-developer',
+                    'social_links' => [
+                        ['label' => 'Email', 'url' => 'mailto:hello@example.com', 'icon' => 'mail'],
+                        ['label' => 'GitHub', 'url' => 'https://github.com/', 'icon' => 'github'],
+                    ],
+                ],
+            ]))
+            ->assertOk();
     }
 
     public function test_a_valid_payload_survives_a_round_trip(): void
