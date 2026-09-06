@@ -302,25 +302,33 @@ const scrollExpertise = (direction) => {
                 </div>
             </div>
 
-            <!-- The same links again, centred at the foot of the page. The
-                 rail is desktop-only and sits far from where a reader ends
-                 up, so on a phone this is the only place they appear. -->
-            <nav v-if="socialLinks.length" class="social-footer" :aria-label="copy('socialFollow')">
-                <span class="social-footer-label">{{ copy('socialFollow') }}</span>
-                <ul>
-                    <li v-for="link in socialLinks" :key="link.url">
-                        <a :href="link.url" :aria-label="link.label" rel="noopener">
-                            <component :is="Icon(link.icon)" :size="18" aria-hidden="true" />
-                            <span>{{ link.label }}</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
         </section>
 
-        <footer class="flex flex-wrap items-center justify-between gap-5 py-10 text-xs font-semibold uppercase tracking-[0.18em]">
-            <span>{{ t(profile.location_note) }}</span>
-            <span>{{ t(profile.availability_note) }}</span>
+        <!-- Three parts, so the links sit in the true centre of the page
+             rather than wherever two notes of unequal length happen to leave
+             them. The rail is desktop-only and sits beside the hero, so on a
+             phone this is the only place these links appear at all. -->
+        <footer class="site-footer">
+            <span class="site-footer-note">{{ t(profile.location_note) }}</span>
+
+            <nav v-if="socialLinks.length" class="social-footer" :aria-label="copy('socialFollow')">
+                <a
+                    v-for="link in socialLinks"
+                    :key="link.url"
+                    :href="link.url"
+                    :aria-label="link.label"
+                    :title="link.label"
+                    rel="noopener"
+                >
+                    <component :is="Icon(link.icon)" :size="18" aria-hidden="true" />
+                </a>
+            </nav>
+            <!-- Holds the middle track open when there are no links, so the
+                 two notes stay pinned to the edges rather than one of them
+                 sliding into the centre. Not needed once stacked. -->
+            <span v-else class="site-footer-spacer" aria-hidden="true"></span>
+
+            <span class="site-footer-note">{{ t(profile.availability_note) }}</span>
         </footer>
 
         <DeveloperConnectModal v-if="showConnectModal" />

@@ -82,11 +82,19 @@ describe('page smoke tests', () => {
         expect(errors).toEqual([]);
         expect(wrapper.text()).toContain('Testable headline');
 
-        // The rail and the centred footer row render the same visible links,
-        // and neither shows the one switched off.
+        // The rail and the footer render the same visible links, and neither
+        // shows the one switched off.
         expect(wrapper.findAll('.social-rail a')).toHaveLength(1);
         expect(wrapper.findAll('.social-footer a')).toHaveLength(1);
         expect(wrapper.html()).not.toContain('hidden.test');
+
+        // The links sit between the two footer notes, which is what puts them
+        // in the centre of the page rather than off to one side.
+        const footer = wrapper.get('.site-footer').element;
+        const order = [...footer.children].map((child) => child.className);
+        expect(order[0]).toContain('site-footer-note');
+        expect(order[1]).toContain('social-footer');
+        expect(order[2]).toContain('site-footer-note');
     });
 
     it('PublicPage drops the rail and the footer row when no link is visible', async () => {
@@ -104,6 +112,10 @@ describe('page smoke tests', () => {
         expect(errors).toEqual([]);
         expect(wrapper.find('.social-rail').exists()).toBe(false);
         expect(wrapper.find('.social-footer').exists()).toBe(false);
+
+        // The middle track is still held open, so the two notes stay at the
+        // edges instead of one drifting into the centre.
+        expect(wrapper.find('.site-footer-spacer').exists()).toBe(true);
     });
 
     it('AdminPage renders the editor without errors', async () => {

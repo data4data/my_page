@@ -545,27 +545,43 @@
         letter-spacing: 0.08em;
     }
 
-    /* The social links again, centred under the contact band. The rail is
-       desktop-only and sits beside the hero, far from where a reader actually
-       finishes; on a phone this is the only place they appear at all. */
+    /* Three tracks rather than space-between: the outer notes are different
+       lengths in both languages, and with only two of them the links would
+       have drifted off-centre by half that difference. 1fr either side pins
+       the middle to the centre of the page whatever the notes say. */
+    .site-footer {
+        @apply grid items-center gap-5 py-10;
+        grid-template-columns: 1fr auto 1fr;
+    }
+
+    .site-footer-note {
+        @apply text-xs font-semibold uppercase tracking-[0.18em];
+    }
+
+    .site-footer-note:first-child {
+        @apply justify-self-start;
+    }
+
+    .site-footer-note:last-child {
+        @apply justify-self-end text-right;
+    }
+
+    .site-footer-spacer {
+        @apply hidden md:block;
+    }
+
     .social-footer {
-        @apply mt-12 flex flex-col items-center gap-4 border-t border-sand-light/60 pt-8 text-center;
+        @apply flex flex-wrap items-center justify-center gap-1;
     }
 
-    .social-footer-label {
-        @apply text-[10px] font-bold uppercase tracking-[0.18em] text-bronze-text;
-    }
-
-    .social-footer ul {
-        @apply m-0 flex list-none flex-wrap items-center justify-center gap-2 p-0;
-    }
-
+    /* Icon only, like the rail: alongside two lines of small uppercase type,
+       names would outweigh the notes either side of them. The name is still
+       the link's accessible name and its tooltip. */
     .social-footer a {
-        /* Icon and name together: an icon row alone leaves the reader
-           guessing which network a glyph belongs to. */
-        @apply flex items-center gap-2 rounded-full border border-transparent px-3 py-2 text-sm font-semibold text-ink transition hover:border-sand hover:bg-white/70 hover:text-accent;
-        /* Comfortable as a touch target, since on a phone this is the only
-           copy of these links. */
+        @apply grid place-items-center rounded-full border border-transparent text-ink transition hover:border-sand hover:bg-white/70 hover:text-accent;
+        /* On a phone this is the only copy of these links, so the target is a
+           comfortable one rather than the size of the glyph. */
+        min-width: 2.75rem;
         min-height: 2.75rem;
     }
 }

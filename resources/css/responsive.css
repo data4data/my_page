@@ -250,6 +250,23 @@
     }
 }
 
+/* Three footer tracks do not fit a phone: stacked and centred instead. Source
+   order is kept, so what a screen reader announces and what the eye follows
+   stay the same. */
+@media (width < theme(--breakpoint-md)) {
+    .site-footer {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .site-footer-note:first-child,
+    .site-footer-note:last-child {
+        @apply justify-self-center text-center;
+    }
+}
+
 /* The sign-in trail's four columns do not fit a phone; stack them and let the
    outcome label lead each row. */
 @media (width < theme(--breakpoint-md)) {
