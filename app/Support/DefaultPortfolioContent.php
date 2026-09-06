@@ -32,7 +32,9 @@ class DefaultPortfolioContent
             'profile' => [
                 'type' => 'person',
                 'is_active' => true,
-                'initials' => 'OA',
+                // A placeholder, not a person: change it under Settings, or
+                // in this file if you are reseeding a fork of your own.
+                'initials' => 'AB',
                 'role' => ['en' => 'Full-Stack Developer', 'nl' => 'Full-stack ontwikkelaar'],
                 'headline' => [
                     'en' => 'Building systems with precision that drive impact.',

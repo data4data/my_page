@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import ContentVersionsTab from './ContentVersionsTab.vue';
 
 const revisions = [
-    { id: 7, created_at: '2026-08-27T14:05:00.000000Z', author: 'Olha' },
+    { id: 7, created_at: '2026-08-27T14:05:00.000000Z', author: 'Alex Blake' },
     { id: 6, created_at: '2026-08-27T09:30:00.000000Z', author: null },
 ];
 
@@ -32,7 +32,7 @@ describe('ContentVersionsTab', () => {
     });
 
     it('shows who made each change', () => {
-        expect(mountTab().findAll('.history-row-revision')[0].text()).toContain('Olha');
+        expect(mountTab().findAll('.history-row-revision')[0].text()).toContain('Alex Blake');
     });
 
     it('labels a revision with no author as the starting content rather than a missing person', () => {

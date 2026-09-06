@@ -33,7 +33,7 @@ class PortfolioHistoryTest extends TestCase
     {
         return [
             'profile' => [
-                'initials' => 'OA',
+                'initials' => 'AB',
                 'role' => ['en' => 'Developer', 'nl' => 'Ontwikkelaar'],
                 'headline' => ['en' => $headline, 'nl' => $headline],
                 'summary' => ['en' => 'Summary', 'nl' => 'Samenvatting'],

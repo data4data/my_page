@@ -1,0 +1,33 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\PortfolioProfile;
+use App\Support\DefaultPortfolioContent;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
+use Tests\TestCase;
+
+class FreshInstallSeedTest extends TestCase
+{
+    use RefreshDatabase;
+
+    /**
+     * This project is meant to be forked. Whoever clones it should not find
+     * somebody else's initials waiting for them, in the seed or in the schema.
+     */
+    public function test_a_fresh_install_seeds_placeholder_initials(): void
+    {
+        app(DefaultPortfolioContent::class)->seed();
+
+        $this->assertSame('AB', PortfolioProfile::where('is_active', true)->value('initials'));
+    }
+
+    public function test_the_column_default_is_a_placeholder_too(): void
+    {
+        $default = collect(Schema::getColumns('portfolio_profiles'))
+            ->firstWhere('name', 'initials')['default'] ?? null;
+
+        $this->assertStringContainsString('AB', (string) $default);
+    }
+}

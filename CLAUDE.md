@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Laravel + Vue + Tailwind app with two halves behind one login:
 
-1. A bilingual (EN/NL) public "visit card" / portfolio page, seeded by default for one person (initials `OA`, changeable via the admin UI — nothing about the running app is hardcoded to that persona).
+1. A bilingual (EN/NL) public "visit card" / portfolio page. The seed ships placeholder content under placeholder initials (`AB`), all of it changeable from the workspace — nothing about the running app is hardcoded to whoever is using it.
 2. A private **planning workspace** — calendar, task/time tracking, categories, reports and reflection notes.
 
 The public page is fully open; everything else is authenticated and lives at an unlinked, non-obvious path rather than `/admin`. All content is DB-backed; public-page text is translatable (JSON columns with `en`/`nl` keys) and edited through the admin rather than in code.

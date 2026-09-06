@@ -25,7 +25,7 @@ vi.mock('vue-router', () => ({
 
 const payload = {
     profile: {
-        initials: 'OA',
+        initials: 'AB',
         role: { en: 'Developer', nl: 'Ontwikkelaar' },
         headline: { en: 'Testable headline', nl: 'Testbare kop' },
         summary: { en: 'Summary', nl: 'Samenvatting' },
