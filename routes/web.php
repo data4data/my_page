@@ -19,7 +19,7 @@ Route::get('/hi-developer', [PortfolioController::class, 'app']);
 Route::get('/portfolio', [PortfolioController::class, 'show']);
 Route::post('/hi-developer', [DeveloperInquiryController::class, 'store'])->middleware('throttle:10,1');
 
-Route::post('/login', [AuthController::class, 'store'])->name('login.attempt')->middleware(['guest', 'throttle:6,1']);
+Route::post('/login', [AuthController::class, 'store'])->name('login.attempt')->middleware(['guest', 'throttle:login']);
 Route::post('/logout', [AuthController::class, 'destroy'])->name('logout')->middleware('auth');
 
 // The private workspace — admin editor and planning calendar — lives behind a

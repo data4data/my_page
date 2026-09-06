@@ -85,6 +85,10 @@ Enums in `app/Enums/`: `TaskStatus` (planned, in_progress, paused, done, skipped
 
 Changing `ADMIN_PATH` requires `php artisan route:clear` (a cached route table holds the old prefix).
 
+`bootstrap/app.php` appends `SecurityHeaders` to the `web` group, so every route carries `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and a Content Security Policy. The CSP is `'self'`-only for script: Vite builds all the JS and CSS and `laravel-vite-plugin/fonts` self-hosts the fonts, so nothing legitimate loads from another origin, and the Vite dev server's origin is added back automatically by reading its hot file. That policy is also what stops an owner-supplied link that slipped past `App\Rules\SafeUrl` from executing.
+
+Login is rate-limited by the named `login` limiter defined in `AppServiceProvider::boot()` — per address *and* per account, since keying on one alone leaves either a distributed attempt on a single account or a lockout of the owner.
+
 `bootstrap/app.php` also fixes a `shouldRenderJsonWhen()` gotcha — without the `|| $request->expectsJson()` clause, every non-`api/*` validation failure (e.g. a wrong login password) renders as an HTML redirect instead of JSON, breaking every `fetch()`-based form in `resources/js`.
 
 ## Backend API
@@ -120,7 +124,7 @@ Ownership lives in `app/Policies/` (`TaskPolicy`, `CategoryPolicy`), found by na
 
 Controllers validate, authorize, delegate, and return JSON. Rules that outlive a request live elsewhere:
 
-- **`app/Services/`** — `PortfolioContentService` (the single write path for the public page, above) and `TimerService`. Plain concrete classes injected via `__construct()`; the container resolves them by reflection, so **`AppServiceProvider` stays empty** — no bindings, no interfaces. Add one only when a second implementation actually exists.
+- **`app/Services/`** — `PortfolioContentService` (the single write path for the public page, above) and `TimerService`. Plain concrete classes injected via `__construct()`; the container resolves them by reflection, so **`AppServiceProvider` registers no bindings** — no interfaces, no singletons. Add one only when a second implementation actually exists. Its `boot()` holds the `login` rate limiter and nothing else.
 - **`app/Http/Requests/`** — `Store`/`Update` pairs for Task and Category, plus `UpdatePortfolioRequest`. Pairs, not single classes: the partial-update path swaps `required` for `sometimes`, so one rule set genuinely cannot serve both.
 - **`app/Policies/`** — ownership, as above.
 - **The models themselves** — `Task::plannedMinutes()`, `Reflection::scopeForPeriod()` (the read and the upsert must find a row identically, and the `whereDate()` reasoning belongs in one place).
