@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { ExternalLink } from '@lucide/vue';
 import SectionTabs from '../../components/admin/SectionTabs.vue';
+import AppButton from '../../components/ui/AppButton.vue';
 import { copy } from '../../shared/i18n';
 
 defineProps({
@@ -13,7 +14,13 @@ defineProps({
         type: Boolean,
         required: true,
     },
+    inquiriesHasMore: {
+        type: Boolean,
+        default: false,
+    },
 });
+
+defineEmits(['load-more']);
 
 const tab = ref('connections');
 
@@ -50,6 +57,16 @@ const formatDate = (value) => new Date(value).toLocaleString(undefined, {
                     <p class="admin-full whitespace-pre-line leading-6">{{ inquiry.message }}</p>
                 </div>
             </article>
+
+            <AppButton
+                v-if="inquiriesHasMore"
+                variant="secondary"
+                size="sm"
+                :disabled="inquiriesLoading"
+                @click="$emit('load-more')"
+            >
+                {{ inquiriesLoading ? copy('insightsLoading') : copy('insightsLoadMore') }}
+            </AppButton>
         </div>
 
         <div v-else class="space-y-4">

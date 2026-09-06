@@ -7,18 +7,40 @@ use App\Enums\TaskStatus;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Models\Task;
+use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class TaskController extends Controller
 {
+    // The widest calendar view is a month grid padded out to whole weeks, so
+    // a year is already far more than any of them asks for.
+    private const MAX_RANGE_DAYS = 366;
+
     // ?start=YYYY-MM-DD&end=YYYY-MM-DD (inclusive) — the Day/Week/Month
     // calendar views all fetch by visible range instead of one big dump.
     public function index(Request $request): JsonResponse
     {
         $data = $request->validate([
             'start' => ['required', 'date'],
-            'end' => ['required', 'date', 'after_or_equal:start'],
+            'end' => [
+                'required',
+                'date',
+                'after_or_equal:start',
+                // Bounded, because every task in the range is hydrated with
+                // its category and time logs: without this, one request could
+                // ask for every task ever recorded.
+                function (string $attribute, mixed $value, Closure $fail) use ($request) {
+                    $start = $request->date('start');
+
+                    // abs(): Carbon 3 returns a signed difference, and the
+                    // sign depends on which end the call is made from.
+                    if ($start && abs($start->diffInDays(Carbon::parse($value))) > self::MAX_RANGE_DAYS) {
+                        $fail('The requested range is too wide.');
+                    }
+                },
+            ],
         ]);
 
         $tasks = Task::query()

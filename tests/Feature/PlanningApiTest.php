@@ -483,6 +483,23 @@ class PlanningApiTest extends TestCase
         $this->assertSame('Solid month.', $response->json('reflection.notes'));
     }
 
+    // Every task in the range is hydrated with its category and time logs, so
+    // an unbounded window would be a request for the entire table.
+    public function test_the_task_range_is_capped(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)
+            ->getJson($this->adminUrl('/tasks?start=2020-01-01&end=2026-12-31'))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['end']);
+
+        // A full month grid padded to whole weeks is well inside the cap.
+        $this->actingAs($admin)
+            ->getJson($this->adminUrl('/tasks?start=2026-06-01&end=2026-07-12'))
+            ->assertOk();
+    }
+
     public function test_report_totals_minutes_and_groups_by_category(): void
     {
         $admin = $this->admin();

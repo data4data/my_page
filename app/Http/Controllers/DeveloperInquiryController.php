@@ -27,14 +27,28 @@ class DeveloperInquiryController extends Controller
         return response()->json(['message' => 'Thanks — your message has been sent.']);
     }
 
-    // Admin-only, read-only: listed in the Inquiries tab, newest first. No
-    // update/destroy endpoints exist — this is intentionally view-only.
-    public function index(): JsonResponse
-    {
-        $inquiries = DeveloperInquiry::query()
-            ->orderByDesc('created_at')
-            ->get();
+    // One page of the Insights tab, newest first. No update/destroy endpoints
+    // exist — this is intentionally view-only.
+    //
+    // Paginated because the public form that fills this table is open to
+    // anyone and rate-limited per minute, not in total: an unbounded read
+    // would eventually load every submission ever made into one response and
+    // render them all as cards.
+    public const PER_PAGE = 25;
 
-        return response()->json(['inquiries' => $inquiries]);
+    public function index(Request $request): JsonResponse
+    {
+        // simplePaginate, not paginate: the list is a "load more" feed, so it
+        // never needs a total row count and the extra COUNT query it costs.
+        $page = DeveloperInquiry::query()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->simplePaginate(self::PER_PAGE);
+
+        return response()->json([
+            'inquiries' => $page->items(),
+            'page' => $page->currentPage(),
+            'has_more' => $page->hasMorePages(),
+        ]);
     }
 }
