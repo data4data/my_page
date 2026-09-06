@@ -110,7 +110,7 @@ All four writes go through `PortfolioContentService` — `save()`, `seedDefaults
 - `GET|POST {admin}/tasks`, `PUT|DELETE {admin}/tasks/{task}` — index requires `start`/`end` date params; the calendar fetches by visible range.
 - `POST {admin}/tasks/{task}/timer/start|stop`.
 - `GET|POST {admin}/categories`, `PUT|DELETE {admin}/categories/{category}`.
-- `GET {admin}/reports?period_type=week|month&period_start=Y-m-d`.
+- `GET {admin}/reports?period_type=week|month&period_start=Y-m-d` — totals come from `withSum` on `time_logs.duration_minutes`, so the stored column is summed in SQL rather than in PHP. `by_category` groups by `category_id`, not by name, and leaves the uncategorized bucket's label to the frontend.
 - `GET|PUT {admin}/reflections` (upsert by period).
 - `GET {admin}/inquiries` — intentionally **view-only**; no update/destroy exists.
 
