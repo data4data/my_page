@@ -123,7 +123,7 @@ Controllers validate, authorize, delegate, and return JSON. Rules that outlive a
 - **`app/Services/`** — `PortfolioContentService` (the single write path for the public page, above) and `TimerService`. Plain concrete classes injected via `__construct()`; the container resolves them by reflection, so **`AppServiceProvider` stays empty** — no bindings, no interfaces. Add one only when a second implementation actually exists.
 - **`app/Http/Requests/`** — `Store`/`Update` pairs for Task and Category, plus `UpdatePortfolioRequest`. Pairs, not single classes: the partial-update path swaps `required` for `sometimes`, so one rule set genuinely cannot serve both.
 - **`app/Policies/`** — ownership, as above.
-- **The models themselves** — `Task::plannedMinutes()`.
+- **The models themselves** — `Task::plannedMinutes()`, `Reflection::scopeForPeriod()` (the read and the upsert must find a row identically, and the `whereDate()` reasoning belongs in one place).
 
 `AuthController`, `DeveloperInquiryController`, `ReflectionController` and `ReportController` deliberately keep inline `$request->validate()`. Their rules are short and single-use; converting them would be ceremony.
 
