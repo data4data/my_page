@@ -39,7 +39,7 @@ describe('LoginPage two-step sign-in', () => {
     beforeEach(() => {
         apiFetch.mockReset();
         // The decorative initials lookup on mount.
-        apiFetch.mockResolvedValue({ profile: { initials: 'OA' } });
+        apiFetch.mockResolvedValue({ profile: { initials: 'AB' } });
         delete window.location;
         window.location = { href: '', pathname: '/test-workspace/login' };
     });

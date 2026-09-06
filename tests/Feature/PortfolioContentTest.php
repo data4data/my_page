@@ -44,7 +44,7 @@ class PortfolioContentTest extends TestCase
     {
         $base = [
             'profile' => [
-                'initials' => 'OA',
+                'initials' => 'AB',
                 'role' => ['en' => 'Developer', 'nl' => 'Ontwikkelaar'],
                 'headline' => ['en' => 'Headline', 'nl' => 'Kop'],
                 'summary' => ['en' => 'Summary', 'nl' => 'Samenvatting'],

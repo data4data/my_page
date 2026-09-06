@@ -1,11 +1,11 @@
-# OA Portfolio Visit Card
+# Portfolio Visit Card & Planning Workspace
 
 Laravel + Vue + Tailwind project combining two things behind one login:
 
-1. **A bilingual public visit card** (EN/NL) — expertise, results, projects and contact direction, presented with initials only (`OA`) and no concrete dates or workplaces.
+1. **A bilingual public visit card** (EN/NL) — expertise, results, projects and contact direction, presented with initials only and no concrete dates or workplaces.
 2. **A private planning workspace** — a personal calendar with task tracking, timers, categories, reports and per-period reflection notes.
 
-Everything editable lives in the database, so running the project for yourself is a matter of changing content in the admin UI, not editing code.
+Everything editable lives in the database, so making the project yours is a matter of changing content in the workspace, not editing code. It ships seeded with placeholder content under placeholder initials (`AB`) — change them under **Settings**, and nothing anywhere is tied to whoever set it up.
 
 ## Features
 
@@ -14,8 +14,8 @@ Everything editable lives in the database, so running the project for yourself i
 - Ordered expertise, metrics, process steps and projects, each with per-language fields.
 - "For developers" connect form at `/hi-developer`.
 
-### Admin — Content studio
-Reached at an unlinked, non-obvious URL and gated by login. Three sections in the left nav:
+### Workspace — Content studio
+Reached at an unlinked, non-obvious URL and gated by login. Four sections in the left nav:
 
 - **My agenda** — the planning workspace:
   - Day / Week / Month calendar views.
@@ -24,8 +24,17 @@ Reached at an unlinked, non-obvious URL and gated by login. Three sections in th
   - Filter by category and status (multi-select).
   - **Task categories** with one level of nesting, colour and icon — full create/edit/delete.
   - **Report** per week or month: planned vs tracked time per category, task counts by status, and a reflection note saved per period.
-- **Insights** — *Connections* (submissions from the public connect form, view-only) and *Industry news* (placeholder, under construction).
-- **Edit page** — the public content, one tab per section (Profile, Experience, Expertise, Process, Projects, Language, Reset content).
+- **Insights** — *Connections* (submissions from the public connect form, view-only), *Industry news* (placeholder, under construction), and *Security*: every sign-in attempt against the site, grouped by address over the last 12 hours.
+- **Edit page** — the public content, one tab per section (Profile, Experience, Expertise, Process, Projects).
+- **Settings** — *Language* (which language the page opens in, and whether visitors may switch), *Two-step sign-in*, and *Content versions* (every save is kept; restoring is itself undoable).
+
+### Security
+
+- The whole workspace sits behind a URL prefix you choose (`ADMIN_PATH`), including the login page — there is no `/login`, so the scanners that probe for one find nothing.
+- **Two-step sign-in is opt-in.** Turn it on from Settings when you are ready; a password alone works until you do. Recovery codes are issued at enrolment, and `php artisan two-factor:disable <email>` is the way back in if you lose both your phone and the codes.
+- Sign-in attempts are rate-limited per address *and* per account, and every attempt is recorded for 30 days.
+- Session cookies are Secure outside local development and `SameSite=Strict`; a Content Security Policy allows script from this origin only.
+- The seeder refuses a weak `ADMIN_PASSWORD` outside local development, so the placeholder in `.env.example` cannot reach a live install.
 
 ## Requirements
 
@@ -61,7 +70,9 @@ ADMIN_EMAIL=you@example.com
 ADMIN_PASSWORD=choose-a-real-password
 ```
 
-`ADMIN_PATH` is the prefix the entire private workspace lives behind — `/` stays the public visit card. It is **not** hardcoded anywhere in the code: pick your own, e.g. your initials as `control-room-ab`. Nothing on the public page links to it, so beyond the login its protection is that it isn't guessable — an install that keeps the shipped default (`control-room`) has the same URL as every other install. `ADMIN_EMAIL` / `ADMIN_PASSWORD` become the one admin account the seeder creates.
+`ADMIN_PATH` is the prefix the entire private workspace lives behind, login page included — `/` stays the public visit card. It is **not** hardcoded anywhere in the code: pick your own, for instance your initials as `control-room-ab`. Nothing on the public page links to it and the page never mentions it, so beyond the login its protection is that it isn't guessable — an install that keeps the shipped default (`control-room`) has the same URL as every other install.
+
+`ADMIN_EMAIL` / `ADMIN_PASSWORD` become the one admin account the seeder creates. Outside `APP_ENV=local` the seeder **refuses** a password shorter than 12 characters or one of the well-known defaults, rather than creating a weak account.
 
 Make sure `APP_ENV=local` (it is in `.env.example`) — the demo tasks only seed in local. Then:
 
@@ -70,7 +81,7 @@ php artisan migrate --seed
 composer run dev
 ```
 
-Open `http://127.0.0.1:8000/<ADMIN_PATH>` — with the example above, `http://127.0.0.1:8000/control-room-ab` — and sign in.
+Open `http://127.0.0.1:8000/<ADMIN_PATH>/login` — with the example above, `http://127.0.0.1:8000/control-room-ab/login` — and sign in.
 
 If you change `ADMIN_PATH` later, clear the cached routes so the new prefix takes effect:
 
@@ -84,7 +95,7 @@ php artisan route:clear && php artisan config:clear
 
 | Seeder | What it creates | Runs in production? |
 | --- | --- | --- |
-| `DefaultPortfolioContent` | The public page content (profile, metrics, expertise, projects, process) | Yes |
+| `DefaultPortfolioContent` | The public page content — placeholder profile, metrics, expertise, projects, process | Yes |
 | `AdminUserSeeder` | One admin user from `ADMIN_EMAIL` / `ADMIN_PASSWORD`, with the `admin` role | Yes |
 | `CategorySeeder` | 9 task categories (Job Search, Learning, Sport, …) plus subcategories under Learning and Language | Yes |
 | `DemoWeekSeeder` | A sample week of tasks — mixed statuses, some with logged time | **No — local only** |
@@ -108,7 +119,7 @@ When you're ready to drop the sample data:
 php artisan tinker --execute="App\Models\Task::where('source','seeder')->delete();"
 ```
 
-Then edit the public content under **Edit page** (initials, role, headline, projects — nothing is hardcoded to the `OA` persona), and manage your own categories under **My agenda → Task categories**. **Edit page → Reset content** restores the seeded public content at any time if you want to start over.
+Then edit the public content under **Edit page** — initials, role, headline, projects. None of it is hardcoded anywhere; the seed just supplies placeholders. Manage your own categories under **My agenda → Task categories**, and set the site's language behaviour under **Settings → Language**. **Settings → Content versions** keeps every save, with the seeded defaults as the first row, so you can go back to any earlier state including the original.
 
 ## Run locally
 
@@ -127,12 +138,14 @@ npm run dev         # frontend (Vite)
 
 - Public page: `http://127.0.0.1:8000`
 - Developer connect form: `http://127.0.0.1:8000/hi-developer`
-- Admin: `http://127.0.0.1:8000/<ADMIN_PATH>` — not linked anywhere on the public page. Sign in at `/login` with your `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+- Workspace: `http://127.0.0.1:8000/<ADMIN_PATH>` — not linked anywhere on the public page.
+  - `<ADMIN_PATH>/login` — sign in with your `ADMIN_EMAIL` / `ADMIN_PASSWORD`
   - `<ADMIN_PATH>/mijn-agenda` — planning workspace
-  - `<ADMIN_PATH>/insights` — connections and industry news
+  - `<ADMIN_PATH>/insights` — connections, industry news, sign-in trail
   - `<ADMIN_PATH>/edit-content` — public page content
+  - `<ADMIN_PATH>/settings` — language, two-step sign-in, content versions
 
-> The workspace path is deliberately obscure rather than `/admin`, and is yours to choose (`ADMIN_PATH`) so no two installs share it — but obscurity is not the protection. Every one of those routes is behind `auth` + `role:admin`. If you deploy this, still use a real password.
+> The workspace path is deliberately obscure rather than `/admin`, and is yours to choose (`ADMIN_PATH`) so no two installs share it — but obscurity is not the protection. Every one of those routes is behind `auth` + `role:admin`. If you deploy this, use a real password, serve it over HTTPS, and turn on two-step sign-in.
 
 ## Build
 
@@ -155,6 +168,6 @@ Backend tests run against in-memory SQLite regardless of your `.env` database, s
 
 `PortfolioProfile` is the root record for the public page, with `metrics`, `expertiseItems`, `projects` and `processSteps` as ordered child collections. Free-text fields are stored as `{en, nl}` JSON and edited in the admin as a single label with EN/NL inputs side by side.
 
-The planner is separate: `Task` (with `Category`, `TimeLog`) plus `Reflection`, all scoped to the signed-in user.
+The planner is separate: `Task` (with `Category`, `TimeLog`) plus `Reflection`, all scoped to the signed-in user. `SecurityEvent` records sign-in attempts and expires after 30 days.
 
 See `CLAUDE.md` for full architecture notes, including the timezone convention and the gotchas worth knowing before changing this code.
