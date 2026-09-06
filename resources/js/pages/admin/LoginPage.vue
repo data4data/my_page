@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue';
 import AppInput from '../../components/ui/AppInput.vue';
 import AppButton from '../../components/ui/AppButton.vue';
 import AppCheckbox from '../../components/ui/AppCheckbox.vue';
-import { csrfToken } from '../../shared/portfolio';
+import { apiFetch } from '../../shared/api';
 
 const email = ref('');
 const password = ref('');
@@ -15,37 +15,37 @@ const initials = ref('');
 onMounted(async () => {
     // Public endpoint — just enough to show the real site initials instead
     // of a hardcoded name, so this page isn't tied to one specific project.
-    const response = await fetch('/portfolio');
-    const body = await response.json().catch(() => null);
-    initials.value = body?.profile?.initials ?? '';
+    // Decorative, so a failure here must not stop anyone signing in: on a
+    // fresh install there is no seeded profile to read at all.
+    initials.value = await apiFetch('/portfolio')
+        .then((body) => body?.profile?.initials ?? '')
+        .catch(() => '');
 });
 
 const submit = async () => {
     submitting.value = true;
     error.value = '';
 
-    const response = await fetch('/login', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            'X-CSRF-TOKEN': csrfToken(),
-        },
-        body: JSON.stringify({
-            email: email.value,
-            password: password.value,
-            remember: remember.value,
-        }),
-    });
+    let body;
 
-    if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        error.value = body?.errors?.email?.[0] ?? body?.message ?? 'Could not sign in. Please try again.';
+    try {
+        body = await apiFetch('/login', {
+            method: 'POST',
+            body: {
+                email: email.value,
+                password: password.value,
+                remember: remember.value,
+            },
+            message: 'Could not sign in. Please try again.',
+        });
+    } catch (failure) {
+        // apiFetch already prefers the field-level message, which for a bad
+        // password is the one AuthController attaches to `email`.
+        error.value = failure.message;
         submitting.value = false;
         return;
     }
 
-    const body = await response.json();
     // Full navigation (not a router push) so the freshly-set session cookie
     // is picked up by Laravel's auth/role middleware on the next request.
     // The fallback is the public page, not a guessed workspace path: this page

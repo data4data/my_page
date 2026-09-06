@@ -1,6 +1,6 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { adminUrl } from './admin-path';
-import { csrfToken } from './portfolio';
+import { apiFetch } from './api';
 
 // Monday-based week, matching the backend (Carbon's default startOfWeek()/
 // endOfWeek() is Monday-Sunday — see DemoWeekSeeder and ReportController).
@@ -155,168 +155,91 @@ export function usePlanning() {
 
     const fetchTasks = async (start, end) => {
         loading.value = true;
-        const response = await fetch(`${adminUrl('/tasks')}?start=${toDateKey(start)}&end=${toDateKey(end)}`);
-        const body = await response.json();
-        tasks.value = body.tasks ?? [];
-        loading.value = false;
+
+        try {
+            const query = new URLSearchParams({ start: toDateKey(start), end: toDateKey(end) });
+            const body = await apiFetch(`${adminUrl('/tasks')}?${query}`, { message: 'Could not load the tasks.' });
+            tasks.value = body.tasks ?? [];
+        } finally {
+            // finally, not after the assignment: a failed load must still clear
+            // the flag, or the view sits on its loading state permanently.
+            loading.value = false;
+        }
     };
 
     const fetchCategories = async () => {
-        const response = await fetch(adminUrl('/categories'));
-        const body = await response.json();
+        const body = await apiFetch(adminUrl('/categories'), { message: 'Could not load the categories.' });
         categories.value = body.categories ?? [];
     };
 
     // period_start must already be the period's first day — the backend
     // derives period_end from it (see ReportController).
-    const fetchReport = async (periodType, periodStart) => {
+    const fetchReport = (periodType, periodStart) => {
         const query = new URLSearchParams({ period_type: periodType, period_start: toDateKey(periodStart) });
-        const response = await fetch(`${adminUrl('/reports')}?${query}`);
 
-        if (!response.ok) {
-            throw new Error('Could not load the report.');
-        }
-
-        return response.json();
+        return apiFetch(`${adminUrl('/reports')}?${query}`, { message: 'Could not load the report.' });
     };
 
-    const jsonHeaders = {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'X-CSRF-TOKEN': csrfToken(),
-    };
+    const createCategory = async (payload) => (await apiFetch(adminUrl('/categories'), {
+        method: 'POST',
+        body: payload,
+        message: 'Could not create the category.',
+    })).category;
 
-    const createCategory = async (payload) => {
-        const response = await fetch(adminUrl('/categories'), {
-            method: 'POST',
-            headers: jsonHeaders,
-            body: JSON.stringify(payload),
-        });
+    const updateCategory = async (id, payload) => (await apiFetch(`${adminUrl('/categories')}/${id}`, {
+        method: 'PUT',
+        body: payload,
+        message: 'Could not save the category.',
+    })).category;
 
-        if (!response.ok) {
-            throw new Error('Could not create the category.');
-        }
+    const deleteCategory = (id) => apiFetch(`${adminUrl('/categories')}/${id}`, {
+        method: 'DELETE',
+        message: 'Could not delete the category.',
+    });
 
-        return (await response.json()).category;
-    };
+    const createTask = async (payload) => (await apiFetch(adminUrl('/tasks'), {
+        method: 'POST',
+        body: payload,
+        message: 'Could not create the task.',
+    })).task;
 
-    const updateCategory = async (id, payload) => {
-        const response = await fetch(`${adminUrl('/categories')}/${id}`, {
-            method: 'PUT',
-            headers: jsonHeaders,
-            body: JSON.stringify(payload),
-        });
+    const updateTask = async (id, payload) => (await apiFetch(`${adminUrl('/tasks')}/${id}`, {
+        method: 'PUT',
+        body: payload,
+        message: 'Could not save the task.',
+    })).task;
 
-        if (!response.ok) {
-            throw new Error('Could not save the category.');
-        }
-
-        return (await response.json()).category;
-    };
-
-    const deleteCategory = async (id) => {
-        const response = await fetch(`${adminUrl('/categories')}/${id}`, {
-            method: 'DELETE',
-            headers: jsonHeaders,
-        });
-
-        if (!response.ok) {
-            throw new Error('Could not delete the category.');
-        }
-    };
-
-    const createTask = async (payload) => {
-        const response = await fetch(adminUrl('/tasks'), {
-            method: 'POST',
-            headers: jsonHeaders,
-            body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-            throw new Error('Could not create the task.');
-        }
-
-        return (await response.json()).task;
-    };
-
-    const updateTask = async (id, payload) => {
-        const response = await fetch(`${adminUrl('/tasks')}/${id}`, {
-            method: 'PUT',
-            headers: jsonHeaders,
-            body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-            throw new Error('Could not save the task.');
-        }
-
-        return (await response.json()).task;
-    };
-
-    const deleteTask = async (id) => {
-        const response = await fetch(`${adminUrl('/tasks')}/${id}`, {
-            method: 'DELETE',
-            headers: jsonHeaders,
-        });
-
-        if (!response.ok) {
-            throw new Error('Could not delete the task.');
-        }
-    };
+    const deleteTask = (id) => apiFetch(`${adminUrl('/tasks')}/${id}`, {
+        method: 'DELETE',
+        message: 'Could not delete the task.',
+    });
 
     // period_start/period_end are plain "Y-m-d" strings — the report response
     // hands back exactly the pair the backend derived, so reflections stay
     // keyed to the same period the report summarises.
     const fetchReflection = async (periodType, periodStart, periodEnd) => {
         const query = new URLSearchParams({ period_type: periodType, period_start: periodStart, period_end: periodEnd });
-        const response = await fetch(`${adminUrl('/reflections')}?${query}`);
 
-        if (!response.ok) {
-            throw new Error('Could not load the reflection.');
-        }
-
-        return (await response.json()).reflection;
+        return (await apiFetch(`${adminUrl('/reflections')}?${query}`, {
+            message: 'Could not load the reflection.',
+        })).reflection;
     };
 
-    const saveReflection = async (payload) => {
-        const response = await fetch(adminUrl('/reflections'), {
-            method: 'PUT',
-            headers: jsonHeaders,
-            body: JSON.stringify(payload),
-        });
+    const saveReflection = async (payload) => (await apiFetch(adminUrl('/reflections'), {
+        method: 'PUT',
+        body: payload,
+        message: 'Could not save the reflection.',
+    })).reflection;
 
-        if (!response.ok) {
-            throw new Error('Could not save the reflection.');
-        }
+    const startTaskTimer = async (id) => (await apiFetch(`${adminUrl('/tasks')}/${id}/timer/start`, {
+        method: 'POST',
+        message: 'Could not start the timer.',
+    })).task;
 
-        return (await response.json()).reflection;
-    };
-
-    const startTaskTimer = async (id) => {
-        const response = await fetch(`${adminUrl('/tasks')}/${id}/timer/start`, {
-            method: 'POST',
-            headers: jsonHeaders,
-        });
-
-        if (!response.ok) {
-            throw new Error('Could not start the timer.');
-        }
-
-        return (await response.json()).task;
-    };
-
-    const stopTaskTimer = async (id) => {
-        const response = await fetch(`${adminUrl('/tasks')}/${id}/timer/stop`, {
-            method: 'POST',
-            headers: jsonHeaders,
-        });
-
-        if (!response.ok) {
-            throw new Error('Could not stop the timer.');
-        }
-
-        return (await response.json()).task;
-    };
+    const stopTaskTimer = async (id) => (await apiFetch(`${adminUrl('/tasks')}/${id}/timer/stop`, {
+        method: 'POST',
+        message: 'Could not stop the timer.',
+    })).task;
 
     return {
         tasks,

@@ -6,7 +6,7 @@ import AppInput from './ui/AppInput.vue';
 import AppTextarea from './ui/AppTextarea.vue';
 import AppButton from './ui/AppButton.vue';
 import { copy } from '../shared/i18n';
-import { csrfToken } from '../shared/portfolio';
+import { apiFetch } from '../shared/api';
 
 const router = useRouter();
 
@@ -46,26 +46,19 @@ const submit = async () => {
 
     submitting.value = true;
 
-    const response = await fetch('/hi-developer', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            'X-CSRF-TOKEN': csrfToken(),
-        },
-        body: JSON.stringify(form.value),
-    });
+    try {
+        await apiFetch('/hi-developer', {
+            method: 'POST',
+            body: form.value,
+            message: copy('connectError'),
+        });
 
-    if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        const firstError = body?.errors ? Object.values(body.errors)[0]?.[0] : null;
-        error.value = firstError ?? body?.message ?? copy('connectError');
+        submitted.value = true;
+    } catch (failure) {
+        error.value = failure.message;
+    } finally {
         submitting.value = false;
-        return;
     }
-
-    submitted.value = true;
-    submitting.value = false;
 };
 </script>
 

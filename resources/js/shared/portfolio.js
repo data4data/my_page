@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue';
+import { apiFetch } from './api';
 
 export const translatableProfile = [
     'role',
@@ -18,8 +19,6 @@ export const translatableItemFields = {
     projects: ['title', 'summary', 'result'],
     process_steps: ['title', 'description'],
 };
-
-export const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
 const asTranslation = (value) => {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -67,9 +66,14 @@ export function usePortfolioSource(endpoint) {
 
     const fetchPortfolio = async () => {
         loading.value = true;
-        const response = await fetch(endpoint);
-        data.value = normalizePortfolio(await response.json());
-        loading.value = false;
+
+        try {
+            data.value = normalizePortfolio(await apiFetch(endpoint, { message: 'Could not load the page content.' }));
+        } finally {
+            // finally, not after the assignment: a failed load must still clear
+            // the flag, or the page sits on its loading state permanently.
+            loading.value = false;
+        }
     };
 
     const profile = computed(() => data.value?.profile ?? {});
