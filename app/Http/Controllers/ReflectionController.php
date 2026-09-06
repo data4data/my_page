@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ReflectionPeriodType;
 use App\Models\Reflection;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -12,43 +13,24 @@ class ReflectionController extends Controller
 {
     public function show(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'period_type' => ['required', Rule::enum(ReflectionPeriodType::class)],
-            'period_start' => ['required', 'date'],
-            'period_end' => ['required', 'date', 'after_or_equal:period_start'],
-        ]);
+        $data = $request->validate($this->periodRules());
 
-        $reflection = Reflection::query()
-            ->where('user_id', $request->user()->id)
-            ->where('period_type', $data['period_type'])
-            ->whereDate('period_start', $data['period_start'])
-            ->whereDate('period_end', $data['period_end'])
-            ->first();
-
-        return response()->json(['reflection' => $reflection]);
+        return response()->json(['reflection' => $this->forPeriod($request, $data)->first()]);
     }
 
-    // Upsert by (user, period_type, period_start, period_end) — matched via
-    // whereDate() rather than Eloquent's updateOrCreate(), because the
-    // 'date' cast stores period_start/period_end with a time component
-    // ("Y-m-d H:i:s"); updateOrCreate's raw search array bypasses that cast
-    // and compares against the plain "Y-m-d" input, so it would never find
-    // the existing row and would hit the table's unique constraint instead.
+    /**
+     * Upsert by (user, period_type, period_start, period_end) — the tuple the
+     * table's unique index is built on. Both halves find the row through
+     * Reflection::scopeForPeriod(), which is where the whereDate() reasoning
+     * lives.
+     */
     public function upsert(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'period_type' => ['required', Rule::enum(ReflectionPeriodType::class)],
-            'period_start' => ['required', 'date'],
-            'period_end' => ['required', 'date', 'after_or_equal:period_start'],
+        $data = $request->validate($this->periodRules([
             'notes' => ['nullable', 'string', 'max:8000'],
-        ]);
+        ]));
 
-        $reflection = Reflection::query()
-            ->where('user_id', $request->user()->id)
-            ->where('period_type', $data['period_type'])
-            ->whereDate('period_start', $data['period_start'])
-            ->whereDate('period_end', $data['period_end'])
-            ->first();
+        $reflection = $this->forPeriod($request, $data)->first();
 
         if ($reflection) {
             $reflection->update(['notes' => $data['notes'] ?? null]);
@@ -63,5 +45,30 @@ class ReflectionController extends Controller
         }
 
         return response()->json(['reflection' => $reflection]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $extra
+     * @return array<string, mixed>
+     */
+    private function periodRules(array $extra = []): array
+    {
+        return [
+            'period_type' => ['required', Rule::enum(ReflectionPeriodType::class)],
+            'period_start' => ['required', 'date'],
+            'period_end' => ['required', 'date', 'after_or_equal:period_start'],
+            ...$extra,
+        ];
+    }
+
+    /** @param  array<string, mixed>  $data */
+    private function forPeriod(Request $request, array $data): Builder
+    {
+        return Reflection::forPeriod(
+            $request->user()->id,
+            $data['period_type'],
+            $data['period_start'],
+            $data['period_end'],
+        );
     }
 }
