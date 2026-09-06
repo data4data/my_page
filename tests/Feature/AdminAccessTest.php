@@ -141,6 +141,33 @@ class AdminAccessTest extends TestCase
         $this->assertGuest();
     }
 
+    // A bare per-address throttle stops one machine walking a password list
+    // but not a spread-out attempt against one account, so the limiter keys
+    // on both. See AppServiceProvider::configureLoginRateLimiting().
+    public function test_repeated_failures_against_one_account_are_throttled(): void
+    {
+        $user = User::factory()->create(['password' => 'secret-password']);
+
+        // Each attempt comes from a different address, so only the
+        // per-account limit can be what stops them.
+        for ($attempt = 0; $attempt < 12; $attempt++) {
+            $this->withServerVariables(['REMOTE_ADDR' => "10.0.0.{$attempt}"])
+                ->postJson('/login', ['email' => $user->email, 'password' => 'wrong'])
+                ->assertStatus(422);
+        }
+
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.99'])
+            ->postJson('/login', ['email' => $user->email, 'password' => 'wrong'])
+            ->assertStatus(429);
+
+        // A different account from a fresh address is unaffected.
+        $other = User::factory()->create(['password' => 'secret-password']);
+
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.1.1'])
+            ->postJson('/login', ['email' => $other->email, 'password' => 'wrong'])
+            ->assertStatus(422);
+    }
+
     public function test_logout_clears_the_session(): void
     {
         $user = User::factory()->create();
