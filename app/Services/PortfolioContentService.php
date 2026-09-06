@@ -77,12 +77,34 @@ class PortfolioContentService
         $visible = fn ($items) => $publicOnly ? $items->where('is_visible', true)->values() : $items->values();
 
         return [
-            'profile' => $profile,
+            'profile' => $publicOnly ? $this->withVisibleSocialLinks($profile) : $profile,
             'metrics' => $visible($profile->metrics),
             'expertise_items' => $visible($profile->expertiseItems),
             'projects' => $visible($profile->projects),
             'process_steps' => $visible($profile->processSteps),
         ];
+    }
+
+    /**
+     * Social links live in a JSON column rather than a child table, so the
+     * child-collection filtering above never reaches them — a link switched
+     * off in the editor would still have gone out in the public payload, and
+     * an "off" switch that publishes the link anyway is not an off switch.
+     *
+     * Cloned rather than filtered in place: the caller's instance is used
+     * elsewhere, including to build revision snapshots, which must keep
+     * everything.
+     */
+    private function withVisibleSocialLinks(PortfolioProfile $profile): PortfolioProfile
+    {
+        $copy = clone $profile;
+
+        $copy->social_links = collect($profile->social_links ?? [])
+            ->filter(fn (array $link) => ($link['is_visible'] ?? true) !== false)
+            ->values()
+            ->all();
+
+        return $copy;
     }
 
     /**

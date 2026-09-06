@@ -78,6 +78,7 @@ class UpdatePortfolioRequest extends FormRequest
             // Resolved through iconMap in resources/js/shared/icons.js; an
             // unknown key renders nothing rather than failing.
             'profile.social_links.*.icon' => ['nullable', 'string', 'max:60'],
+            'profile.social_links.*.is_visible' => ['sometimes', 'boolean'],
 
             'metrics' => ['array'],
             // Required, unlike the translated text below: the column is NOT

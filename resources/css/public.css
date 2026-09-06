@@ -544,4 +544,28 @@
         margin-left: clamp(24px, 5vw, 56px);
         letter-spacing: 0.08em;
     }
+
+    /* The social links again, centred under the contact band. The rail is
+       desktop-only and sits beside the hero, far from where a reader actually
+       finishes; on a phone this is the only place they appear at all. */
+    .social-footer {
+        @apply mt-12 flex flex-col items-center gap-4 border-t border-sand-light/60 pt-8 text-center;
+    }
+
+    .social-footer-label {
+        @apply text-[10px] font-bold uppercase tracking-[0.18em] text-bronze-text;
+    }
+
+    .social-footer ul {
+        @apply m-0 flex list-none flex-wrap items-center justify-center gap-2 p-0;
+    }
+
+    .social-footer a {
+        /* Icon and name together: an icon row alone leaves the reader
+           guessing which network a glyph belongs to. */
+        @apply flex items-center gap-2 rounded-full border border-transparent px-3 py-2 text-sm font-semibold text-ink transition hover:border-sand hover:bg-white/70 hover:text-accent;
+        /* Comfortable as a touch target, since on a phone this is the only
+           copy of these links. */
+        min-height: 2.75rem;
+    }
 }

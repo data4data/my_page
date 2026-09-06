@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\PortfolioProfile;
+use App\Models\PortfolioRevision;
 use App\Models\User;
 use App\Support\DefaultPortfolioContent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -405,5 +406,107 @@ class PortfolioContentTest extends TestCase
         // headline actually on screen can match.
         $this->assertContains('precision', $terms);
         $this->assertContains('precisie', $terms);
+    }
+
+    /**
+     * Social links are a JSON column, not a child table, so the visibility
+     * filtering that covers metrics and projects never reached them. A link
+     * switched off in the editor still went out in the public payload.
+     */
+    public function test_a_hidden_social_link_is_kept_out_of_the_public_payload(): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'profile' => [
+                    'social_links' => [
+                        ['label' => 'Shown', 'url' => 'https://example.test/shown', 'icon' => 'link', 'is_visible' => true],
+                        ['label' => 'Hidden', 'url' => 'https://example.test/hidden', 'icon' => 'link', 'is_visible' => false],
+                    ],
+                ],
+            ]))
+            ->assertOk();
+
+        $public = $this->getJson('/portfolio')->assertOk()->json('profile.social_links');
+
+        $this->assertCount(1, $public);
+        $this->assertSame('Shown', $public[0]['label']);
+
+        // The editor still sees both, or the hidden one could never be
+        // switched back on.
+        $admin_links = $this->actingAs($admin)->getJson($this->adminUrl('/portfolio'))->json('profile.social_links');
+        $this->assertCount(2, $admin_links);
+    }
+
+    public function test_switching_every_link_off_leaves_the_public_payload_with_none(): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'profile' => [
+                    'social_links' => [
+                        ['label' => 'One', 'url' => 'https://example.test/one', 'icon' => 'link', 'is_visible' => false],
+                    ],
+                ],
+            ]))
+            ->assertOk();
+
+        $this->assertSame([], $this->getJson('/portfolio')->assertOk()->json('profile.social_links'));
+    }
+
+    // Filtering must not scribble on the instance the caller handed over: the
+    // same method builds revision snapshots, which keep everything.
+    public function test_filtering_does_not_strip_hidden_links_from_a_saved_revision(): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'profile' => [
+                    'social_links' => [
+                        ['label' => 'Hidden', 'url' => 'https://example.test/hidden', 'icon' => 'link', 'is_visible' => false],
+                    ],
+                ],
+            ]))
+            ->assertOk();
+
+        // Read the public payload first: if that mutated shared state, the
+        // snapshot below would have lost the link.
+        $this->getJson('/portfolio')->assertOk();
+
+        $snapshot = PortfolioRevision::query()->latest('id')->first()->payload;
+
+        $this->assertCount(1, $snapshot['profile']['social_links']);
+    }
+
+    /**
+     * Links saved before visibility existed carry no is_visible key at all.
+     * Treating a missing flag as hidden would have silently emptied the rail
+     * on every install that already had links.
+     */
+    public function test_a_link_saved_without_a_visibility_flag_still_shows(): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'profile' => [
+                    'social_links' => [
+                        ['label' => 'Legacy', 'url' => 'https://example.test/legacy', 'icon' => 'link'],
+                    ],
+                ],
+            ]))
+            ->assertOk();
+
+        $public = $this->getJson('/portfolio')->assertOk()->json('profile.social_links');
+
+        $this->assertCount(1, $public);
+        $this->assertSame('Legacy', $public[0]['label']);
     }
 }
