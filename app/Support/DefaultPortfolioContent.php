@@ -66,10 +66,13 @@ class DefaultPortfolioContent
                     'en' => 'Leonardo da Vinci',
                     'nl' => 'Leonardo da Vinci',
                 ],
+                // Placeholders pointing nowhere in particular. Edited under
+                // Edit page -> Social links; switch them all off and the
+                // public page drops the rail and the footer row entirely.
                 'social_links' => [
-                    ['label' => 'GitHub', 'url' => 'https://github.com/', 'icon' => 'github'],
-                    ['label' => 'LinkedIn', 'url' => 'https://www.linkedin.com/', 'icon' => 'linkedin'],
-                    ['label' => 'Email', 'url' => 'mailto:hello@example.com', 'icon' => 'mail'],
+                    ['label' => 'GitHub', 'url' => 'https://github.com/', 'icon' => 'github', 'is_visible' => true],
+                    ['label' => 'LinkedIn', 'url' => 'https://www.linkedin.com/', 'icon' => 'linkedin', 'is_visible' => true],
+                    ['label' => 'Email', 'url' => 'mailto:hello@example.com', 'icon' => 'mail', 'is_visible' => true],
                 ],
             ],
             'metrics' => [

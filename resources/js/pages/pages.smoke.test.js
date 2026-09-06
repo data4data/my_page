@@ -31,7 +31,10 @@ const payload = {
         summary: { en: 'Summary', nl: 'Samenvatting' },
         default_language: 'en',
         show_language_toggle: true,
-        social_links: [],
+        social_links: [
+            { label: 'GitHub', url: 'https://github.test', icon: 'github', is_visible: true },
+            { label: 'Hidden', url: 'https://hidden.test', icon: 'link', is_visible: false },
+        ],
     },
     metrics: [],
     expertise_items: [],
@@ -78,6 +81,29 @@ describe('page smoke tests', () => {
 
         expect(errors).toEqual([]);
         expect(wrapper.text()).toContain('Testable headline');
+
+        // The rail and the centred footer row render the same visible links,
+        // and neither shows the one switched off.
+        expect(wrapper.findAll('.social-rail a')).toHaveLength(1);
+        expect(wrapper.findAll('.social-footer a')).toHaveLength(1);
+        expect(wrapper.html()).not.toContain('hidden.test');
+    });
+
+    it('PublicPage drops the rail and the footer row when no link is visible', async () => {
+        global.fetch = vi.fn(() => Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+                ...structuredClone(payload),
+                profile: { ...structuredClone(payload).profile, social_links: [] },
+            }),
+        }));
+
+        const wrapper = mountPage(PublicPage);
+        await flush();
+
+        expect(errors).toEqual([]);
+        expect(wrapper.find('.social-rail').exists()).toBe(false);
+        expect(wrapper.find('.social-footer').exists()).toBe(false);
     });
 
     it('AdminPage renders the editor without errors', async () => {

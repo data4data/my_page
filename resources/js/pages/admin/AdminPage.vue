@@ -10,6 +10,7 @@ import MetricsTab from './MetricsTab.vue';
 import ExpertiseTab from './ExpertiseTab.vue';
 import ProcessTab from './ProcessTab.vue';
 import ProjectsTab from './ProjectsTab.vue';
+import SocialLinksTab from './SocialLinksTab.vue';
 import InsightsPage from './InsightsPage.vue';
 import ContentVersionsTab from './ContentVersionsTab.vue';
 import LanguageTab from './LanguageTab.vue';
@@ -92,6 +93,7 @@ const adminTabs = computed(() => [
     { value: 'expertise', label: copy('tabExpertise') },
     { value: 'process', label: copy('tabProcess') },
     { value: 'projects', label: copy('tabProjects') },
+    { value: 'social', label: copy('tabSocial') },
 ]);
 
 const settingsTabs = computed(() => [
@@ -285,6 +287,7 @@ const updateTags = (project, value) => {
             <ExpertiseTab v-else-if="tab === 'expertise'" :expertise="expertise" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
             <ProcessTab v-else-if="tab === 'process'" :process-steps="processSteps" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
             <ProjectsTab v-else-if="tab === 'projects'" :projects="projects" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :update-tags="updateTags" />
+            <SocialLinksTab v-else-if="tab === 'social'" :profile="profile" />
         </SectionTabs>
 
         <template #fab>

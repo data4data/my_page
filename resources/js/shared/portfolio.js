@@ -81,7 +81,11 @@ export function usePortfolioSource(endpoint) {
     const expertise = computed(() => data.value?.expertise_items ?? []);
     const projects = computed(() => data.value?.projects ?? []);
     const processSteps = computed(() => data.value?.process_steps ?? []);
-    const socialLinks = computed(() => (Array.isArray(profile.value.social_links) ? profile.value.social_links : []));
+    // The public endpoint already drops hidden links, but the admin preview
+    // reads the unfiltered payload through this same composable, so the
+    // filter lives here too rather than only on the server.
+    const socialLinks = computed(() => (Array.isArray(profile.value.social_links) ? profile.value.social_links : [])
+        .filter((link) => link?.url && link.is_visible !== false));
 
     return {
         data,

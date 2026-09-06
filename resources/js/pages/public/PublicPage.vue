@@ -168,11 +168,14 @@ const scrollExpertise = (direction) => {
                 <div class="hero-photo-shade"></div>
             </div>
 
-            <aside class="social-rail" aria-label="Social links">
+            <!-- No links, no rail. The rail is a decorative frame around the
+                 links; with nothing in it the label and the line read as a
+                 stray mark down the side of the page. -->
+            <aside v-if="socialLinks.length" class="social-rail" :aria-label="copy('socialFollow')">
                 <span class="rail-role">{{ copy('railCta') }}</span>
                 <div class="rail-line"></div>
-                <a v-for="link in socialLinks" :key="link.label" :href="link.url" :aria-label="link.label">
-                    <component :is="Icon(link.icon)" :size="20" />
+                <a v-for="link in socialLinks" :key="link.url" :href="link.url" :aria-label="link.label" rel="noopener">
+                    <component :is="Icon(link.icon)" :size="20" aria-hidden="true" />
                 </a>
             </aside>
 
@@ -298,6 +301,21 @@ const scrollExpertise = (direction) => {
                     <AppButton variant="menu-gold" class="contact-cta-link" as="a" href="mailto:hello@example.com">{{ copy('getInTouch') }} <ArrowRight :size="22" /></AppButton>
                 </div>
             </div>
+
+            <!-- The same links again, centred at the foot of the page. The
+                 rail is desktop-only and sits far from where a reader ends
+                 up, so on a phone this is the only place they appear. -->
+            <nav v-if="socialLinks.length" class="social-footer" :aria-label="copy('socialFollow')">
+                <span class="social-footer-label">{{ copy('socialFollow') }}</span>
+                <ul>
+                    <li v-for="link in socialLinks" :key="link.url">
+                        <a :href="link.url" :aria-label="link.label" rel="noopener">
+                            <component :is="Icon(link.icon)" :size="18" aria-hidden="true" />
+                            <span>{{ link.label }}</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
         </section>
 
         <footer class="flex flex-wrap items-center justify-between gap-5 py-10 text-xs font-semibold uppercase tracking-[0.18em]">
