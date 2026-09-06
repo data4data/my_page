@@ -58,8 +58,12 @@ const setTerms = (tone, value) => {
 
         <label class="admin-full">Secondary CTA URL<AppInput v-model="profile.secondary_cta_url" /></label>
 
-        <div class="admin-full"><AppTranslatedField label="Location note" v-model="profile.location_note" /></div>
-        <div class="admin-full"><AppTranslatedField label="Availability note" v-model="profile.availability_note" /></div>
+        <div class="admin-full admin-note">
+            The two footer notes sit either side of your social links, at the very bottom of the public page.
+        </div>
+
+        <div class="admin-full"><AppTranslatedField label="Footer note (left)" v-model="profile.location_note" /></div>
+        <div class="admin-full"><AppTranslatedField label="Footer note (right)" v-model="profile.availability_note" /></div>
         <div class="admin-full"><AppTranslatedField label="Quote text" v-model="profile.quote" multiline rows="2" /></div>
         <div class="admin-full"><AppTranslatedField label="Quote author" v-model="profile.quote_author" /></div>
     </div>

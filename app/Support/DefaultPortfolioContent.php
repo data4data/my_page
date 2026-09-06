@@ -57,7 +57,10 @@ class DefaultPortfolioContent
                 'secondary_cta_label' => ['en' => 'About me', 'nl' => 'Over mij'],
                 'secondary_cta_url' => '#about',
                 'location_note' => ['en' => 'Based in Europe', 'nl' => 'Gevestigd in Europa'],
-                'availability_note' => ['en' => 'Available for selected projects', 'nl' => 'Beschikbaar voor geselecteerde projecten'],
+                // The pair either side of the social links in the page
+                // footer. Free text: this one held an availability line
+                // before, which is why the column is still named for that.
+                'availability_note' => ['en' => 'Since 2024', 'nl' => 'Sinds 2024'],
                 'quote' => [
                     'en' => 'Simplicity is the ultimate sophistication.',
                     'nl' => 'Eenvoud is de ultieme verfijning.',
