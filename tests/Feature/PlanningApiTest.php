@@ -294,6 +294,50 @@ class PlanningApiTest extends TestCase
             ->assertJsonValidationErrors(['parent_id']);
     }
 
+    // The other direction of the same one-level rule: the parent being
+    // top-level is not enough if the category being moved has children of its
+    // own. CategoryController::index() loads only one level of children, so a
+    // three-level tree makes the deepest row — and its tasks — vanish from the
+    // Categories view and the calendar filter without any error.
+    public function test_a_category_with_subcategories_cannot_be_given_a_parent(): void
+    {
+        $admin = $this->admin();
+        $parent = Category::create(['name' => 'Work', 'color' => '#2f75a8', 'user_id' => $admin->id]);
+        $child = Category::create(['name' => 'Deep work', 'color' => '#2f75a8', 'user_id' => $admin->id, 'parent_id' => $parent->id]);
+        $other = Category::create(['name' => 'Life', 'color' => '#7c9a6b', 'user_id' => $admin->id]);
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl("/categories/{$parent->id}"), [
+                'name' => 'Work',
+                'color' => '#2f75a8',
+                'parent_id' => $other->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['parent_id']);
+
+        $this->assertNull($parent->fresh()->parent_id);
+        $this->assertSame($parent->id, $child->fresh()->parent_id);
+    }
+
+    // The guard must not stop an ordinary edit of a category that has children,
+    // nor stop a childless one from being nested.
+    public function test_a_category_with_subcategories_can_still_be_edited_in_place(): void
+    {
+        $admin = $this->admin();
+        $parent = Category::create(['name' => 'Work', 'color' => '#2f75a8', 'user_id' => $admin->id]);
+        Category::create(['name' => 'Deep work', 'color' => '#2f75a8', 'user_id' => $admin->id, 'parent_id' => $parent->id]);
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl("/categories/{$parent->id}"), [
+                'name' => 'Focus',
+                'color' => '#c5a064',
+                'parent_id' => null,
+            ])
+            ->assertOk();
+
+        $this->assertSame('Focus', $parent->fresh()->name);
+    }
+
     public function test_a_category_colour_must_be_a_hex_value(): void
     {
         $admin = $this->admin();
