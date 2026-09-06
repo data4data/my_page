@@ -66,6 +66,9 @@ const inquiriesLoading = ref(true);
 const inquiriesHasMore = ref(false);
 const inquiriesPage = ref(1);
 
+const securityEvents = ref(null);
+const securityLoading = ref(true);
+
 // computed (not a plain array) so labels re-render when the admin switches
 // their own working language via the header EN/NL toggle.
 const navItems = computed(() => [
@@ -116,11 +119,22 @@ const fetchRevisions = async () => {
 
 const reportFailure = (error) => toast.error(error.message || copy('error'));
 
+const fetchSecurityEvents = async () => {
+    securityLoading.value = true;
+
+    try {
+        securityEvents.value = await apiFetch(adminUrl('/security-events'));
+    } finally {
+        securityLoading.value = false;
+    }
+};
+
 const loadMoreInquiries = () => fetchInquiries(inquiriesPage.value + 1).catch(reportFailure);
 
 fetchPortfolio().catch(reportFailure);
 fetchInquiries().catch(reportFailure);
 fetchRevisions().catch(reportFailure);
+fetchSecurityEvents().catch(reportFailure);
 
 const savePortfolio = async () => {
     saving.value = true;
@@ -228,6 +242,8 @@ const updateTags = (project, value) => {
             :inquiries="inquiries"
             :inquiries-loading="inquiriesLoading"
             :inquiries-has-more="inquiriesHasMore"
+            :security-events="securityEvents"
+            :security-loading="securityLoading"
             @load-more="loadMoreInquiries"
         />
 

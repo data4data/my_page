@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { ExternalLink } from '@lucide/vue';
 import SectionTabs from '../../components/admin/SectionTabs.vue';
 import AppButton from '../../components/ui/AppButton.vue';
+import SecurityTab from './SecurityTab.vue';
 import { copy } from '../../shared/i18n';
 
 defineProps({
@@ -18,6 +19,14 @@ defineProps({
         type: Boolean,
         default: false,
     },
+    securityEvents: {
+        type: Object,
+        default: null,
+    },
+    securityLoading: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 defineEmits(['load-more']);
@@ -27,6 +36,7 @@ const tab = ref('connections');
 // computed so the labels re-render when the admin switches EN/NL.
 const insightsTabs = computed(() => [
     { value: 'connections', label: copy('insightsConnections') },
+    { value: 'security', label: copy('insightsSecurity') },
     { value: 'news', label: copy('insightsNews') },
 ]);
 
@@ -68,6 +78,8 @@ const formatDate = (value) => new Date(value).toLocaleString(undefined, {
                 {{ inquiriesLoading ? copy('insightsLoading') : copy('insightsLoadMore') }}
             </AppButton>
         </div>
+
+        <SecurityTab v-else-if="tab === 'security'" :events="securityEvents" :loading="securityLoading" />
 
         <div v-else class="space-y-4">
             <div class="admin-note">{{ copy('insightsNewsInfo') }}</div>

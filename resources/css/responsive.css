@@ -224,6 +224,15 @@
     }
 }
 
+/* The sign-in trail's four columns do not fit a phone; stack them and let the
+   outcome label lead each row. */
+@media (width < theme(--breakpoint-md)) {
+    .security-row {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     html {
         scroll-behavior: auto;

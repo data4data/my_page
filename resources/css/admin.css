@@ -324,4 +324,43 @@
     .month-task-more {
         @apply text-[10px] font-semibold text-taupe;
     }
+
+    /* Sign-in trail (Insights -> Security). The table sits in its own
+       overflow-x container in the template: an IPv6 literal is wide, and the
+       admin panel itself must never scroll sideways. */
+    .security-table {
+        @apply w-full min-w-[34rem] border-collapse text-sm;
+    }
+
+    .security-table th {
+        @apply border-b border-sand px-3 py-2 text-left text-xs font-semibold uppercase tracking-[0.08em] text-graphite;
+    }
+
+    .security-table td {
+        @apply border-b border-sand/60 px-3 py-2 text-ink;
+    }
+
+    .security-row {
+        @apply grid items-center gap-3 rounded-md border border-sand bg-white px-3 py-2;
+        /* Outcome, address, address-typed, time — collapsing to two columns
+           on narrow screens is handled by the auto-fit minimum. */
+        grid-template-columns: minmax(9rem, auto) minmax(8rem, auto) minmax(0, 1fr) auto;
+    }
+
+    .security-row-outcome {
+        @apply text-xs font-semibold uppercase tracking-[0.08em];
+    }
+
+    /* Colour carries the same meaning as the label, never on its own. */
+    .security-row-login_succeeded .security-row-outcome {
+        @apply text-success-text;
+    }
+
+    .security-row-login_failed .security-row-outcome {
+        @apply text-danger-text;
+    }
+
+    .security-row-login_blocked .security-row-outcome {
+        @apply text-warning-text;
+    }
 }
