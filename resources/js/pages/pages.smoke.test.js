@@ -32,8 +32,10 @@ const payload = {
         default_language: 'en',
         show_language_toggle: true,
         social_links: [
-            { label: 'GitHub', url: 'https://github.test', icon: 'github', is_visible: true },
-            { label: 'Hidden', url: 'https://hidden.test', icon: 'link', is_visible: false },
+            { label: 'Both', url: 'https://both.test', icon: 'github', in_rail: true, in_footer: true },
+            { label: 'Rail only', url: 'https://rail.test', icon: 'link', in_rail: true, in_footer: false },
+            { label: 'Footer only', url: 'https://footer.test', icon: 'link', in_rail: false, in_footer: true },
+            { label: 'Hidden', url: 'https://hidden.test', icon: 'link', in_rail: false, in_footer: false },
         ],
     },
     metrics: [],
@@ -82,10 +84,12 @@ describe('page smoke tests', () => {
         expect(errors).toEqual([]);
         expect(wrapper.text()).toContain('Testable headline');
 
-        // The rail and the footer render the same visible links, and neither
-        // shows the one switched off.
-        expect(wrapper.findAll('.social-rail a')).toHaveLength(1);
-        expect(wrapper.findAll('.social-footer a')).toHaveLength(1);
+        // The two places are set per link, so each draws its own set and
+        // neither shows the one switched off everywhere.
+        const hrefs = (selector) => wrapper.findAll(selector).map((a) => a.attributes('href'));
+
+        expect(hrefs('.social-rail a')).toEqual(['https://both.test', 'https://rail.test']);
+        expect(hrefs('.social-footer a')).toEqual(['https://both.test', 'https://footer.test']);
         expect(wrapper.html()).not.toContain('hidden.test');
 
         // The links sit between the two footer notes, which is what puts them
@@ -95,6 +99,24 @@ describe('page smoke tests', () => {
         expect(order[0]).toContain('site-footer-note');
         expect(order[1]).toContain('social-footer');
         expect(order[2]).toContain('site-footer-note');
+    });
+
+    it('PublicPage drops each place independently', async () => {
+        const railOnly = structuredClone(payload);
+        railOnly.profile.social_links = [
+            { label: 'Rail only', url: 'https://rail.test', icon: 'link', in_rail: true, in_footer: false },
+        ];
+        global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(railOnly) }));
+
+        const wrapper = mountPage(PublicPage);
+        await flush();
+
+        expect(errors).toEqual([]);
+        expect(wrapper.find('.social-rail').exists()).toBe(true);
+        // Nothing wants the footer, so the footer row goes even though a link
+        // exists and is on show elsewhere.
+        expect(wrapper.find('.social-footer').exists()).toBe(false);
+        expect(wrapper.find('.site-footer-spacer').exists()).toBe(true);
     });
 
     it('PublicPage drops the rail and the footer row when no link is visible', async () => {

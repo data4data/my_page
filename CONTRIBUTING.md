@@ -55,6 +55,7 @@ Each of these fails **silently**, not loudly:
 | A new UI string | **both** `en` and `nl` in `resources/js/shared/i18n.js` |
 | A new `icon` value in DB or seed data | `iconMap` in `resources/js/shared/icons.js`, or it renders nothing |
 | A new `TaskStatus` case | `TASK_STATUSES` in `resources/js/shared/planning.js` |
+| Social-link placement rules | **both** `PortfolioContentService::showsIn()` and `showsIn()` in `resources/js/shared/portfolio.js` |
 | A profile/child field | migration → `$fillable`/`$casts` → key constant in `PortfolioContentService` → rule in `UpdatePortfolioRequest` → `DefaultPortfolioContent::content()` |
 | A new layer, endpoint or architectural decision | `CLAUDE.md` |
 | A workflow rule | **this file only** |

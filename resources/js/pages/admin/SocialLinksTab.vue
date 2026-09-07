@@ -6,6 +6,7 @@ import AppCheckbox from '../../components/ui/AppCheckbox.vue';
 import AppButton from '../../components/ui/AppButton.vue';
 import EditableCard from '../../components/EditableCard.vue';
 import { copy } from '../../shared/i18n';
+import { showsIn } from '../../shared/portfolio';
 
 // Unlike the other collections, social links are a JSON column on the profile
 // rather than a child table, so this tab edits the array in place instead of
@@ -25,7 +26,8 @@ const links = () => {
     return props.profile.social_links;
 };
 
-const add = () => links().push({ label: '', url: '', icon: 'link', is_visible: true });
+const add = () => links().push({ label: '', url: '', icon: 'link', in_rail: true, in_footer: true });
+
 
 const remove = (collection, index) => links().splice(index, 1);
 
@@ -59,7 +61,17 @@ const move = (collection, index, direction) => {
             <label class="admin-full">{{ copy('socialLabel') }}<AppInput v-model="link.label" maxlength="60" /></label>
             <label class="admin-full">{{ copy('socialUrl') }}<AppInput v-model="link.url" placeholder="https://" /></label>
             <label>{{ copy('socialIcon') }}<AppIconSelect v-model="link.icon" /></label>
-            <AppCheckbox v-model="link.is_visible">{{ copy('socialVisible') }}</AppCheckbox>
+            <!-- Read through showsIn, not straight off the key: a link saved
+                 before the two placements existed carries only is_visible, and
+                 an unticked box would misreport a link that is on show. -->
+            <div class="admin-full flex flex-wrap gap-x-6 gap-y-2">
+                <AppCheckbox :model-value="showsIn(link, 'rail')" @update:model-value="link.in_rail = $event">
+                    {{ copy('socialInRail') }}
+                </AppCheckbox>
+                <AppCheckbox :model-value="showsIn(link, 'footer')" @update:model-value="link.in_footer = $event">
+                    {{ copy('socialInFooter') }}
+                </AppCheckbox>
+            </div>
         </EditableCard>
 
         <AppButton variant="accent" size="sm" class="fab-add" @click="add">

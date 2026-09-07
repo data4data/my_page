@@ -422,8 +422,8 @@ class PortfolioContentTest extends TestCase
             ->putJson($this->adminUrl('/portfolio'), $this->payload([
                 'profile' => [
                     'social_links' => [
-                        ['label' => 'Shown', 'url' => 'https://example.test/shown', 'icon' => 'link', 'is_visible' => true],
-                        ['label' => 'Hidden', 'url' => 'https://example.test/hidden', 'icon' => 'link', 'is_visible' => false],
+                        ['label' => 'Shown', 'url' => 'https://example.test/shown', 'icon' => 'link', 'in_rail' => true, 'in_footer' => true],
+                        ['label' => 'Hidden', 'url' => 'https://example.test/hidden', 'icon' => 'link', 'in_rail' => false, 'in_footer' => false],
                     ],
                 ],
             ]))
@@ -449,7 +449,7 @@ class PortfolioContentTest extends TestCase
             ->putJson($this->adminUrl('/portfolio'), $this->payload([
                 'profile' => [
                     'social_links' => [
-                        ['label' => 'One', 'url' => 'https://example.test/one', 'icon' => 'link', 'is_visible' => false],
+                        ['label' => 'One', 'url' => 'https://example.test/one', 'icon' => 'link', 'in_rail' => false, 'in_footer' => false],
                     ],
                 ],
             ]))
@@ -469,7 +469,7 @@ class PortfolioContentTest extends TestCase
             ->putJson($this->adminUrl('/portfolio'), $this->payload([
                 'profile' => [
                     'social_links' => [
-                        ['label' => 'Hidden', 'url' => 'https://example.test/hidden', 'icon' => 'link', 'is_visible' => false],
+                        ['label' => 'Hidden', 'url' => 'https://example.test/hidden', 'icon' => 'link', 'in_rail' => false, 'in_footer' => false],
                     ],
                 ],
             ]))
@@ -508,5 +508,65 @@ class PortfolioContentTest extends TestCase
 
         $this->assertCount(1, $public);
         $this->assertSame('Legacy', $public[0]['label']);
+    }
+
+    /**
+     * The rail and the footer are set per link, so a link can appear in one
+     * and not the other. Both flags travel in the public payload — the page
+     * decides per place, and a link kept for the footer must not vanish
+     * because the rail does not want it.
+     */
+    public function test_a_link_can_appear_in_one_place_and_not_the_other(): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'profile' => [
+                    'social_links' => [
+                        ['label' => 'Rail only', 'url' => 'https://example.test/rail', 'icon' => 'link', 'in_rail' => true, 'in_footer' => false],
+                        ['label' => 'Footer only', 'url' => 'https://example.test/footer', 'icon' => 'link', 'in_rail' => false, 'in_footer' => true],
+                        ['label' => 'Neither', 'url' => 'https://example.test/none', 'icon' => 'link', 'in_rail' => false, 'in_footer' => false],
+                    ],
+                ],
+            ]))
+            ->assertOk();
+
+        $public = $this->getJson('/portfolio')->assertOk()->json('profile.social_links');
+
+        // The one shown nowhere is dropped; the other two survive with their
+        // placements intact.
+        $this->assertSame(['Rail only', 'Footer only'], array_column($public, 'label'));
+        $this->assertTrue($public[0]['in_rail']);
+        $this->assertFalse($public[0]['in_footer']);
+        $this->assertFalse($public[1]['in_rail']);
+        $this->assertTrue($public[1]['in_footer']);
+    }
+
+    /**
+     * Links saved when one switch covered both places carry only is_visible.
+     * Treating a missing placement as "off" would have emptied the rail and
+     * the footer at once on every install that already had links.
+     */
+    public function test_a_link_from_before_the_split_still_shows_in_both_places(): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'profile' => [
+                    'social_links' => [
+                        ['label' => 'Legacy on', 'url' => 'https://example.test/on', 'icon' => 'link', 'is_visible' => true],
+                        ['label' => 'Legacy off', 'url' => 'https://example.test/off', 'icon' => 'link', 'is_visible' => false],
+                    ],
+                ],
+            ]))
+            ->assertOk();
+
+        $public = $this->getJson('/portfolio')->assertOk()->json('profile.social_links');
+
+        $this->assertSame(['Legacy on'], array_column($public, 'label'));
     }
 }

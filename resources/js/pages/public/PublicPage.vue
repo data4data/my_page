@@ -19,7 +19,8 @@ const {
     expertise,
     projects,
     processSteps,
-    socialLinks,
+    railLinks,
+    footerLinks,
 } = usePortfolioSource('/portfolio');
 
 const headerScrolled = ref(false);
@@ -171,10 +172,10 @@ const scrollExpertise = (direction) => {
             <!-- No links, no rail. The rail is a decorative frame around the
                  links; with nothing in it the label and the line read as a
                  stray mark down the side of the page. -->
-            <aside v-if="socialLinks.length" class="social-rail" :aria-label="copy('socialFollow')">
+            <aside v-if="railLinks.length" class="social-rail" :aria-label="copy('socialFollow')">
                 <span class="rail-role">{{ copy('railCta') }}</span>
                 <div class="rail-line"></div>
-                <a v-for="link in socialLinks" :key="link.url" :href="link.url" :aria-label="link.label" rel="noopener">
+                <a v-for="link in railLinks" :key="link.url" :href="link.url" :aria-label="link.label" rel="noopener">
                     <component :is="Icon(link.icon)" :size="20" aria-hidden="true" />
                 </a>
             </aside>
@@ -311,9 +312,9 @@ const scrollExpertise = (direction) => {
         <footer class="site-footer">
             <span class="site-footer-note">{{ t(profile.location_note) }}</span>
 
-            <nav v-if="socialLinks.length" class="social-footer" :aria-label="copy('socialFollow')">
+            <nav v-if="footerLinks.length" class="social-footer" :aria-label="copy('socialFollow')">
                 <a
-                    v-for="link in socialLinks"
+                    v-for="link in footerLinks"
                     :key="link.url"
                     :href="link.url"
                     :aria-label="link.label"

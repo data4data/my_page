@@ -73,9 +73,9 @@ class DefaultPortfolioContent
                 // Edit page -> Social links; switch them all off and the
                 // public page drops the rail and the footer row entirely.
                 'social_links' => [
-                    ['label' => 'GitHub', 'url' => 'https://github.com/', 'icon' => 'github', 'is_visible' => true],
-                    ['label' => 'LinkedIn', 'url' => 'https://www.linkedin.com/', 'icon' => 'linkedin', 'is_visible' => true],
-                    ['label' => 'Email', 'url' => 'mailto:hello@example.com', 'icon' => 'mail', 'is_visible' => true],
+                    ['label' => 'GitHub', 'url' => 'https://github.com/', 'icon' => 'github', 'in_rail' => true, 'in_footer' => true],
+                    ['label' => 'LinkedIn', 'url' => 'https://www.linkedin.com/', 'icon' => 'linkedin', 'in_rail' => true, 'in_footer' => true],
+                    ['label' => 'Email', 'url' => 'mailto:hello@example.com', 'icon' => 'mail', 'in_rail' => true, 'in_footer' => true],
                 ],
             ],
             'metrics' => [

@@ -10,7 +10,7 @@ const stubs = {
         template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
     },
     AppIconSelect: { name: 'AppIconSelect', props: ['modelValue'], template: '<select />' },
-    AppCheckbox: { name: 'AppCheckbox', props: ['modelValue'], template: '<input type="checkbox" />' },
+    AppCheckbox: { name: 'AppCheckbox', props: ['modelValue'], emits: ['update:modelValue'], template: '<input type="checkbox" />' },
     // No @click re-emit: the stub's root is a real <button>, so the listener
     // falls through to it. Emitting as well would fire every action twice —
     // which for a reorder is a swap and a swap back, and looks like nothing
@@ -25,15 +25,16 @@ const cards = (wrapper) => wrapper.findAll('.editable-card');
 const addButton = (wrapper) => wrapper.findAll('button').at(-1);
 
 describe('SocialLinksTab', () => {
-    it('lists one card per link, hidden ones included', () => {
+    it('lists one card per link, ones shown nowhere included', () => {
         const profile = {
             social_links: [
-                { label: 'GitHub', url: 'https://github.test', icon: 'github', is_visible: true },
-                { label: 'Old', url: 'https://old.test', icon: 'link', is_visible: false },
+                { label: 'GitHub', url: 'https://github.test', icon: 'github', in_rail: true, in_footer: true },
+                { label: 'Old', url: 'https://old.test', icon: 'link', in_rail: false, in_footer: false },
             ],
         };
 
-        // Both, or a link switched off could never be switched back on.
+        // Both, or a link switched off everywhere could never be switched
+        // back on.
         expect(cards(mountTab(profile))).toHaveLength(2);
     });
 
@@ -45,16 +46,49 @@ describe('SocialLinksTab', () => {
 
         await addButton(wrapper).trigger('click');
 
-        expect(profile.social_links).toEqual([{ label: '', url: '', icon: 'link', is_visible: true }]);
+        expect(profile.social_links).toEqual([{ label: '', url: '', icon: 'link', in_rail: true, in_footer: true }]);
     });
 
-    it('adds visible links, so a new one is not silently switched off', async () => {
+    it('adds links shown in both places, so a new one is not silently invisible', async () => {
         const profile = { social_links: [] };
         const wrapper = mountTab(profile);
 
         await addButton(wrapper).trigger('click');
 
-        expect(profile.social_links[0].is_visible).toBe(true);
+        expect(profile.social_links[0].in_rail).toBe(true);
+        expect(profile.social_links[0].in_footer).toBe(true);
+    });
+
+    it('toggles the two places independently', async () => {
+        const profile = {
+            social_links: [{ label: 'One', url: 'https://one.test', icon: 'link', in_rail: true, in_footer: true }],
+        };
+        const wrapper = mountTab(profile);
+
+        const boxes = () => cards(wrapper)[0].findAllComponents({ name: 'AppCheckbox' });
+
+        await boxes()[0].vm.$emit('update:modelValue', false);
+
+        expect(profile.social_links[0].in_rail).toBe(false);
+        // Turning one off must leave the other alone.
+        expect(profile.social_links[0].in_footer).toBe(true);
+
+        await boxes()[1].vm.$emit('update:modelValue', false);
+        expect(profile.social_links[0].in_footer).toBe(false);
+    });
+
+    // A link saved when one switch covered both places carries only
+    // is_visible; an unticked box would misreport a link that is on show.
+    it('shows a link from before the split as ticked in both places', () => {
+        const profile = {
+            social_links: [{ label: 'Legacy', url: 'https://legacy.test', icon: 'link', is_visible: true }],
+        };
+        const wrapper = mountTab(profile);
+
+        const boxes = cards(wrapper)[0].findAllComponents({ name: 'AppCheckbox' });
+
+        expect(boxes[0].props('modelValue')).toBe(true);
+        expect(boxes[1].props('modelValue')).toBe(true);
     });
 
     it('reorders and removes in place, since these live on the profile', async () => {

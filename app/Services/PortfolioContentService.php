@@ -91,6 +91,9 @@ class PortfolioContentService
      * off in the editor would still have gone out in the public payload, and
      * an "off" switch that publishes the link anyway is not an off switch.
      *
+     * A link is dropped only when it appears in neither place. Both flags
+     * still travel, because the page decides per place which links to draw.
+     *
      * Cloned rather than filtered in place: the caller's instance is used
      * elsewhere, including to build revision snapshots, which must keep
      * everything.
@@ -100,11 +103,27 @@ class PortfolioContentService
         $copy = clone $profile;
 
         $copy->social_links = collect($profile->social_links ?? [])
-            ->filter(fn (array $link) => ($link['is_visible'] ?? true) !== false)
+            ->filter(fn (array $link) => self::showsIn($link, 'in_rail') || self::showsIn($link, 'in_footer'))
             ->values()
             ->all();
 
         return $copy;
+    }
+
+    /**
+     * `is_visible` is the flag the two placements replaced, back when one
+     * switch covered both. Links saved then carry only that, so it stands in
+     * for a missing placement — reading one as "off" would have emptied the
+     * rail and the footer at once on every install that already had links.
+     *
+     * Mirrored by showsIn() in resources/js/shared/portfolio.js; keep the two
+     * in step.
+     *
+     * @param  array<string, mixed>  $link
+     */
+    private static function showsIn(array $link, string $placement): bool
+    {
+        return (bool) ($link[$placement] ?? ($link['is_visible'] ?? true));
     }
 
     /**
