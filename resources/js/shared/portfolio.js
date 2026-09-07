@@ -20,6 +20,24 @@ export const translatableItemFields = {
     process_steps: ['title', 'description'],
 };
 
+/**
+ * Where a social link is shown. The two places are independent, so a link can
+ * sit in the rail, in the footer, in both, or in neither.
+ *
+ * `is_visible` is the flag these replaced, when one switch covered both
+ * places. Links saved then carry only that, so it stands in for both here —
+ * reading a missing placement as "off" would have emptied both at once on
+ * every install that already had links.
+ */
+export const showsIn = (link, place) => {
+    const explicit = link?.[place === 'rail' ? 'in_rail' : 'in_footer'];
+
+    return explicit ?? (link?.is_visible !== false);
+};
+
+export const linksFor = (links, place) => (Array.isArray(links) ? links : [])
+    .filter((link) => link?.url && showsIn(link, place));
+
 const asTranslation = (value) => {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
         return { en: value.en ?? '', nl: value.nl ?? value.en ?? '' };
@@ -81,11 +99,11 @@ export function usePortfolioSource(endpoint) {
     const expertise = computed(() => data.value?.expertise_items ?? []);
     const projects = computed(() => data.value?.projects ?? []);
     const processSteps = computed(() => data.value?.process_steps ?? []);
-    // The public endpoint already drops hidden links, but the admin preview
-    // reads the unfiltered payload through this same composable, so the
-    // filter lives here too rather than only on the server.
-    const socialLinks = computed(() => (Array.isArray(profile.value.social_links) ? profile.value.social_links : [])
-        .filter((link) => link?.url && link.is_visible !== false));
+    // The public endpoint drops links that appear nowhere, but it still sends
+    // both placements, and the admin reads the unfiltered payload through this
+    // same composable — so each place picks its own links here.
+    const railLinks = computed(() => linksFor(profile.value.social_links, 'rail'));
+    const footerLinks = computed(() => linksFor(profile.value.social_links, 'footer'));
 
     return {
         data,
@@ -96,6 +114,7 @@ export function usePortfolioSource(endpoint) {
         expertise,
         projects,
         processSteps,
-        socialLinks,
+        railLinks,
+        footerLinks,
     };
 }
