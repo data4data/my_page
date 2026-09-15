@@ -20,11 +20,13 @@ class PortfolioRevision extends Model
         'payload' => 'array',
     ];
 
+    /** @return BelongsTo<PortfolioProfile, $this> */
     public function profile(): BelongsTo
     {
         return $this->belongsTo(PortfolioProfile::class, 'portfolio_profile_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

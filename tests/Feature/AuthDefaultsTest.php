@@ -87,7 +87,13 @@ class AuthDefaultsTest extends TestCase
      */
     public function test_the_seeded_credentials_come_from_config(): void
     {
-        $this->assertSame(env('ADMIN_EMAIL'), config('admin.seed.email'));
-        $this->assertNotNull(config('admin.seed.password'));
+        // Set through config alone, with no env() involved, and the seeder
+        // still picks them up — which is what config:cache would break.
+        config()->set('admin.seed.email', 'from-config@example.test');
+        config()->set('admin.seed.password', 'correct-horse-battery-staple');
+
+        (new AdminUserSeeder)->setContainer($this->app)->run();
+
+        $this->assertDatabaseHas('users', ['email' => 'from-config@example.test']);
     }
 }

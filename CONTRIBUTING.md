@@ -75,14 +75,20 @@ node -e "const s=require('fs').readFileSync('resources/js/shared/i18n.js','utf8'
 
 ## 4. Run the gate
 
-All four, every time.
+All five, every time.
 
 ```bash
 vendor/bin/pint       # rewrites files — run before committing, not after
+composer analyse      # PHPStan/Larastan, level 5 — finds type errors without running the code
 composer test
 npm test
 npm run build         # catches template and import errors the tests never reach
 ```
+
+`composer analyse` must come out clean. If it reports something, fix the cause
+rather than adding an ignore or a baseline entry — the config already turns off
+the two checks that gave wrong advice here, with the reasons written down in
+`phpstan.neon`.
 
 ## 5. Check what tests cannot
 
