@@ -91,4 +91,56 @@ class DeveloperInquiryTest extends TestCase
         );
         $this->assertSame($ids, array_unique($ids));
     }
+
+    /**
+     * The honeypot field is off-screen and hidden from assistive tech, so only
+     * a bot filling every input reaches this. It gets the same response a real
+     * submission would: telling it otherwise just helps whoever tunes it.
+     */
+    public function test_a_filled_honeypot_is_accepted_and_discarded(): void
+    {
+        $this->postJson('/hi-developer', [
+            'name' => 'Spam Bot',
+            'email' => 'bot@example.com',
+            'message' => 'Buy things',
+            'website' => 'http://spam.example',
+        ])->assertOk();
+
+        $this->assertDatabaseCount('developer_inquiries', 0);
+    }
+
+    public function test_an_empty_honeypot_goes_through(): void
+    {
+        $this->postJson('/hi-developer', [
+            'name' => 'Jamie Dev',
+            'email' => 'jamie@example.com',
+            'message' => 'Would love to connect.',
+            'website' => '',
+        ])->assertOk();
+
+        $this->assertDatabaseCount('developer_inquiries', 1);
+    }
+
+    // A submission with no honeypot key at all still works, so an older cached
+    // page does not start silently failing.
+    public function test_a_submission_without_the_field_still_works(): void
+    {
+        $this->postJson('/hi-developer', [
+            'name' => 'Jamie Dev',
+            'email' => 'jamie@example.com',
+            'message' => 'Would love to connect.',
+        ])->assertOk();
+
+        $this->assertDatabaseCount('developer_inquiries', 1);
+    }
+
+    // Caught before validation, so a bot cannot tell the two apart by probing
+    // with a deliberately invalid payload.
+    public function test_the_honeypot_wins_over_validation_errors(): void
+    {
+        $this->postJson('/hi-developer', ['website' => 'http://spam.example'])
+            ->assertOk();
+
+        $this->assertDatabaseCount('developer_inquiries', 0);
+    }
 }

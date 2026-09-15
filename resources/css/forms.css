@@ -292,4 +292,15 @@
     .editable-card > header div {
         @apply flex gap-2;
     }
+
+    /* Honeypot wrapper. Off-screen rather than display:none or hidden, both of
+       which a bot can check for and skip. Nothing here is announced or
+       focusable, so it costs a real visitor nothing. */
+    .honeypot {
+        position: absolute;
+        left: -9999px;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+    }
 }
