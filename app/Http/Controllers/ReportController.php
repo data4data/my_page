@@ -42,16 +42,26 @@ class ReportController extends Controller
         // a personal one), and grouping by label merged them into one row.
         // `null` is the uncategorized bucket, labelled by the frontend so the
         // report carries no untranslated English.
+        // One lookup keyed by id, rather than reaching back through a task's
+        // relation three times per row. The uncategorized bucket has no entry,
+        // hence the null handling below.
+        $categories = $tasks->pluck('category')->filter()->keyBy('id')->all();
+
         $byCategory = $tasks
             ->groupBy(fn (Task $task) => $task->category_id)
-            ->map(fn ($group) => [
-                'category_id' => $group->first()->category_id,
-                'category' => $group->first()->category?->name,
-                'color' => $group->first()->category?->color ?? '#9b9b9b',
-                'minutes' => $group->sum($tracked),
-                'planned_minutes' => $group->sum(fn (Task $task) => $task->plannedMinutes()),
-                'tasks' => $group->count(),
-            ])
+            ->map(function ($group, $categoryId) use ($tracked, $categories) {
+                $category = $categories[$categoryId] ?? null;
+
+                return [
+                    'category_id' => $group->first()->category_id,
+                    'category' => $category?->name,
+                    // No ?-> needed: ?? already short-circuits on a null left side.
+                    'color' => $category->color ?? '#9b9b9b',
+                    'minutes' => $group->sum($tracked),
+                    'planned_minutes' => $group->sum(fn (Task $task) => $task->plannedMinutes()),
+                    'tasks' => $group->count(),
+                ];
+            })
             ->values();
 
         $byStatus = $tasks

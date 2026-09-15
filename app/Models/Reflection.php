@@ -40,6 +40,7 @@ class Reflection extends Model
             ->whereDate('period_end', $periodEnd);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

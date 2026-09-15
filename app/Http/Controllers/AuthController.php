@@ -50,6 +50,13 @@ class AuthController extends Controller
 
         $user = Auth::getLastAttempted();
 
+        // The guard returns an Authenticatable, which need not be our User.
+        if (! $user instanceof User) {
+            throw ValidationException::withMessages([
+                'email' => 'These credentials do not match our records.',
+            ]);
+        }
+
         if ($user->hasTwoFactorEnabled()) {
             $request->session()->put(self::PENDING_KEY, $user->getAuthIdentifier());
             $request->session()->put(self::PENDING_REMEMBER_KEY, $request->boolean('remember'));

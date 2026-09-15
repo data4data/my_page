@@ -36,6 +36,7 @@ class TimeLog extends Model
         });
     }
 
+    /** @return BelongsTo<Task, $this> */
     public function task(): BelongsTo
     {
         return $this->belongsTo(Task::class);

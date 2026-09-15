@@ -1,0 +1,24 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app
+        - database
+        - routes
+        - tests
+
+    # Level 6 is where PHPStan starts demanding types it cannot infer,
+    # including array shapes. Raise it once the findings at this level are
+    # gone rather than silencing them.
+    level: 5
+
+    # Off. The relation generics on the models give the useful half of this
+    # already. What is left is that it rejects Model::create($request
+    # ->validated()) — the keys come from validation rules PHPStan cannot
+    # read, and spelling them out again in the controller is worse code.
+
+    # Laravel's own PHPDoc over-promises non-null on framework properties
+    # (Command::$command, Carbon attributes), which turns real runtime checks
+    # into "always true" errors. Trust the code over the docblock.
+    treatPhpDocTypesAsCertain: false

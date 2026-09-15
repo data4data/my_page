@@ -45,6 +45,7 @@ class SecurityEvent extends Model
         return $query->where('created_at', '>=', $moment);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

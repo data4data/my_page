@@ -10,8 +10,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use Spatie\Permission\Traits\HasRoles;
 
+/**
+ * @property ?string $two_factor_secret
+ * @property ?array<int, string> $two_factor_recovery_codes
+ * @property ?Carbon $two_factor_confirmed_at
+ */
 #[Fillable(['name', 'email', 'password'])]
 // The two-factor columns are password equivalents: never serialized and never
 // mass-assignable. TwoFactorService sets them explicitly.
@@ -46,16 +52,19 @@ class User extends Authenticatable
         return $this->two_factor_secret !== null && $this->two_factor_confirmed_at !== null;
     }
 
+    /** @return HasMany<Task, $this> */
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
     }
 
+    /** @return HasMany<Category, $this> */
     public function categories(): HasMany
     {
         return $this->hasMany(Category::class);
     }
 
+    /** @return HasMany<Reflection, $this> */
     public function reflections(): HasMany
     {
         return $this->hasMany(Reflection::class);

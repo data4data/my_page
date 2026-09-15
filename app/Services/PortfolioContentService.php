@@ -226,15 +226,18 @@ class PortfolioContentService
 
     private function pruneRevisions(PortfolioProfile $profile): void
     {
+        // Select the ones to keep, then delete the rest. An OFFSET with no
+        // LIMIT is a MySQL syntax error, so the newest-N cannot be skipped.
         // By id, not created_at: several saves can share a second.
-        $stale = PortfolioRevision::query()
+        $keep = PortfolioRevision::query()
             ->where('portfolio_profile_id', $profile->id)
             ->orderByDesc('id')
-            ->pluck('id')
-            ->slice(self::KEEP_REVISIONS);
+            ->limit(self::KEEP_REVISIONS)
+            ->pluck('id');
 
-        if ($stale->isNotEmpty()) {
-            PortfolioRevision::query()->whereIn('id', $stale)->delete();
-        }
+        PortfolioRevision::query()
+            ->where('portfolio_profile_id', $profile->id)
+            ->whereNotIn('id', $keep)
+            ->delete();
     }
 }

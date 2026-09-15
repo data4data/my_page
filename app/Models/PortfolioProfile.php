@@ -45,26 +45,31 @@ class PortfolioProfile extends Model
         'show_language_toggle' => 'boolean',
     ];
 
+    /** @return HasMany<PortfolioMetric, $this> */
     public function metrics(): HasMany
     {
         return $this->hasMany(PortfolioMetric::class);
     }
 
+    /** @return HasMany<ExpertiseItem, $this> */
     public function expertiseItems(): HasMany
     {
         return $this->hasMany(ExpertiseItem::class);
     }
 
+    /** @return HasMany<PortfolioProject, $this> */
     public function projects(): HasMany
     {
         return $this->hasMany(PortfolioProject::class);
     }
 
+    /** @return HasMany<ProcessStep, $this> */
     public function processSteps(): HasMany
     {
         return $this->hasMany(ProcessStep::class);
     }
 
+    /** @return HasMany<PortfolioRevision, $this> */
     public function revisions(): HasMany
     {
         return $this->hasMany(PortfolioRevision::class);

@@ -23,6 +23,7 @@ php artisan serve                       # backend only
 npm run dev                             # vite only
 npm run build                           # production frontend assets
 
+composer analyse                        # PHPStan via Larastan, level 5
 composer test                           # clears config cache, then runs php artisan test
 php artisan test --filter=test_name     # run a single test
 php artisan test tests/Feature/Foo.php  # run one test file
