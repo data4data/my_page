@@ -17,6 +17,9 @@ const form = ref({
     company: '',
     portfolio_url: '',
     linkedin_url: '',
+    // Honeypot. Hidden from people and from screen readers, so anything that
+    // arrives here came from a bot filling every input.
+    website: '',
 });
 const submitting = ref(false);
 const submitted = ref(false);
@@ -102,6 +105,16 @@ const submit = async () => {
                     {{ copy('connectMessage') }}<span class="field-required-mark">*</span>
                     <AppTextarea v-model="form.message" rows="4" class="mt-2" :invalid="messageInvalid" />
                 </label>
+
+                <!-- Honeypot. Positioned off-screen rather than display:none,
+                     which bots learned to skip years ago, and hidden from
+                     assistive tech so nobody is asked to fill it in. -->
+                <div class="honeypot" aria-hidden="true">
+                    <label>
+                        Website
+                        <input v-model="form.website" type="text" name="website" tabindex="-1" autocomplete="off">
+                    </label>
+                </div>
 
                 <AppButton variant="primary" type="submit" class="w-full justify-center" :disabled="submitting">
                     {{ submitting ? copy('connectSubmitting') : copy('connectSubmit') }}

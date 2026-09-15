@@ -8,9 +8,22 @@ use Illuminate\Http\Request;
 
 class DeveloperInquiryController extends Controller
 {
+    /**
+     * A field no human ever sees, so anything in it was filled by a bot
+     * working through every input on the page. Named like something a bot
+     * expects to find rather than like a trap.
+     */
+    private const HONEYPOT = 'website';
+
     // Public: submitted from the "For developers" connect form (/hi-developer).
     public function store(Request $request): JsonResponse
     {
+        // Answered exactly like a success. Telling the bot it was caught only
+        // helps whoever is tuning it.
+        if (filled($request->input(self::HONEYPOT))) {
+            return $this->accepted();
+        }
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'string', 'email', 'max:190'],
@@ -23,6 +36,11 @@ class DeveloperInquiryController extends Controller
 
         DeveloperInquiry::create($data);
 
+        return $this->accepted();
+    }
+
+    private function accepted(): JsonResponse
+    {
         return response()->json(['message' => 'Thanks — your message has been sent.']);
     }
 

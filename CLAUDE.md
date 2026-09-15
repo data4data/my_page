@@ -122,6 +122,8 @@ All four writes go through `PortfolioContentService` — `save()`, `seedDefaults
 `UpdatePortfolioRequest` validates **types and lengths, not presence**: the editor lets fields be cleared, so `required` on free text would reject payloads the UI legitimately produces. Presence is demanded only where the column is NOT NULL (`metrics.*.value`), because Laravel's `ConvertEmptyStringsToNull` middleware turns a cleared field into `null` and the insert would otherwise 500 instead of returning a readable 422. Two tests in `PortfolioContentTest` guard this by fetching the admin payload and PUTting it straight back — the same round trip pressing Save performs.
 
 **Planner**:
+The public connect form has three layers against spam: `throttle:10,1` on the route, a `website` honeypot field that is off-screen and `aria-hidden` (a filled one gets the same 200 a real submission does, and is discarded before validation so probing cannot tell them apart), and the validation rules themselves.
+
 - `GET|POST {admin}/tasks`, `PUT|DELETE {admin}/tasks/{task}` — index requires `start`/`end` date params and rejects a span wider than a year; the calendar fetches by visible range.
 - `POST {admin}/tasks/{task}/timer/start|stop`.
 - `GET|POST {admin}/categories`, `PUT|DELETE {admin}/categories/{category}`.
