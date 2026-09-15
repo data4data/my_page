@@ -7,12 +7,10 @@ return [
     | Private workspace path
     |--------------------------------------------------------------------------
     |
-    | The URL prefix every authenticated page and JSON endpoint lives behind —
-    | the visit card at "/" is the only public part of the app. Nothing links
-    | to this path, so beyond the login its protection is that it is not
-    | guessable: pick your own at setup time (ADMIN_PATH in .env, e.g.
-    | "control-room-ab" for initials AB) rather than keeping a value that
-    | ships with the repo and is therefore the same for every install.
+    | The prefix every authenticated page and JSON endpoint lives behind. The
+    | visit card at "/" is the only public part. Nothing links to this path, so
+    | pick your own (ADMIN_PATH in .env) rather than keeping the shipped
+    | default, which is the same for every install.
     |
     | Leading/trailing slashes are trimmed so "/control-room/" and
     | "control-room" configure the same routes. After changing this, run
@@ -29,14 +27,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | AdminUserSeeder creates the single admin account from these. They live
-    | here rather than being read with env() inside the seeder for a reason
-    | that bites exactly where it hurts most: once `php artisan config:cache`
-    | has run — which is the recommended production step — env() returns null
-    | outside config files, and the seeder would quietly fall back to the
-    | placeholder address and password shipped in .env.example.
+    | here, not in env() calls inside the seeder: after `php artisan
+    | config:cache`, env() returns null outside config files, and the seeder
+    | would fall back to the placeholders in .env.example.
     |
-    | The seeder refuses a weak password outside local development, so those
-    | placeholders cannot reach a live install even by accident.
+    | The seeder refuses a weak password outside local development.
     |
     */
 

@@ -9,13 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('portfolio_profiles', function (Blueprint $table) {
-            // Which words in the headline get the accent colours. These were
-            // a regex in PublicPage.vue matching one person's actual copy, so
-            // changing the headline through the admin quietly lost the accent
-            // and no other headline could ever gain one. One flat list rather
-            // than a translated field: the terms differ per language ("impact"
-            // reads the same in both, "precision"/"precisie" do not), and the
-            // match is against whichever language is on screen.
+            // Which headline words get the accent colours. One flat list, not
+            // a translated field: both languages' spellings live together, and
+            // only the words in the headline on screen can match.
             $table->json('headline_highlights')->nullable()->after('headline');
         });
     }

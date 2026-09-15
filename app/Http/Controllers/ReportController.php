@@ -31,20 +31,17 @@ class ReportController extends Controller
             ->where('user_id', $request->user()->id)
             ->whereBetween('start_datetime', [$start, $end])
             ->with('category')
-            // The database does the adding up. duration_minutes is a stored
-            // column precisely so this is one SUM per task rather than every
-            // time_logs row being hydrated into PHP and diffed there.
+            // duration_minutes is a stored column so this is one SUM per
+            // task, instead of loading every time_logs row into PHP.
             ->withSum('timeLogs as tracked_minutes', 'duration_minutes')
             ->get();
 
         $tracked = fn (Task $task) => (int) ($task->tracked_minutes ?? 0);
 
-        // Grouped by id, not by name: two categories can share a name — a
-        // seeded global one and a personal one, or two under different
-        // parents — and grouping by the label merged them into a single row
-        // whose colour came from whichever task happened to sort first.
-        // `null` is the uncategorized bucket; the frontend supplies its label,
-        // so the report carries no untranslated English.
+        // By id, not name: two categories can share a name (a global one and
+        // a personal one), and grouping by label merged them into one row.
+        // `null` is the uncategorized bucket, labelled by the frontend so the
+        // report carries no untranslated English.
         $byCategory = $tasks
             ->groupBy(fn (Task $task) => $task->category_id)
             ->map(fn ($group) => [

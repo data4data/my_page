@@ -19,10 +19,8 @@ class ReflectionController extends Controller
     }
 
     /**
-     * Upsert by (user, period_type, period_start, period_end) — the tuple the
-     * table's unique index is built on. Both halves find the row through
-     * Reflection::scopeForPeriod(), which is where the whereDate() reasoning
-     * lives.
+     * Upsert by (user, period_type, period_start, period_end), the tuple the
+     * unique index uses. Both halves find the row via scopeForPeriod().
      */
     public function upsert(Request $request): JsonResponse
     {

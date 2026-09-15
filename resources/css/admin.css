@@ -40,32 +40,23 @@
        an accent fill marks the active one instead of .admin-tab's top-border
        mark, and padding/gap is sized for an icon + label row rather than a
        condensed uppercase text pill. */
-    /* The rail is capped with the rest of the row at max-w-7xl, so on a wide
-       screen the page's own white showed to the left of it and the chrome
-       stopped looking like one surface. This carries the rail's background out
-       to the viewport edge without moving the divider, which stays on the
-       aside itself. */
+    /* The row is capped at max-w-7xl, so on a wide screen the page's white
+       showed to the left of the rail. This carries the rail's background out
+       to the viewport edge; the divider stays on the aside. */
     .admin-rail {
-        /* A solid, unblurred shadow offset a full viewport to the left, rather
-           than an absolutely positioned pseudo-element: a shadow paints
-           outside the box without taking part in layout, so it cannot push the
-           page wide enough to earn a horizontal scrollbar. Same colour the
-           rail itself uses, so the two read as one surface. */
+        /* A shadow, not a positioned pseudo-element: it paints outside the
+           box without taking part in layout, so it cannot widen the page into
+           a horizontal scrollbar. */
         box-shadow: -100vw 0 0 0 color-mix(in oklab, var(--color-cream) 90%, transparent);
     }
 
-    /* The rail itself keeps stretching the full height of the row, because
-       its right border is the one vertical divider and it has to reach the
-       bottom of the page. Only the nav inside it travels, so the sections
-       stay reachable on a long Agenda or a long editor without the divider
-       stopping short. */
+    /* The aside keeps stretching: its right border is the one vertical
+       divider and has to reach the bottom. Only the nav travels. */
     .admin-rail-nav {
         position: sticky;
-        /* Clear of the header, which is sticky and translucent — anything
-           passing under it shows through rather than being hidden. */
+        /* Clear of the header, which is sticky and translucent. */
         top: calc(var(--admin-header) + 1rem);
-        /* Only bites if the nav ever outgrows the viewport; with four
-           sections it never does, and without it a fifth would be unreachable. */
+        /* Only bites if the nav outgrows the viewport. */
         max-height: calc(100dvh - var(--admin-header) - 2rem);
         overflow-y: auto;
     }
@@ -355,9 +346,8 @@
         @apply text-[10px] font-semibold text-taupe;
     }
 
-    /* Sign-in trail (Insights -> Security). The table sits in its own
-       overflow-x container in the template: an IPv6 literal is wide, and the
-       admin panel itself must never scroll sideways. */
+    /* Sign-in trail. The table scrolls inside its own container in the
+       template: an IPv6 literal is wide and the panel must not scroll. */
     .security-table {
         @apply w-full min-w-[34rem] border-collapse text-sm;
     }
@@ -372,8 +362,7 @@
 
     .security-row {
         @apply grid items-center gap-3 rounded-md border border-sand bg-white px-3 py-2;
-        /* Outcome, address, address-typed, time — collapsing to two columns
-           on narrow screens is handled by the auto-fit minimum. */
+        /* Outcome, address, address typed, time. */
         grid-template-columns: minmax(9rem, auto) minmax(8rem, auto) minmax(0, 1fr) auto;
     }
 
@@ -381,7 +370,7 @@
         @apply text-xs font-semibold uppercase tracking-[0.08em];
     }
 
-    /* Colour carries the same meaning as the label, never on its own. */
+    /* Colour repeats the label, never replaces it. */
     .security-row-login_succeeded .security-row-outcome {
         @apply text-success-text;
     }
@@ -403,8 +392,7 @@
         @apply flex flex-wrap items-start gap-5;
     }
 
-    /* White plate behind the code: the panel's parchment ground lowers the
-       contrast a scanner needs. */
+    /* White plate: the parchment ground lowers the contrast a scanner needs. */
     .two-factor-qr {
         @apply shrink-0 rounded-md border border-sand bg-white p-2;
     }
@@ -423,21 +411,19 @@
     }
 
     /* Small-screen navigation. A bottom bar rather than the stacked rail:
-       four sections is squarely what this pattern is for, and it sits where
-       a thumb already is instead of at the top of a scrolled page. */
+       it sits where a thumb already is. */
     .admin-bottom-nav {
         @apply fixed inset-x-0 bottom-0 grid grid-flow-col justify-stretch border-t border-sand bg-cream/95 backdrop-blur;
-        /* Chrome, like the header — and below --z-fab, so a floating button
-           still floats over it rather than under. */
+        /* Chrome, like the header. Below --z-fab so a floating button still
+           floats over it. */
         z-index: var(--z-header);
-        /* Clears the iOS home indicator without adding dead space elsewhere. */
+        /* Clears the iOS home indicator. */
         padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     .admin-bottom-nav-item {
         @apply flex flex-col items-center justify-center gap-1 px-2 text-[0.6875rem] font-semibold leading-none text-graphite transition;
-        /* 44px is the smallest comfortable touch target; the bar is taller so
-           the icon and its label both fit inside one. */
+        /* Taller than the 44px minimum, so icon and label both fit. */
         min-height: var(--admin-bottom-nav);
     }
 
@@ -445,8 +431,7 @@
         @apply max-w-full truncate;
     }
 
-    /* Colour plus a top marker, so the active section is not signalled by
-       hue alone. */
+    /* Colour plus a marker, so it is not signalled by hue alone. */
     .admin-bottom-nav-item.active {
         @apply relative text-accent;
     }

@@ -7,9 +7,9 @@ use App\Services\TwoFactorService;
 use Illuminate\Console\Command;
 
 /**
- * The way back in when the authenticator is gone and the recovery codes went
- * with it. Anything that can lock the only account out of the only workspace
- * needs an escape hatch that does not itself require signing in.
+ * The way back in when the authenticator and the recovery codes are both gone.
+ * Anything that can lock out the only account needs a way in that does not
+ * require signing in.
  */
 class DisableTwoFactor extends Command
 {

@@ -294,11 +294,9 @@ class PlanningApiTest extends TestCase
             ->assertJsonValidationErrors(['parent_id']);
     }
 
-    // The other direction of the same one-level rule: the parent being
-    // top-level is not enough if the category being moved has children of its
-    // own. CategoryController::index() loads only one level of children, so a
-    // three-level tree makes the deepest row — and its tasks — vanish from the
-    // Categories view and the calendar filter without any error.
+    // The other direction of the one-level rule. index() loads only one level
+    // of children, so a three-level tree makes the deepest row and its tasks
+    // vanish with no error.
     public function test_a_category_with_subcategories_cannot_be_given_a_parent(): void
     {
         $admin = $this->admin();
@@ -319,8 +317,7 @@ class PlanningApiTest extends TestCase
         $this->assertSame($parent->id, $child->fresh()->parent_id);
     }
 
-    // The guard must not stop an ordinary edit of a category that has children,
-    // nor stop a childless one from being nested.
+    // The guard must not block an ordinary edit of a category with children.
     public function test_a_category_with_subcategories_can_still_be_edited_in_place(): void
     {
         $admin = $this->admin();
@@ -338,9 +335,8 @@ class PlanningApiTest extends TestCase
         $this->assertSame('Focus', $parent->fresh()->name);
     }
 
-    // Seeded categories are shared. Deleting one cascades to its children and
-    // unfiles the tasks under them, so it stays deletable only while nothing
-    // belonging to somebody else is hanging off it.
+    // Deleting a shared category cascades to its children and unfiles their
+    // tasks, so it only goes while nothing of anyone else's hangs off it.
     public function test_a_global_category_cannot_be_deleted_out_from_under_someone_else(): void
     {
         $admin = $this->admin();
@@ -373,8 +369,7 @@ class PlanningApiTest extends TestCase
             'user_id' => $admin->id,
             'parent_id' => $global->id,
         ]);
-        // A shared subcategory belongs to nobody in particular, so it is not
-        // somebody else's to lose.
+        // A shared subcategory is nobody else's to lose.
         Category::create(['name' => 'Shared', 'color' => '#2f75a8', 'parent_id' => $global->id]);
 
         $this->actingAs($admin)
@@ -384,8 +379,7 @@ class PlanningApiTest extends TestCase
         $this->assertDatabaseMissing('categories', ['id' => $global->id]);
     }
 
-    // Editing a shared row stays open to any admin — it is recoverable in a
-    // way that a cascading delete is not.
+    // Editing a shared row is recoverable; a cascading delete is not.
     public function test_a_global_category_can_still_be_edited_by_anyone(): void
     {
         $admin = $this->admin();
@@ -544,8 +538,7 @@ class PlanningApiTest extends TestCase
         $this->assertSame('Solid month.', $response->json('reflection.notes'));
     }
 
-    // Every task in the range is hydrated with its category and time logs, so
-    // an unbounded window would be a request for the entire table.
+    // Every task in the range loads its category and time logs.
     public function test_the_task_range_is_capped(): void
     {
         $admin = $this->admin();
@@ -589,9 +582,8 @@ class PlanningApiTest extends TestCase
         $this->assertSame(45, $response->json('by_category.0.minutes'));
     }
 
-    // Two categories can legitimately share a name — a seeded global one and a
-    // personal one, or two sitting under different parents. Grouping by the
-    // label merged them into a single row carrying one category's colour.
+    // Two categories can share a name — a global one and a personal one.
+    // Grouping by label merged them into one row with one colour.
     public function test_report_keeps_same_named_categories_apart(): void
     {
         $admin = $this->admin();
@@ -626,8 +618,7 @@ class PlanningApiTest extends TestCase
         );
     }
 
-    // Uncategorized tasks keep their own bucket, labelled by the frontend so
-    // the report never returns untranslated English.
+    // Labelled by the frontend, so the report returns no English.
     public function test_report_returns_a_null_category_bucket_rather_than_a_label(): void
     {
         $admin = $this->admin();

@@ -10,16 +10,13 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Every write to the public page goes through here.
- *
- * That single write path is the point: save(), restore() and seedDefaults()
- * all end up in the same transaction, so a restored version can never be
- * built differently from a saved one, and all three are recorded in history
- * without any of them having to remember to do it.
+ * Every write to the public page goes through here. save(), restore() and
+ * seedDefaults() share one transaction and one write path, so a restored
+ * version is built the same way a saved one is, and all three record history.
  */
 class PortfolioContentService
 {
-    // Every save writes a row, so without a cap the table grows forever.
+    // Every save writes a row, so the table needs a cap.
     private const KEEP_REVISIONS = 20;
 
     private const PROFILE_KEYS = [
@@ -48,8 +45,7 @@ class PortfolioContentService
         'processSteps' => ['group', 'title', 'description', 'icon', 'is_visible'],
     ];
 
-    // Maps the snake_case payload keys the frontend sends to the camelCase
-    // relation names on PortfolioProfile.
+    // Payload keys (snake_case) -> relation names on PortfolioProfile.
     private const PAYLOAD_TO_RELATION = [
         'metrics' => 'metrics',
         'expertise_items' => 'expertiseItems',
@@ -86,17 +82,12 @@ class PortfolioContentService
     }
 
     /**
-     * Social links live in a JSON column rather than a child table, so the
-     * child-collection filtering above never reaches them — a link switched
-     * off in the editor would still have gone out in the public payload, and
-     * an "off" switch that publishes the link anyway is not an off switch.
+     * Social links are a JSON column, not a child table, so the filtering
+     * above misses them. Drops a link only when it shows in neither place;
+     * both flags still travel, because the page picks per place.
      *
-     * A link is dropped only when it appears in neither place. Both flags
-     * still travel, because the page decides per place which links to draw.
-     *
-     * Cloned rather than filtered in place: the caller's instance is used
-     * elsewhere, including to build revision snapshots, which must keep
-     * everything.
+     * Cloned, not filtered in place: the caller's instance also builds
+     * revision snapshots, which must keep every link.
      */
     private function withVisibleSocialLinks(PortfolioProfile $profile): PortfolioProfile
     {
@@ -111,13 +102,11 @@ class PortfolioContentService
     }
 
     /**
-     * `is_visible` is the flag the two placements replaced, back when one
-     * switch covered both. Links saved then carry only that, so it stands in
-     * for a missing placement — reading one as "off" would have emptied the
-     * rail and the footer at once on every install that already had links.
+     * Links saved before the two placements existed carry only is_visible, so
+     * it stands in for a missing placement. Without that, the rail and footer
+     * would empty on every install that already had links.
      *
-     * Mirrored by showsIn() in resources/js/shared/portfolio.js; keep the two
-     * in step.
+     * Mirrored by showsIn() in resources/js/shared/portfolio.js — keep in step.
      *
      * @param  array<string, mixed>  $link
      */
@@ -173,13 +162,11 @@ class PortfolioContentService
     }
 
     /**
-     * Exactly one profile is live at a time. activeProfile() takes the first
-     * is_active row it finds, so a second one would not error — it would
-     * quietly decide which page the public site serves.
+     * Exactly one profile is live. activeProfile() takes the first is_active
+     * row, so a second would not error, it would just decide the public page.
      *
-     * Enforced here rather than as a partial unique index: SQLite supports
-     * those and MySQL does not, and this project keeps behaviour identical on
-     * both (task statuses are strings, not DB enums, for the same reason).
+     * Done here, not as a partial unique index: SQLite has those and MySQL
+     * does not, and this project behaves the same on both.
      */
     public function activate(PortfolioProfile $profile): PortfolioProfile
     {
@@ -195,11 +182,7 @@ class PortfolioContentService
         });
     }
 
-    /**
-     * Restoring is just saving the snapshot again, which is why it needs no
-     * logic of its own. It also records a new revision, so a restore can
-     * itself be undone.
-     */
+    /** Restoring is saving the snapshot again, so a restore is undoable too. */
     public function restore(PortfolioRevision $revision, ?User $author): PortfolioProfile
     {
         return $this->save($revision->payload, $author);
@@ -219,10 +202,8 @@ class PortfolioContentService
     }
 
     /**
-     * Without this the very first save would be irreversible — the moment
-     * someone is most likely to want an undo, since they have just found the
-     * editor. Recorded with no author: nobody made this state, it is where
-     * the page started.
+     * Snapshots the starting state so the very first save can be undone.
+     * No author, because nobody made this state.
      */
     private function recordBaseline(PortfolioProfile $profile): void
     {
@@ -246,8 +227,7 @@ class PortfolioContentService
 
     private function pruneRevisions(PortfolioProfile $profile): void
     {
-        // Ordered by id, not created_at: several saves can land in the same
-        // second, and ids never tie.
+        // By id, not created_at: several saves can share a second.
         $stale = PortfolioRevision::query()
             ->where('portfolio_profile_id', $profile->id)
             ->orderByDesc('id')

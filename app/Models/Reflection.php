@@ -24,16 +24,12 @@ class Reflection extends Model
     ];
 
     /**
-     * The single note a user has for one period, matched the way the unique
-     * index defines it.
+     * The one note a user has for a period, matched the way the unique index
+     * defines it.
      *
-     * whereDate() rather than Eloquent's updateOrCreate(): the 'date' cast
-     * stores period_start/period_end with a time component, and
-     * updateOrCreate's raw search array bypasses that cast and compares
-     * against the plain "Y-m-d" input — so it would never find the existing
-     * row and would hit the unique constraint instead. That subtlety is worth
-     * exactly one home, which is why the controller's read and write paths
-     * both come through here.
+     * whereDate(), not updateOrCreate(): the 'date' cast stores these with a
+     * time component, and updateOrCreate compares the raw "Y-m-d" input
+     * against it — so it never finds the row and hits the unique constraint.
      */
     public function scopeForPeriod(Builder $query, int $userId, string $periodType, string $periodStart, string $periodEnd): Builder
     {

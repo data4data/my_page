@@ -12,28 +12,19 @@ use Illuminate\Support\Str;
 use PragmaRX\Google2FA\Google2FA;
 
 /**
- * Time-based one-time passwords, opt-in.
- *
- * The workspace works with a password alone until the owner turns this on, so
- * a fresh install is never blocked on having an authenticator to hand. Once
- * on, a correct password stops being sufficient — which is the only control
- * here that an attacker cannot simply out-wait or out-guess.
+ * Time-based one-time passwords. Off until the owner turns it on, so a fresh
+ * install never needs an authenticator app to sign in.
  */
 class TwoFactorService
 {
-    // Eight is enough that losing a phone is survivable, few enough that the
-    // list stays something you can print on one line each.
     private const RECOVERY_CODE_COUNT = 8;
 
-    // One step either side of now, so a clock a few seconds out still works.
+    // Accept the step either side of now, so a slightly wrong clock works.
     private const WINDOW = 1;
 
     public function __construct(private Google2FA $google2fa) {}
 
-    /**
-     * Starts enrolment: a secret and a fresh set of recovery codes, neither
-     * enforced until confirm() has seen a working code.
-     */
+    /** Starts enrolment. Nothing is enforced until confirm() succeeds. */
     public function begin(User $user): User
     {
         $user->forceFill([
@@ -46,8 +37,8 @@ class TwoFactorService
     }
 
     /**
-     * Finishes enrolment. Returns false without enabling anything if the code
-     * does not check out, so a mis-scanned QR is a retry rather than a lockout.
+     * Finishes enrolment. Returns false and enables nothing on a bad code, so
+     * a mis-scanned QR is a retry rather than a lockout.
      */
     public function confirm(User $user, string $code): bool
     {
@@ -77,8 +68,7 @@ class TwoFactorService
             return false;
         }
 
-        // Digits only: an authenticator never produces anything else, and the
-        // library throws on unexpected input rather than returning false.
+        // The library throws on non-digits instead of returning false.
         $code = preg_replace('/\D/', '', $code);
 
         if ($code === '' || $code === null) {
@@ -88,10 +78,7 @@ class TwoFactorService
         return (bool) $this->google2fa->verifyKey($user->two_factor_secret, $code, self::WINDOW);
     }
 
-    /**
-     * Recovery codes are single use: a matched code is removed before this
-     * returns, so the same slip of paper cannot be replayed.
-     */
+    /** Single use: a matched code is deleted before this returns. */
     public function consumeRecoveryCode(User $user, string $code): bool
     {
         $codes = $user->two_factor_recovery_codes ?? [];
@@ -118,7 +105,7 @@ class TwoFactorService
         return $codes;
     }
 
-    /** The otpauth:// URI an authenticator app reads, as a QR code. */
+    /** The otpauth:// URI, as a QR code. */
     public function qrCodeSvg(User $user): string
     {
         $renderer = new ImageRenderer(new RendererStyle(228, 0), new SvgImageBackEnd);
@@ -128,8 +115,7 @@ class TwoFactorService
 
     public function otpauthUri(User $user): string
     {
-        // The issuer names this install, so an owner running more than one
-        // can tell the entries apart in their authenticator.
+        // The issuer names the install, so more than one is tellable apart.
         return $this->google2fa->getQRCodeUrl(
             (string) config('app.name'),
             (string) $user->email,

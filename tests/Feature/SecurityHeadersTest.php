@@ -38,12 +38,10 @@ class SecurityHeadersTest extends TestCase
     }
 
     /**
-     * Every source must be something a browser will actually accept. CSP's
-     * host-source grammar allows a scheme, a dotted/hyphenated host name, a
-     * port and a path — and has no form at all for a bracketed IPv6 literal.
-     * A source it cannot parse is dropped while the rest of the directive
-     * stays in force, so one bad entry blocks the asset it was meant to allow
-     * and says so only in the browser console.
+     * Every source must be one a browser will accept. CSP allows a scheme, a
+     * host name, a port and a path, and has no form for a bracketed IPv6
+     * literal. A source it cannot parse is dropped while the rest stays in
+     * force, so one bad entry blocks the asset it was meant to allow.
      */
     private function assertEverySourceIsValid(string $policy): void
     {
@@ -77,9 +75,8 @@ class SecurityHeadersTest extends TestCase
     }
 
     /**
-     * The public page renders owner-supplied links into hrefs, so the policy
-     * that refuses inline script is the one keeping a stored link from
-     * becoming a stored execution.
+     * The public page puts owner-supplied links in hrefs, so refusing inline
+     * script is what keeps a stored link from becoming a stored execution.
      */
     public function test_the_policy_refuses_inline_and_third_party_script(): void
     {
@@ -91,8 +88,7 @@ class SecurityHeadersTest extends TestCase
         $this->assertStringContainsString("base-uri 'self'", $policy);
         $this->assertStringContainsString("form-action 'self'", $policy);
 
-        // Everything this app loads is served from its own origin, so no
-        // exception should ever be needed for script.
+        // Everything loads from this origin, so script needs no exception.
         $this->assertStringNotContainsString("script-src 'self' 'unsafe-inline'", $policy);
         $this->assertStringNotContainsString('unsafe-eval', $policy);
     }
@@ -131,17 +127,15 @@ class SecurityHeadersTest extends TestCase
         $this->assertEverySourceIsValid($policy);
         $this->assertStringContainsString('script-src \'self\' http://localhost:5173', $policy);
         $this->assertStringContainsString('ws://localhost:5173', $policy);
-        // The stylesheet and fonts come from the dev server too, so allowing
-        // only script would leave the page unstyled.
+        // The dev server serves the CSS and fonts too.
         $this->assertStringContainsString('style-src \'self\' http://localhost:5173', $policy);
         $this->assertStringContainsString('font-src \'self\' http://localhost:5173', $policy);
     }
 
     /**
-     * Vite left to itself binds to IPv6 loopback and writes "http://[::1]:5173"
-     * into the hot file. CSP cannot express that host, so the browser dropped
-     * the source and enforced the rest, blocking the entire dev bundle.
-     * vite.config.js pins the host; this is the belt to that braces.
+     * Vite binds to IPv6 loopback by default and writes "http://[::1]:5173"
+     * into the hot file, which CSP cannot express. vite.config.js pins the
+     * host; this is the backstop.
      */
     public function test_no_policy_is_sent_rather_than_one_that_would_block_the_dev_bundle(): void
     {

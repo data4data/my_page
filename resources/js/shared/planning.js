@@ -47,12 +47,9 @@ export const toDateKey = (date) => {
     return `${year}-${month}-${day}`;
 };
 
-// The backend runs on APP_TIMEZONE=UTC and Eloquent serializes datetimes
-// with a "Z" suffix, but those values are the admin's own wall-clock time
-// (e.g. "09:00" typed into a task), not a real UTC instant. `new Date(iso)`
-// would apply a UTC->local conversion and silently shift every displayed
-// time by the browser's UTC offset — parse the literal Y-M-D H:i:s digits
-// instead so "09:00" always reads back as 09:00, in any timezone.
+// Eloquent serializes these with a "Z", but they are the admin's wall-clock
+// time ("09:00" as typed), not a real instant. `new Date(iso)` would shift
+// every displayed time by the browser's UTC offset, so read the digits.
 export const parseServerDatetime = (value) => {
     const match = typeof value === 'string' && value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
 
@@ -64,13 +61,9 @@ export const parseServerDatetime = (value) => {
     return new Date(year, month - 1, day, hour, minute, second);
 };
 
-// The counterpart to parseServerDatetime, for the columns that ARE real
-// instants rather than wall-clock values: time_logs.started_at/ended_at are
-// stamped server-side with Carbon::now() (UTC), so the "Z" Eloquent
-// serializes is meaningful and must be honored. Running these through
-// parseServerDatetime instead would offset every elapsed time by the
-// browser's UTC offset — a stopwatch started "now" would read 2:00:00 in
-// UTC+2. Use this for machine-stamped timestamps, that one for typed times.
+// For the columns that ARE real instants: time_logs.started_at/ended_at are
+// stamped server-side, so the "Z" is meaningful. Use this for machine-stamped
+// timestamps and parseServerDatetime for typed ones.
 export const parseServerInstant = (value) => new Date(value);
 
 const pad = (value) => String(value).padStart(2, '0');
@@ -91,10 +84,8 @@ export const formatMinutes = (minutes) => {
 // The open (not yet stopped) time log on a task, if any.
 export const runningTimeLog = (task) => task?.time_logs?.find((log) => !log.ended_at) ?? null;
 
-// Live "M:SS" / "H:MM:SS" label for a running timer, ticking once a second
-// and only while one is actually running — most cards never pay the cost,
-// and it stops itself when the log closes or the component unmounts.
-// Shared by TaskCard and TaskModal so the two can't drift apart.
+// Live "M:SS" / "H:MM:SS" label for a running timer. Ticks only while one is
+// running, and stops on unmount. Shared by TaskCard and TaskModal.
 export function useRunningElapsed(runningLog) {
     const now = ref(new Date());
     let intervalId = null;
@@ -122,8 +113,7 @@ export function useRunningElapsed(runningLog) {
             return null;
         }
 
-        // started_at is a true UTC instant (server Carbon::now()), unlike the
-        // wall-clock start_datetime — so parse it as one.
+        // A real instant, unlike the wall-clock start_datetime.
         const started = parseServerInstant(runningLog.value.started_at);
         const totalSeconds = Math.max(0, Math.floor((now.value - started) / 1000));
         const hours = Math.floor(totalSeconds / 3600);
@@ -161,8 +151,7 @@ export function usePlanning() {
             const body = await apiFetch(`${adminUrl('/tasks')}?${query}`, { message: 'Could not load the tasks.' });
             tasks.value = body.tasks ?? [];
         } finally {
-            // finally, not after the assignment: a failed load must still clear
-            // the flag, or the view sits on its loading state permanently.
+            // finally: a failed load must still clear the flag.
             loading.value = false;
         }
     };

@@ -15,8 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    // Where the pending user waits between a correct password and a correct
-    // second factor. Nothing is authenticated while this is set.
+    // Holds the user between a correct password and a correct second factor.
+    // Nothing is signed in while this is set.
     private const PENDING_KEY = 'two_factor.pending_id';
 
     private const PENDING_REMEMBER_KEY = 'two_factor.remember';
@@ -27,13 +27,10 @@ class AuthController extends Controller
     ) {}
 
     /**
-     * Called via fetch from resources/js/pages/admin/LoginPage.vue.
-     *
-     * Auth::validate() rather than Auth::attempt(): it checks the password
-     * without starting a session, so an account with two-factor on is not
-     * briefly signed in and then signed out again — and the Login event, which
-     * the security trail records as "signed in", only fires once the person
-     * has actually got all the way in.
+     * Auth::validate(), not Auth::attempt(): it checks the password without
+     * starting a session. An account with two-factor on is never briefly
+     * signed in, and the Login event the trail records as "signed in" fires
+     * only once the person is all the way in.
      */
     public function store(Request $request): JsonResponse
     {
@@ -43,8 +40,7 @@ class AuthController extends Controller
         ]);
 
         if (! Auth::validate($credentials)) {
-            // validate() fires Validated on success but nothing on failure,
-            // so the trail is told here rather than being left blind.
+            // validate() fires nothing on failure, so the trail needs telling.
             event(new Failed('web', Auth::getLastAttempted(), $credentials));
 
             throw ValidationException::withMessages([
@@ -64,10 +60,7 @@ class AuthController extends Controller
         return $this->completeLogin($request, $user, $request->boolean('remember'));
     }
 
-    /**
-     * Second step for an account with two-factor on. Accepts either a code
-     * from the authenticator or one of the single-use recovery codes.
-     */
+    /** Second step: an authenticator code, or a single-use recovery code. */
     public function challenge(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -78,8 +71,7 @@ class AuthController extends Controller
         $user = $this->pendingUser($request);
 
         if (! $user) {
-            // The password step has expired or was never taken, so there is
-            // nothing to challenge. Start again rather than hinting at state.
+            // The password step expired or never happened. Start again.
             throw ValidationException::withMessages([
                 'code' => 'Your sign-in has expired. Please enter your password again.',
             ]);
@@ -117,8 +109,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        // Fall back to the private workspace's configured prefix
-        // (config/admin.php) rather than a literal path, so a renamed
+        // The configured prefix, not a literal path, so a renamed
         // ADMIN_PATH still lands correctly.
         return response()->json([
             'redirect' => $request->session()->pull('url.intended', '/'.config('admin.path')),

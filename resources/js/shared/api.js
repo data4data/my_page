@@ -3,14 +3,10 @@ import { adminUrl } from './admin-path';
 /**
  * Every call to this app's JSON endpoints goes through here.
  *
- * Two things all of them need and none of them had consistently: an Accept
- * header, and a check on the response before parsing it. Without the header,
- * an expired session takes the auth middleware's HTML redirect to /login
- * rather than a JSON 401 — fetch follows the redirect, response.json() throws
- * on the HTML, and whichever `loading` ref was in flight stays true, leaving
- * the admin on "Loading..." for good with only an unhandled rejection to show
- * for it. bootstrap/app.php already honours expectsJson(); this is the half
- * that asks.
+ * The Accept header is the important part. Without it, an expired session
+ * gets the auth middleware's HTML redirect to /login instead of a JSON 401,
+ * response.json() throws on the HTML, and whichever `loading` ref was in
+ * flight never clears.
  */
 export const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
@@ -28,13 +24,8 @@ export class ApiError extends Error {
     }
 }
 
-// A session that lapsed mid-visit is the one failure every caller would handle
-// identically, so it is handled once: send the browser to the login page and
-// let it come back. Guarded, so the login page cannot bounce to itself.
-//
-// Only admin endpoints ever answer 401, and only the admin SPA calls those —
-// which runs solely on pages that carry the prefix, so adminUrl() is real
-// here rather than its fallback.
+// Every caller would handle an expired session the same way, so it is handled
+// once. Guarded so the login page cannot bounce to itself.
 const returnToLogin = () => {
     const login = adminUrl('/login');
 
@@ -65,8 +56,7 @@ export async function apiFetch(url, { method = 'GET', body, message } = {}) {
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
 
-    // Tolerated rather than assumed: an error response is not guaranteed to
-    // carry a JSON body, and neither is a 204.
+    // An error response, or a 204, need not carry a JSON body.
     const payload = await response.json().catch(() => null);
 
     if (response.status === 401) {
@@ -74,8 +64,7 @@ export async function apiFetch(url, { method = 'GET', body, message } = {}) {
     }
 
     if (!response.ok) {
-        // A field-level validation message says more than the caller's generic
-        // one, so it wins where the server sent one.
+        // A field-level message beats the caller's generic one.
         const validation = payload?.errors ? Object.values(payload.errors)[0]?.[0] : null;
 
         throw new ApiError(validation ?? payload?.message ?? message ?? 'Something went wrong.', {

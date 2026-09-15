@@ -21,13 +21,11 @@ export const translatableItemFields = {
 };
 
 /**
- * Where a social link is shown. The two places are independent, so a link can
- * sit in the rail, in the footer, in both, or in neither.
+ * Where a social link shows. The rail and the footer are independent.
  *
- * `is_visible` is the flag these replaced, when one switch covered both
- * places. Links saved then carry only that, so it stands in for both here —
- * reading a missing placement as "off" would have emptied both at once on
- * every install that already had links.
+ * Links saved before the split carry only is_visible, so it stands in for a
+ * missing placement — otherwise both places would empty on every install that
+ * already had links. Mirrored by showsIn() in PortfolioContentService.
  */
 export const showsIn = (link, place) => {
     const explicit = link?.[place === 'rail' ? 'in_rail' : 'in_footer'];
@@ -46,8 +44,8 @@ const asTranslation = (value) => {
     return { en: value ?? '', nl: value ?? '' };
 };
 
-// Fills in missing collections/translation shapes so every template can rely
-// on data.profile.<field>.en/.nl and data.<collection> always being arrays.
+// Fills in missing collections and translation shapes, so templates can rely
+// on .en/.nl and on the collections always being arrays.
 export function normalizePortfolio(payload) {
     ['metrics', 'expertise_items', 'projects', 'process_steps'].forEach((collection) => {
         const profileItems = payload.profile?.[collection];
@@ -88,8 +86,7 @@ export function usePortfolioSource(endpoint) {
         try {
             data.value = normalizePortfolio(await apiFetch(endpoint, { message: 'Could not load the page content.' }));
         } finally {
-            // finally, not after the assignment: a failed load must still clear
-            // the flag, or the page sits on its loading state permanently.
+            // finally: a failed load must still clear the flag.
             loading.value = false;
         }
     };
@@ -99,9 +96,8 @@ export function usePortfolioSource(endpoint) {
     const expertise = computed(() => data.value?.expertise_items ?? []);
     const projects = computed(() => data.value?.projects ?? []);
     const processSteps = computed(() => data.value?.process_steps ?? []);
-    // The public endpoint drops links that appear nowhere, but it still sends
-    // both placements, and the admin reads the unfiltered payload through this
-    // same composable — so each place picks its own links here.
+    // The public endpoint drops links shown nowhere but still sends both
+    // placements, and the admin reads the unfiltered payload through here too.
     const railLinks = computed(() => linksFor(profile.value.social_links, 'rail'));
     const footerLinks = computed(() => linksFor(profile.value.social_links, 'footer'));
 

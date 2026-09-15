@@ -14,8 +14,8 @@ use Illuminate\Support\Carbon;
 
 class TaskController extends Controller
 {
-    // The widest calendar view is a month grid padded out to whole weeks, so
-    // a year is already far more than any of them asks for.
+    // The widest view is a month grid padded to whole weeks, so a year is
+    // already far more than any of them asks for.
     private const MAX_RANGE_DAYS = 366;
 
     // ?start=YYYY-MM-DD&end=YYYY-MM-DD (inclusive) — the Day/Week/Month
@@ -28,14 +28,12 @@ class TaskController extends Controller
                 'required',
                 'date',
                 'after_or_equal:start',
-                // Bounded, because every task in the range is hydrated with
-                // its category and time logs: without this, one request could
-                // ask for every task ever recorded.
+                // Every task in the range is loaded with its category and
+                // time logs, so an unbounded range loads the whole table.
                 function (string $attribute, mixed $value, Closure $fail) use ($request) {
                     $start = $request->date('start');
 
-                    // abs(): Carbon 3 returns a signed difference, and the
-                    // sign depends on which end the call is made from.
+                    // abs(): Carbon 3 returns a signed difference.
                     if ($start && abs($start->diffInDays(Carbon::parse($value))) > self::MAX_RANGE_DAYS) {
                         $fail('The requested range is too wide.');
                     }
@@ -62,9 +60,8 @@ class TaskController extends Controller
         $data = $request->validated();
         $data['user_id'] = $request->user()->id;
         $data['source'] ??= TaskSource::Manual->value;
-        // The DB column defaults to 'planned' too, but only setting it there
-        // wouldn't populate this in-memory instance for the JSON response
-        // returned below — Eloquent doesn't re-fetch after an insert.
+        // The column defaults to this too, but Eloquent does not re-fetch
+        // after an insert, so the JSON response below would miss it.
         $data['status'] ??= TaskStatus::Planned->value;
 
         $task = Task::create($data);

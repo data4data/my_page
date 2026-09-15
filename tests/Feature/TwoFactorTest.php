@@ -58,7 +58,7 @@ class TwoFactorTest extends TestCase
         app(TwoFactorService::class)->begin($admin);
 
         // Setup started but never finished: a mis-scanned QR must not lock
-        // the owner out of their own workspace.
+        // you out.
         $this->assertFalse($admin->fresh()->hasTwoFactorEnabled());
 
         $this->postJson($this->adminUrl('/login'), ['email' => $admin->email, 'password' => 'secret-password'])
@@ -75,7 +75,7 @@ class TwoFactorTest extends TestCase
             ->assertJsonPath('two_factor', true)
             ->assertJsonMissingPath('redirect');
 
-        // The whole point: the password was right and nobody is signed in.
+        // The password was right and nobody is signed in.
         $this->assertGuest();
     }
 
@@ -113,8 +113,7 @@ class TwoFactorTest extends TestCase
 
         $this->postJson($this->adminUrl('/login'), ['email' => $admin->email, 'password' => 'secret-password'])->assertOk();
 
-        // Password right, nobody in: recording this as "signed in" would make
-        // the Security tab lie about the one case it exists to show.
+        // Recording this as "signed in" would make the Security tab lie.
         $this->assertSame(0, SecurityEvent::where('type', SecurityEventType::LoginSucceeded)->count());
     }
 
@@ -140,7 +139,7 @@ class TwoFactorTest extends TestCase
         $this->assertCount(7, $admin->fresh()->two_factor_recovery_codes);
         $this->assertSame(1, SecurityEvent::where('type', SecurityEventType::TwoFactorRecoveryUsed)->count());
 
-        // The same slip of paper cannot be replayed.
+        // The same code cannot be used twice.
         $this->post($this->adminUrl('/logout'));
         $this->postJson($this->adminUrl('/login'), ['email' => $admin->email, 'password' => 'secret-password'])->assertOk();
         $this->postJson($this->adminUrl('/two-factor-challenge'), ['recovery_code' => $code])->assertStatus(422);
@@ -203,8 +202,7 @@ class TwoFactorTest extends TestCase
         $this->assertStringNotContainsString($admin->two_factor_secret, $json);
     }
 
-    // Anything that can lock the only account out of the only workspace needs
-    // a way back in that does not itself require signing in.
+    // A way back in that does not require signing in.
     public function test_the_console_command_is_a_way_back_in(): void
     {
         $admin = $this->enrol($this->admin());

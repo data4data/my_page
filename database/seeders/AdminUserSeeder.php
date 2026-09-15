@@ -16,12 +16,11 @@ class AdminUserSeeder extends Seeder
      * Credentials come from ADMIN_EMAIL / ADMIN_PASSWORD so nothing sensitive
      * is hardcoded here. Set them in .env before seeding anywhere shared.
      */
-    // Not a policy anyone has to remember: outside local development the
-    // seeder refuses to create the account rather than creating a weak one.
+    // Outside local development the seeder refuses rather than creating a
+    // weak account.
     private const MINIMUM_PASSWORD_LENGTH = 12;
 
-    // Whatever ships in .env.example, plus the usual suspects. A default that
-    // is public in the repository is not a password.
+    // What ships in .env.example, plus the usual suspects.
     private const REFUSED_PASSWORDS = [
         'password',
         'secret',
@@ -54,10 +53,9 @@ class AdminUserSeeder extends Seeder
     }
 
     /**
-     * Local installs stay convenient — a throwaway machine seeded with
-     * "password" harms nobody, and being forced to invent a passphrase before
-     * the app will run once is how people end up disabling the check. Anywhere
-     * else, a weak password is a hard stop rather than a warning nobody reads.
+     * Local stays convenient: forcing a passphrase before the app runs once is
+     * how people end up disabling the check. Anywhere else it is a hard stop,
+     * not a warning nobody reads.
      */
     private function guardPassword(string $password): void
     {

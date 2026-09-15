@@ -30,11 +30,9 @@ const showLanguageSwitcher = computed(() => languageSwitcherShown(props.profile)
 
 defineEmits(['navigate']);
 
-// The rail's nav sticks below the header, so it needs the header's height.
-// Measured rather than written down: the header wraps to a second line when
-// its title, language switch and sign-out button stop fitting, and a number
-// hardcoded for the one-line case would let the nav slide underneath it.
-// The stylesheet carries a fallback for the first paint and for jsdom.
+// The nav sticks below the header, so it needs the header's height. Measured,
+// not hardcoded: the header wraps to two lines when its contents stop fitting.
+// base.css carries a fallback for the first paint and for jsdom.
 const header = ref(null);
 const headerHeight = ref(null);
 let observer = null;
@@ -85,15 +83,11 @@ onBeforeUnmount(() => observer?.disconnect());
             </div>
         </header>
 
-        <!-- Chrome (header + this left rail) is visually separated from the
-             page content by one continuous border, not just a padded gap:
-             the row below is stretched to at least the remaining viewport
-             height, so the aside's border runs from directly under the
-             header down to the bottom of the viewport on every page, not
-             just however far that page's own content happens to reach. -->
+        <!-- Stretched to the remaining viewport height, so the aside's border
+             runs from under the header to the bottom on every page, not just
+             as far as that page's content reaches. -->
         <div class="mx-auto flex w-full max-w-7xl flex-1 flex-col lg:flex-row">
-            <!-- Same cream as the header, so the chrome (top bar + rail)
-                 reads as one surface against the white content area. -->
+            <!-- Same cream as the header, so the chrome reads as one surface. -->
             <aside class="admin-rail hidden bg-cream/90 px-5 py-8 lg:block lg:w-60 lg:shrink-0 lg:border-r lg:border-sand">
                 <nav :aria-label="copy('contentStudio')" class="admin-rail-nav flex flex-col gap-2">
                     <button
@@ -112,18 +106,15 @@ onBeforeUnmount(() => observer?.disconnect());
             </aside>
 
             <!-- No left/bottom padding from lg up, so the panel sits flush
-                 against the aside's divider and runs off the bottom of the
-                 page. flex-col so .admin-panel's lg:flex-1 has a column to
-                 grow in. -->
+                 against the divider. flex-col so .admin-panel can grow. -->
             <div class="admin-content flex min-w-0 flex-1 flex-col px-5 py-8 lg:pb-0 lg:pl-0">
                 <slot />
             </div>
         </div>
 
-        <!-- Small screens get a bottom bar instead of the rail: four sections
-             is what a bottom bar is for, it stays in reach of a thumb, and the
-             stacked rail was spending most of a phone's first screenful on
-             navigation before any content appeared. -->
+        <!-- A bottom bar instead of the rail on small screens: it stays in
+             reach of a thumb, and the stacked rail used most of a phone's
+             first screenful before any content appeared. -->
         <nav class="admin-bottom-nav lg:hidden" :aria-label="copy('contentStudio')">
             <button
                 v-for="item in navItems"

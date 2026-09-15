@@ -17,9 +17,9 @@ use Illuminate\Support\Str;
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Deliberately empty. Services in app/Services are plain concrete classes
-     * that the container resolves by reflection, so binding them here would be
-     * ceremony — add one only when a second implementation actually exists.
+     * Empty on purpose. Services in app/Services are concrete classes the
+     * container resolves by reflection. Add a binding only when a second
+     * implementation exists.
      */
     public function register(): void
     {
@@ -33,11 +33,8 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * The sign-in trail behind the workspace's Security tab.
-     *
-     * Listeners rather than code in AuthController, so an attempt is recorded
-     * however it was made — including the ones the rate limiter turns away
-     * before any controller runs, which is exactly the case worth seeing.
+     * The sign-in trail behind the Security tab. Listeners, not code in
+     * AuthController, so an attempt is recorded however it was made.
      */
     private function recordSignInAttempts(): void
     {
@@ -59,20 +56,15 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Two limits, because they stop different attacks.
-     *
-     * Keying on the address alone — which is all a bare `throttle:6,1` does —
-     * stops one machine walking a password list, but not a spread-out attempt
-     * against a single account. Keying on the account alone lets anyone lock
-     * the owner out. Applying both costs an attacker either way, and the
-     * account limit is the looser of the two so ordinary mistyping never
-     * trips it.
+     * Two limits, because they stop different attacks. Per address alone
+     * misses a spread-out attempt on one account; per account alone lets
+     * anyone lock the owner out. The account limit is the looser of the two,
+     * so ordinary mistyping never trips it.
      */
     private function configureLoginRateLimiting(): void
     {
-        // The response callback is the only hook for a blocked attempt: the
-        // limiter answers before the controller runs, so no Failed event ever
-        // fires and the trail would show nothing for the noisiest case.
+        // The only hook for a blocked attempt: the limiter answers before the
+        // controller runs, so no Failed event fires.
         $blocked = function (Request $request) {
             app(SecurityEventRecorder::class)->record(
                 SecurityEventType::LoginBlocked,

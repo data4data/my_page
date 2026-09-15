@@ -52,9 +52,9 @@ class SecurityEventTest extends TestCase
     }
 
     /**
-     * The case worth seeing most. The limiter answers before the controller
-     * runs, so no Failed event fires — without the limiter's own response
-     * callback the trail would go quiet exactly when the attack got loud.
+     * The limiter answers before the controller runs, so no Failed event
+     * fires. Without its response callback the trail goes quiet exactly when
+     * the attack gets loud.
      */
     public function test_an_attempt_the_rate_limiter_turns_away_is_still_recorded(): void
     {
@@ -118,8 +118,7 @@ class SecurityEventTest extends TestCase
         $this->assertCount(2, $body['recent']);
     }
 
-    // IP addresses are personal data and pile up fastest when something is
-    // wrong, so rows expire rather than accumulating forever.
+    // Rows hold IP addresses and pile up fastest when something is wrong.
     public function test_rows_past_the_retention_window_are_prunable(): void
     {
         SecurityEvent::create(['type' => SecurityEventType::LoginFailed, 'ip_address' => '203.0.113.5']);
