@@ -37,7 +37,7 @@ php artisan db:seed --class=DemoWeekSeeder   # refresh the demo week onto the cu
 
 Note: `AdminUserSeeder` reads `config('admin.seed.*')`, not `env()` — after `php artisan config:cache`, `env()` outside a config file returns null, and the seeder would have quietly used the placeholder credentials from `.env.example`. It also **refuses a weak `ADMIN_PASSWORD` outside local development**, so those placeholders cannot reach a live install.
 
-Note: `.env.example` defaults to MySQL; SQLite is simplest for local dev (`database/database.sqlite` exists in the repo). `phpunit.xml` runs tests against in-memory SQLite regardless. Set `ADMIN_EMAIL`/`ADMIN_PASSWORD` before seeding — `AdminUserSeeder` uses them to create the one admin login. `ADMIN_PATH` sets the URL prefix the whole private workspace sits behind (see Auth below); it is per-install and never hardcoded.
+Note: **MySQL everywhere** — development, tests and production. `phpunit.xml` pins only the database *name* (`portfolio_test`), so host and credentials come from your own `.env` and the suite never touches your development data; create it once with `CREATE DATABASE portfolio_test;`. Running tests on a different engine from production hides exactly the differences that matter: strict mode, foreign-key indexing, date functions and JSON handling all differ. Set `ADMIN_EMAIL`/`ADMIN_PASSWORD` before seeding — `AdminUserSeeder` uses them to create the one admin login. `ADMIN_PATH` sets the URL prefix the whole private workspace sits behind (see Auth below); it is per-install and never hardcoded.
 
 ## Working on this project
 
@@ -74,7 +74,7 @@ Separate from the portfolio, all scoped to the signed-in user:
 - `TimeLog` — `started_at` / `ended_at` per task. `duration_minutes` is computed in `TimeLog::booted()`'s `saving` hook and **stored**, so report totals are one `SUM()` rather than per-row PHP date-diffing.
 - `Reflection` — one note per (user, period_type, period_start, period_end), enforced by a unique index.
 
-Enums in `app/Enums/`: `TaskStatus` (planned, in_progress, paused, done, skipped), `TaskSource` (manual, seeder, ai_chat — the last reserved for future AI-assisted task creation), `ReflectionPeriodType` (week, month). Statuses are plain string columns validated against the enum, not DB enums, for MySQL/SQLite portability. **`TASK_STATUSES` in `resources/js/shared/planning.js` mirrors `TaskStatus` — keep them in step.**
+Enums in `app/Enums/`: `TaskStatus` (planned, in_progress, paused, done, skipped), `TaskSource` (manual, seeder, ai_chat — the last reserved for future AI-assisted task creation), `ReflectionPeriodType` (week, month). Statuses are plain string columns validated against the enum, not DB enums, because adding a case to a DB enum needs an `ALTER TABLE`. **`TASK_STATUSES` in `resources/js/shared/planning.js` mirrors `TaskStatus` — keep them in step.**
 
 ### Auth
 

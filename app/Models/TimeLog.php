@@ -25,7 +25,7 @@ class TimeLog extends Model
         static::saving(function (TimeLog $log): void {
             if ($log->started_at && $log->ended_at) {
                 // Floored at 0: the column is unsigned, so a backwards pair
-                // errors on MySQL and stores silently on SQLite.
+                // would error.
                 $log->duration_minutes = max(0, (int) round(
                     ($log->ended_at->timestamp - $log->started_at->timestamp) / 60
                 ));

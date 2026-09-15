@@ -165,8 +165,7 @@ class PortfolioContentService
      * Exactly one profile is live. activeProfile() takes the first is_active
      * row, so a second would not error, it would just decide the public page.
      *
-     * Done here, not as a partial unique index: SQLite has those and MySQL
-     * does not, and this project behaves the same on both.
+     * Done here, not as a partial unique index: MySQL has no such thing.
      */
     public function activate(PortfolioProfile $profile): PortfolioProfile
     {
