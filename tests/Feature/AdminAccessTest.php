@@ -62,9 +62,11 @@ class AdminAccessTest extends TestCase
         // If it does, some route is still hardcoding a prefix.
         $this->assertSame('test-workspace', config('admin.path'));
 
-        $this->actingAs($user)->get('/control-room')->assertNotFound();
-        $this->actingAs($user)->get('/control-room/mijn-agenda')->assertNotFound();
-        $this->actingAs($user)->get('/control-room/tasks')->assertNotFound();
+        $default = 'change-me-before-going-live';
+
+        $this->actingAs($user)->get("/{$default}")->assertNotFound();
+        $this->actingAs($user)->get("/{$default}/mijn-agenda")->assertNotFound();
+        $this->actingAs($user)->get("/{$default}/tasks")->assertNotFound();
     }
 
     public function test_the_shell_hands_the_configured_prefix_to_the_frontend(): void

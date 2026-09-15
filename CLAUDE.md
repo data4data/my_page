@@ -38,7 +38,7 @@ php artisan db:seed --class=DemoWeekSeeder   # refresh the demo week onto the cu
 
 Note: `AdminUserSeeder` reads `config('admin.seed.*')`, not `env()` — after `php artisan config:cache`, `env()` outside a config file returns null, and the seeder would have quietly used the placeholder credentials from `.env.example`. It also **refuses a weak `ADMIN_PASSWORD` outside local development**, so those placeholders cannot reach a live install.
 
-Note: **MySQL everywhere** — development, tests and production. `phpunit.xml` pins only the database *name* (`portfolio_test`), so host and credentials come from your own `.env` and the suite never touches your development data; create it once with `CREATE DATABASE portfolio_test;`. Running tests on a different engine from production hides exactly the differences that matter: strict mode, foreign-key indexing, date functions and JSON handling all differ. Set `ADMIN_EMAIL`/`ADMIN_PASSWORD` before seeding — `AdminUserSeeder` uses them to create the one admin login. `ADMIN_PATH` sets the URL prefix the whole private workspace sits behind (see Auth below); it is per-install and never hardcoded.
+Note: **MySQL everywhere** — development, tests and production. `phpunit.xml` pins only the database *name* (`my_page_testing`, deliberately not derived from whatever the working database is called), so host and credentials come from your own `.env` and the suite never touches your development data. Running tests on a different engine from production hides exactly the differences that matter: strict mode, foreign-key indexing, date functions and JSON handling all differ. Set `ADMIN_EMAIL`/`ADMIN_PASSWORD` before seeding — `AdminUserSeeder` uses them to create the one admin login. `ADMIN_PATH` sets the URL prefix the whole private workspace sits behind (see Auth below); it is per-install and never hardcoded.
 
 ## Working on this project
 
@@ -81,7 +81,10 @@ Enums in `app/Enums/`: `TaskStatus` (planned, in_progress, paused, done, skipped
 
 `spatie/laravel-permission` provides roles; one admin user holds the `admin` role. Login is plain Laravel session auth (`AuthController`), no Breeze/Fortify. All `{admin}*` routes carry `['auth', 'role:admin']` (the `role` alias is registered in `bootstrap/app.php`, since Laravel 11+ has no `Kernel.php`).
 
-**`{admin}` is a placeholder, not a literal path.** The private workspace's URL prefix is per-install — `ADMIN_PATH` in `.env` → `config/admin.php` → `config('admin.path')` — so nothing hardcodes it:
+**`{admin}` is a placeholder, not a literal path.** The private workspace's URL prefix is per-install — `ADMIN_PATH` in `.env` → `config/admin.php` → `config('admin.path')` — so nothing hardcodes it.
+
+**Never document a way to derive that prefix, and never ship a real-looking default.** This repository is public, so any convention written down here is the first thing someone would try against a live install. The fallback is an obvious placeholder and the docs say to generate a random value.
+
 
 - `routes/web.php` registers two `Route::prefix(config('admin.path'))` groups: one carrying `['auth', 'role:admin']` for the SPA shell routes and JSON endpoints, and one without it for `login` and `logout`, which cannot require a session you do not have yet. **There is no `/login`** — it 404s, so the commodity scanners that probe for a login form find nothing, and the workspace being unguessable is not undone by the door to it sitting at the web's most predictable URL.
 - `AuthController` falls back to `'/'.config('admin.path')` for the post-login redirect.
