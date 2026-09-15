@@ -27,7 +27,7 @@ composer run dev                  # serve + queue + logs + vite
 
 MySQL everywhere, including tests — the same engine as production, so strict
 mode, foreign-key indexing and JSON handling behave the same in all three.
-Create the test database once: `CREATE DATABASE portfolio_test;`.
+Create the test database once: `CREATE DATABASE my_page_testing;`.
 
 `ADMIN_PATH` sets the URL prefix the private workspace lives behind —
 per-install, never hardcoded. Changing it needs `php artisan route:clear`.

@@ -14,7 +14,7 @@ All the content lives in the database, so you change it in the app rather than i
 
 - EN/NL, with the starting language and whether visitors may switch both set from the workspace
 - Expertise, metrics, process steps and projects, each ordered and each written in both languages
-- Connect form at `/hi-developer`
+- A connect form for developers, reachable from the public page
 
 **Workspace**
 
@@ -48,23 +48,27 @@ composer install && npm install
 cp .env.example .env && php artisan key:generate
 ```
 
-Create two databases, one to work in and one for the tests:
+Create a database to work in. The test suite uses its own, `my_page_testing`:
 
 ```sql
-CREATE DATABASE portfolio CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE portfolio_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE your_database CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE my_page_testing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-Set these in `.env` before you seed:
+Pick a workspace path at random, and set these in `.env` before you seed:
+
+```bash
+php -r "echo 'workspace-'.bin2hex(random_bytes(4)).PHP_EOL;"
+```
 
 ```env
-DB_DATABASE=portfolio
-ADMIN_PATH=control-room-ab
+DB_DATABASE=your_database
+ADMIN_PATH=the-value-you-just-generated
 ADMIN_EMAIL=you@example.com
 ADMIN_PASSWORD=choose-a-real-password
 ```
 
-`ADMIN_PATH` is where the whole workspace lives. Pick your own; nothing in the code hardcodes it, and the public page never mentions it. The password must be at least 12 characters outside local development, or the seeder refuses to create the account.
+`ADMIN_PATH` is where the whole workspace lives, login page included. Nothing in the code hardcodes it and the public page never mentions it, so its only job is to be unguessable. Do not build it from anything a visitor can see, such as the initials on the page. The admin password must be at least 12 characters outside local development, or the seeder refuses to create the account.
 
 Then:
 
@@ -73,7 +77,7 @@ php artisan migrate --seed
 composer run dev
 ```
 
-Sign in at `http://127.0.0.1:8000/control-room-ab/login`.
+Sign in at `http://127.0.0.1:8000/<ADMIN_PATH>/login`.
 
 Change `ADMIN_PATH` later and you will need `php artisan route:clear && php artisan config:clear`.
 
@@ -104,15 +108,7 @@ Then edit the public content under **Edit page**, your categories under **My age
 
 `composer run dev` starts the server, queue worker, log tailer and Vite together.
 
-| | |
-| --- | --- |
-| Public page | `/` |
-| Connect form | `/hi-developer` |
-| Sign in | `<ADMIN_PATH>/login` |
-| Agenda | `<ADMIN_PATH>/mijn-agenda` |
-| Insights | `<ADMIN_PATH>/insights` |
-| Edit page | `<ADMIN_PATH>/edit-content` |
-| Settings | `<ADMIN_PATH>/settings` |
+The public visit card is at `/`. Everything else lives under the path you set in `ADMIN_PATH`, starting with its login page, and the left nav takes you between the four sections from there.
 
 ## Checks
 
@@ -124,7 +120,7 @@ npm test             # Vitest
 npm run build
 ```
 
-All five run clean. Backend tests use `portfolio_test` on MySQL, the same engine as production. Only the database name is pinned in `phpunit.xml`, so your own host and credentials apply and your working data is never touched.
+All five run clean. Backend tests use their own database on MySQL, the same engine as production. Only that name is pinned in `phpunit.xml`, so your own host and credentials apply and your working data is never touched.
 
 ## How it fits together
 
