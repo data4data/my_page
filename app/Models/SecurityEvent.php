@@ -10,11 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * Every sign-in attempt against this install, successful or not.
- *
- * Written once and never updated, so there is no updated_at — same as
- * PortfolioRevision. IP addresses are personal data, which is the other
- * reason rows do not live forever: see prunable() below.
+ * Every sign-in attempt, successful or not. Written once and never updated,
+ * so there is no updated_at. Rows expire: they hold IP addresses.
  */
 class SecurityEvent extends Model
 {
@@ -22,8 +19,7 @@ class SecurityEvent extends Model
 
     const UPDATED_AT = null;
 
-    // Long enough to see a campaign play out, short enough that the table
-    // stays small and old addresses do not accumulate indefinitely.
+    // Long enough to see a campaign play out, short enough to stay small.
     public const RETENTION_DAYS = 30;
 
     protected $fillable = [

@@ -34,13 +34,10 @@ class UpdateCategoryRequest extends FormRequest
                         return;
                     }
 
-                    // usableTopLevel() only proves the chosen *parent* is
-                    // top-level. Without this, giving a parent to a category
-                    // that already has children builds a three-level tree,
-                    // and CategoryController::index() — which loads top-level
-                    // rows with one level of children — then silently stops
-                    // returning the grandchildren, hiding their tasks from
-                    // the Categories view and the calendar filter.
+                    // usableTopLevel() only checks the chosen parent. Giving
+                    // a parent to a category that has children makes a
+                    // three-level tree, and index() loads only one level —
+                    // so the grandchildren and their tasks disappear.
                     if ($category->children()->exists()) {
                         $fail('A category with subcategories cannot itself become a subcategory.');
                     }

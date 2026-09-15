@@ -2,9 +2,8 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import ProfileTab from './ProfileTab.vue';
 
-// The accent words are stored as one flat [{text, tone}] list but edited as
-// two comma-separated fields, so the split and rebuild is the part worth
-// pinning down: a save writes whatever this produces straight to the profile.
+// Stored as one flat [{text, tone}] list, edited as two comma-separated
+// fields. A save writes whatever this produces straight to the profile.
 const stubs = {
     AppInput: {
         name: 'AppInput',
@@ -17,8 +16,8 @@ const stubs = {
 
 const mountTab = (profile) => mount(ProfileTab, { props: { profile }, global: { stubs } });
 
-// Found by their label rather than by position, so reordering the tab does
-// not quietly point these assertions at the CTA URL fields instead.
+// By label, not position, so reordering the tab does not point these at the
+// CTA URL fields.
 const highlightInputs = (wrapper) => {
     const byLabel = (text) => wrapper.findAll('label')
         .find((label) => label.text().startsWith(text))

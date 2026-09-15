@@ -9,13 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Encrypted at rest via the model's casts: the secret is a
-            // password equivalent, and the recovery codes each are too.
+            // Encrypted via the model's casts: both are password equivalents.
             $table->text('two_factor_secret')->nullable()->after('password');
             $table->text('two_factor_recovery_codes')->nullable()->after('two_factor_secret');
-            // Set only once a code from the app has been checked. Until then
-            // the secret exists but is not enforced, so a mis-scanned QR
-            // cannot lock the owner out of their own workspace.
+            // Set only once a real code has been checked. Until then the
+            // secret is not enforced, so a mis-scanned QR cannot lock you out.
             $table->timestamp('two_factor_confirmed_at')->nullable()->after('two_factor_recovery_codes');
         });
     }

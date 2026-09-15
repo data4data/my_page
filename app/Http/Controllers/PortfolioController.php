@@ -16,9 +16,8 @@ class PortfolioController extends Controller
 
     public function app(Request $request): View
     {
-        // Soft lookup (not activeProfile()'s firstOrFail) so every page —
-        // including /login — still renders on a fresh install before
-        // anything has been seeded, just with a generic title.
+        // Not activeProfile(), which throws: every page must still render on
+        // a fresh install before anything is seeded.
         $profile = PortfolioProfile::query()->where('is_active', true)->first();
 
         $role = $profile ? ($profile->role['en'] ?? $profile->role['nl'] ?? '') : '';
@@ -26,15 +25,10 @@ class PortfolioController extends Controller
 
         return view('app', [
             'siteTitle' => $title,
-            // The workspace prefix is deliberately unguessable (config/admin.php)
-            // and every page in the app renders this same shell — so emitting it
-            // unconditionally served the private URL to anyone who viewed source
-            // on the public visit card.
-            //
-            // Sent only to a request already inside the workspace, which now
-            // includes the login page. That tells nobody anything they did not
-            // have: you cannot reach one of these URLs without already knowing
-            // the prefix. The public page needs it nowhere.
+            // Every page renders this same shell, so emitting the prefix
+            // always would put the private URL in the public page's source.
+            // Only requests already inside the workspace get it — reaching
+            // one of those URLs means you already knew the prefix.
             'adminPath' => $this->insideWorkspace($request) ? config('admin.path') : null,
         ]);
     }
@@ -75,9 +69,8 @@ class PortfolioController extends Controller
     }
 
     /**
-     * The saved-version list for the Reset content tab. Deliberately excludes
-     * `payload` — that column can run to tens of kilobytes per row, and the
-     * list only needs to show when and by whom.
+     * The saved-version list. Excludes `payload`, which runs to tens of
+     * kilobytes a row; the list only shows when and by whom.
      */
     public function revisions(): JsonResponse
     {
@@ -99,8 +92,7 @@ class PortfolioController extends Controller
     {
         $profile = $this->content->activeProfile();
 
-        // A revision belonging to a different profile is not this page's
-        // history, so it is not found here rather than merely forbidden.
+        // Another profile's revision is not this page's history at all.
         abort_unless($revision->portfolio_profile_id === $profile->id, 404);
 
         $restored = $this->content->restore($revision, $request->user());

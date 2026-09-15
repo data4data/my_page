@@ -26,7 +26,7 @@ describe('apiFetch', () => {
         const [, options] = fetchMock.mock.calls[0];
         expect(options.headers.Accept).toBe('application/json');
         expect(options.headers['X-CSRF-TOKEN']).toBe('test-token');
-        // No body, so no Content-Type to declare.
+        // No body, so no Content-Type.
         expect(options.headers['Content-Type']).toBeUndefined();
         expect(options.body).toBeUndefined();
     });

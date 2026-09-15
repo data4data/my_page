@@ -7,13 +7,9 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * The column default carried one person's initials, which is the wrong
-     * thing for a project meant to be forked and made someone else's.
-     *
-     * A migration rather than an edit to the original, so an install that has
-     * already run that one ends up with the same schema as a fresh clone. No
-     * row is touched: every insert supplies its own initials, so this only
-     * changes what a fork inherits.
+     * The default carried one person's initials, which is wrong for a project
+     * meant to be forked. A migration rather than an edit to the original, so
+     * an existing install ends up with the same schema as a fresh clone.
      */
     public function up(): void
     {

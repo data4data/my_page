@@ -82,8 +82,8 @@ class PortfolioContentTest extends TestCase
     }
 
     /**
-     * PublicPage.vue binds the CTA URLs straight into :href, so a scheme the
-     * browser executes is stored XSS against every visitor to the public page.
+     * The CTA URLs go straight into :href, so an executable scheme is stored
+     * XSS against every visitor.
      */
     #[DataProvider('dangerousUrls')]
     public function test_a_cta_url_with_an_executable_scheme_is_rejected(string $url): void
@@ -113,10 +113,7 @@ class PortfolioContentTest extends TestCase
             ->assertJsonValidationErrors(['profile.social_links.0.url']);
     }
 
-    /**
-     * The rule must stay looser than Laravel's `url`, which would reject the
-     * app's own seeded content: both default CTAs are page fragments.
-     */
+    /** Looser than Laravel's `url`, which rejects the seeded fragment CTAs. */
     public function test_fragments_relative_paths_and_mailto_links_are_still_accepted(): void
     {
         $admin = $this->admin();
@@ -358,8 +355,7 @@ class PortfolioContentTest extends TestCase
         $this->assertSame(['shown'], $values);
     }
 
-    // The accented headline words used to be a regex in PublicPage.vue that
-    // matched one person's copy, so editing the headline lost the accent.
+    // These used to be hardcoded, so editing the headline lost the accent.
     public function test_headline_highlights_round_trip_through_a_save(): void
     {
         $admin = $this->admin();
@@ -402,16 +398,14 @@ class PortfolioContentTest extends TestCase
 
         $terms = array_column($profile->headline_highlights, 'text');
 
-        // Both spellings live in the one list, since only the words in the
-        // headline actually on screen can match.
+        // Both spellings in one list; only those on screen can match.
         $this->assertContains('precision', $terms);
         $this->assertContains('precisie', $terms);
     }
 
     /**
-     * Social links are a JSON column, not a child table, so the visibility
-     * filtering that covers metrics and projects never reached them. A link
-     * switched off in the editor still went out in the public payload.
+     * Social links are a JSON column, not a child table, so the filtering that
+     * covers metrics and projects never reached them.
      */
     public function test_a_hidden_social_link_is_kept_out_of_the_public_payload(): void
     {
@@ -434,8 +428,7 @@ class PortfolioContentTest extends TestCase
         $this->assertCount(1, $public);
         $this->assertSame('Shown', $public[0]['label']);
 
-        // The editor still sees both, or the hidden one could never be
-        // switched back on.
+        // The editor sees both, or a hidden one could never come back.
         $admin_links = $this->actingAs($admin)->getJson($this->adminUrl('/portfolio'))->json('profile.social_links');
         $this->assertCount(2, $admin_links);
     }
@@ -458,8 +451,8 @@ class PortfolioContentTest extends TestCase
         $this->assertSame([], $this->getJson('/portfolio')->assertOk()->json('profile.social_links'));
     }
 
-    // Filtering must not scribble on the instance the caller handed over: the
-    // same method builds revision snapshots, which keep everything.
+    // Filtering must not touch the caller's instance: the same method builds
+    // revision snapshots, which keep everything.
     public function test_filtering_does_not_strip_hidden_links_from_a_saved_revision(): void
     {
         $admin = $this->admin();
@@ -475,8 +468,8 @@ class PortfolioContentTest extends TestCase
             ]))
             ->assertOk();
 
-        // Read the public payload first: if that mutated shared state, the
-        // snapshot below would have lost the link.
+        // Read the public payload first: if it mutated shared state, the
+        // snapshot would have lost the link.
         $this->getJson('/portfolio')->assertOk();
 
         $snapshot = PortfolioRevision::query()->latest('id')->first()->payload;
@@ -484,11 +477,7 @@ class PortfolioContentTest extends TestCase
         $this->assertCount(1, $snapshot['profile']['social_links']);
     }
 
-    /**
-     * Links saved before visibility existed carry no is_visible key at all.
-     * Treating a missing flag as hidden would have silently emptied the rail
-     * on every install that already had links.
-     */
+    /** A link with no flag at all must still show. */
     public function test_a_link_saved_without_a_visibility_flag_still_shows(): void
     {
         $admin = $this->admin();
@@ -511,10 +500,8 @@ class PortfolioContentTest extends TestCase
     }
 
     /**
-     * The rail and the footer are set per link, so a link can appear in one
-     * and not the other. Both flags travel in the public payload — the page
-     * decides per place, and a link kept for the footer must not vanish
-     * because the rail does not want it.
+     * Set per link, so a link can appear in one place and not the other. Both
+     * flags travel, because the page decides per place.
      */
     public function test_a_link_can_appear_in_one_place_and_not_the_other(): void
     {
@@ -535,8 +522,7 @@ class PortfolioContentTest extends TestCase
 
         $public = $this->getJson('/portfolio')->assertOk()->json('profile.social_links');
 
-        // The one shown nowhere is dropped; the other two survive with their
-        // placements intact.
+        // The one shown nowhere is dropped; the placements survive.
         $this->assertSame(['Rail only', 'Footer only'], array_column($public, 'label'));
         $this->assertTrue($public[0]['in_rail']);
         $this->assertFalse($public[0]['in_footer']);
@@ -545,9 +531,8 @@ class PortfolioContentTest extends TestCase
     }
 
     /**
-     * Links saved when one switch covered both places carry only is_visible.
-     * Treating a missing placement as "off" would have emptied the rail and
-     * the footer at once on every install that already had links.
+     * Links saved before the split carry only is_visible. Treating a missing
+     * placement as "off" would empty both places on an existing install.
      */
     public function test_a_link_from_before_the_split_still_shows_in_both_places(): void
     {

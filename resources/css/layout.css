@@ -21,10 +21,9 @@
         z-index: var(--z-toast);
     }
 
-    /* Named-track full-bleed grid. Children sit in the `content` column by
-       default and opt outward with .u-wide / .u-bleed / .u-full, so a section
-       can break its margins without any of them needing to know a pixel
-       number. Replaces `mx-auto max-w-7xl px-5` repeated per section. */
+    /* Named-track full-bleed grid. Children sit in `content` by default and
+       opt outward with .u-wide / .u-bleed / .u-full, so a section can break
+       its margins without knowing a pixel number. */
     .page-grid {
         display: grid;
         grid-template-columns:
@@ -57,9 +56,8 @@
         grid-column: full;
     }
 
-    /* Running prose stays readable no matter how wide the container grows.
-       The container cap and the text cap are different limits; before this
-       they were the same one. */
+    /* Caps prose width. The container cap and the text cap are different
+       limits; they used to be the same one. */
     .u-measure {
         max-width: var(--measure);
     }

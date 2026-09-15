@@ -4,18 +4,13 @@ import PrimeVue from 'primevue/config';
 import PublicPage from './public/PublicPage.vue';
 import AdminPage from './admin/AdminPage.vue';
 
-// Both pages are top-level route components: nothing else mounts them, so a
-// broken import or a template referring to something that no longer exists
-// would only surface in a browser. `npm run build` proves the files resolve;
-// this proves they actually render. Added when pages/ was split into public/
-// and admin/ — exactly the kind of move that resolves fine and still breaks
-// at runtime.
+// Nothing else mounts these two, so a broken import or a template referring
+// to something gone would only surface in a browser. `npm run build` proves
+// the files resolve; this proves they render.
 
-// Both pages call useRoute()/useRouter() through the Composition API, so the
-// module has to be mocked — a `mocks: { $route }` option does nothing here and
-// leaves useRoute() undefined.
-// AdminPage picks its section from the route name, so the mock is a ref the
-// tests move rather than a fixed value.
+// Both call useRoute()/useRouter(), so the module has to be mocked: a
+// `mocks: { $route }` option leaves useRoute() undefined.
+// AdminPage picks its section from the route name, so tests move this.
 const routeName = { current: 'admin-edit' };
 
 vi.mock('vue-router', () => ({
@@ -66,10 +61,9 @@ describe('page smoke tests', () => {
             + '<meta name="csrf-token" content="test-token">';
     });
 
-    // A render error does not fail a mount by itself, so collect and assert.
-    // PrimeVue is installed with the same options as app.js rather than
-    // stubbing the App* components — stubbing them out would skip most of
-    // what this test exists to exercise.
+    // A render error does not fail a mount, so collect and assert. PrimeVue
+    // is installed as app.js does it: stubbing the App* components out would
+    // skip most of what this exercises.
     const mountPage = (component) => mount(component, {
         global: {
             plugins: [[PrimeVue, { unstyled: true, locale: { firstDayOfWeek: 1 } }]],
@@ -84,16 +78,14 @@ describe('page smoke tests', () => {
         expect(errors).toEqual([]);
         expect(wrapper.text()).toContain('Testable headline');
 
-        // The two places are set per link, so each draws its own set and
-        // neither shows the one switched off everywhere.
+        // Set per link, so each place draws its own set.
         const hrefs = (selector) => wrapper.findAll(selector).map((a) => a.attributes('href'));
 
         expect(hrefs('.social-rail a')).toEqual(['https://both.test', 'https://rail.test']);
         expect(hrefs('.social-footer a')).toEqual(['https://both.test', 'https://footer.test']);
         expect(wrapper.html()).not.toContain('hidden.test');
 
-        // The links sit between the two footer notes, which is what puts them
-        // in the centre of the page rather than off to one side.
+        // Between the two notes, which is what centres them.
         const footer = wrapper.get('.site-footer').element;
         const order = [...footer.children].map((child) => child.className);
         expect(order[0]).toContain('site-footer-note');
@@ -113,8 +105,8 @@ describe('page smoke tests', () => {
 
         expect(errors).toEqual([]);
         expect(wrapper.find('.social-rail').exists()).toBe(true);
-        // Nothing wants the footer, so the footer row goes even though a link
-        // exists and is on show elsewhere.
+        // Nothing wants the footer, so it goes even though a link is on show
+        // in the rail.
         expect(wrapper.find('.social-footer').exists()).toBe(false);
         expect(wrapper.find('.site-footer-spacer').exists()).toBe(true);
     });
@@ -135,8 +127,7 @@ describe('page smoke tests', () => {
         expect(wrapper.find('.social-rail').exists()).toBe(false);
         expect(wrapper.find('.social-footer').exists()).toBe(false);
 
-        // The middle track is still held open, so the two notes stay at the
-        // edges instead of one drifting into the centre.
+        // The middle track stays open, so the notes stay at the edges.
         expect(wrapper.find('.site-footer-spacer').exists()).toBe(true);
     });
 

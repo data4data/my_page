@@ -11,17 +11,13 @@ use Illuminate\Support\Collection;
 
 class SecurityEventController extends Controller
 {
-    // How far back the per-address rollup looks. Long enough to show an
-    // overnight run of attempts on a page you check in the morning.
+    // Far enough back to show an overnight run of attempts.
     private const SUMMARY_HOURS = 12;
 
-    // The trail is read by eye, so the recent list is capped rather than paged.
+    // Read by eye, so capped rather than paged.
     private const RECENT_LIMIT = 50;
 
-    /**
-     * Two views of the same trail: who has been trying lately and how often,
-     * and then the raw run of attempts underneath it.
-     */
+    /** A rollup of who has been trying, then the raw attempts underneath. */
     public function index(Request $request): JsonResponse
     {
         $since = Carbon::now()->subHours(self::SUMMARY_HOURS);
@@ -48,8 +44,7 @@ class SecurityEventController extends Controller
     }
 
     /**
-     * Grouped in SQL rather than by pulling every row into PHP — the whole
-     * point of this table is that a noisy day has a lot of rows.
+     * Grouped in SQL, not in PHP: a noisy day puts a lot of rows in here.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -66,15 +61,14 @@ class SecurityEventController extends Controller
             ->map(fn ($group, $address) => [
                 'ip_address' => $address ?: null,
                 'attempts' => (int) $group->sum('attempts'),
-                // One count per outcome, named the same way the totals above
-                // are: "failed" is a wrong password and nothing else, so a
-                // row's three counts add up to its attempts.
+                // "failed" means a wrong password only, so the three counts
+                // add up to the row's attempts.
                 'succeeded' => $this->countOf($group, SecurityEventType::LoginSucceeded),
                 'failed' => $this->countOf($group, SecurityEventType::LoginFailed),
                 'blocked' => $this->countOf($group, SecurityEventType::LoginBlocked),
                 'last_seen' => $group->max('last_seen'),
             ])
-            // Noisiest first: that is the row worth looking at.
+            // Noisiest first.
             ->sortByDesc('attempts')
             ->values()
             ->all();

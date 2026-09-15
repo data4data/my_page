@@ -2,16 +2,12 @@
 
 @layer base {
     :root {
-        /* Stacking order, in one place. Previously every overlay picked its
-           own number, and .connect-overlay and the toast container both landed
-           on z-50 — with the toasts earlier in the DOM, an error raised while a
-           modal was open was painted behind the scrim and never seen.
+        /* Stacking order, in one place. Two things on the same value once put
+           error toasts behind the modal scrim, where nobody saw them.
 
-           This scale is for things that share the page's root stacking
-           context, which is where ties actually hurt. A local lift inside an
-           element's own stacking context — text over its card's decorative
-           pseudo-element, a focused input over its sibling — is a different
-           thing and stays a small local number at its call site. */
+           This scale is for things sharing the page's root stacking context.
+           A small lift inside an element's own context — text over its card's
+           decoration — stays a local number at its call site. */
         --z-raised: 10; /* section content, above that section's own decoration */
         --z-section: 25; /* a section overlapping the one before it, still under the rail */
         --z-rail: 30;
@@ -25,20 +21,15 @@
         --z-confirm: 60;
         --z-toast: 70;
 
-        /* The one source of truth for page width. Every centered thing on the
-           public page derives from these — see .page-grid below. Before this,
-           three separate numbers (1180 content, 1400 hero, 1480 header) each
-           lived at its own call site, so wide screens showed three misaligned
-           edges stacked down the page. */
-        /* Height of the small-screen bottom navigation. Shared, because the
-           content column's padding and the floating buttons both have to
-           clear it and must not drift apart from it. */
+        /* The one source of page width. Everything centred on the public page
+           derives from these — see .page-grid. Three separate numbers used to
+           live at their own call sites and misaligned on wide screens. */
+        /* Height of the small-screen bottom bar. Shared: the content padding
+           and the floating buttons both have to clear it. */
         --admin-bottom-nav: 3.75rem;
 
-        /* Fallback height of the sticky workspace header, used until
-           AdminLayout has measured the real one and written this over. Its
-           value is the one-line case: py-4 twice, plus a text-3xl line box,
-           plus the bottom border. */
+        /* Fallback until AdminLayout measures the real header. This is the
+           one-line case: py-4 twice, a text-3xl line box, and the border. */
         --admin-header: 4.3125rem;
 
         --gutter: clamp(1.25rem, 4vw, 3rem);
@@ -48,9 +39,8 @@
         --bleed-max: 92.5rem; /* 1480 */
     }
 
-    /* One deliberate step on ultra-wide rather than fluid growth: the type is
-       set for a specific measure, and clamp()-driven columns make line lengths
-       drift. This reclaims ~140px a side before any decoration is needed. */
+    /* One step on ultra-wide rather than fluid growth: the type is set for a
+       measure, and clamp()-driven columns make line lengths drift. */
     @media (width >= theme(--breakpoint-2xl)) {
         :root {
             --content-max: 82.5rem; /* 1320 */
@@ -75,11 +65,9 @@
         background: var(--color-cream);
     }
 
-    /* Ambient wash for the margin that's still left after the layout has
-       reflowed as far out as it usefully can. Two very soft radials in the
-       existing hero-glow tones, so the surface reads as the same paper the
-       content sits on rather than flat cream. Fixed and non-interactive;
-       switched on only where there's actually margin to fill. */
+    /* Fills the margin left once the layout has reflowed as far as it
+       usefully can. Fixed and non-interactive, and only where there is
+       margin to fill. */
     body::before {
         content: '';
         position: fixed;

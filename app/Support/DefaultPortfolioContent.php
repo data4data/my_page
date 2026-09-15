@@ -32,17 +32,15 @@ class DefaultPortfolioContent
             'profile' => [
                 'type' => 'person',
                 'is_active' => true,
-                // A placeholder, not a person: change it under Settings, or
-                // in this file if you are reseeding a fork of your own.
+                // A placeholder. Change it in the workspace.
                 'initials' => 'AB',
                 'role' => ['en' => 'Full-Stack Developer', 'nl' => 'Full-stack ontwikkelaar'],
                 'headline' => [
                     'en' => 'Building systems with precision that drive impact.',
                     'nl' => 'Systemen bouwen met precisie die impact maken.',
                 ],
-                // The accented words in the headline above. Both languages'
-                // terms sit in one list; only the ones present in whichever
-                // headline is on screen can match.
+                // The accented words above. Both languages in one list; only
+                // the ones in the headline on screen match.
                 'headline_highlights' => [
                     ['text' => 'precision', 'tone' => 'blue'],
                     ['text' => 'precisie', 'tone' => 'blue'],
@@ -57,9 +55,8 @@ class DefaultPortfolioContent
                 'secondary_cta_label' => ['en' => 'About me', 'nl' => 'Over mij'],
                 'secondary_cta_url' => '#about',
                 'location_note' => ['en' => 'Based in Europe', 'nl' => 'Gevestigd in Europa'],
-                // The pair either side of the social links in the page
-                // footer. Free text: this one held an availability line
-                // before, which is why the column is still named for that.
+                // Sits right of the social links in the footer. Free text —
+                // the column name is left over from when it held availability.
                 'availability_note' => ['en' => 'Since 2024', 'nl' => 'Sinds 2024'],
                 'quote' => [
                     'en' => 'Simplicity is the ultimate sophistication.',
@@ -69,9 +66,7 @@ class DefaultPortfolioContent
                     'en' => 'Leonardo da Vinci',
                     'nl' => 'Leonardo da Vinci',
                 ],
-                // Placeholders pointing nowhere in particular. Edited under
-                // Edit page -> Social links; switch them all off and the
-                // public page drops the rail and the footer row entirely.
+                // Placeholders. Edited under Edit page -> Social links.
                 'social_links' => [
                     ['label' => 'GitHub', 'url' => 'https://github.com/', 'icon' => 'github', 'in_rail' => true, 'in_footer' => true],
                     ['label' => 'LinkedIn', 'url' => 'https://www.linkedin.com/', 'icon' => 'linkedin', 'in_rail' => true, 'in_footer' => true],

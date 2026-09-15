@@ -10,9 +10,8 @@ use Illuminate\Validation\Rule;
 
 class StoreTaskRequest extends FormRequest
 {
-    // Nothing to check against: a new task has no owner yet, and the route
-    // already sits behind ['auth', 'role:admin']. store() assigns user_id
-    // from the session, so it can't be forged through the payload.
+    // A new task has no owner yet. store() sets user_id from the session,
+    // so it cannot be forged through the payload.
     public function authorize(): bool
     {
         return $this->user() !== null;

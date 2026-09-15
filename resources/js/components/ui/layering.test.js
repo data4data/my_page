@@ -26,8 +26,8 @@ describe('stacking order tokens', () => {
     });
 
     it('puts toasts above modal overlays', () => {
-        // Equal values plus DOM order is what buried error toasts behind the
-        // modal scrim: a failed save reported nothing the user could see.
+        // Equal values plus DOM order once buried error toasts behind the
+        // scrim, so a failed save reported nothing the user could see.
         expect(token('toast')).toBeGreaterThan(token('overlay'));
         expect(token('toast')).toBeGreaterThan(token('confirm'));
     });
@@ -48,9 +48,8 @@ describe('stacking order tokens', () => {
         expect(token('overlay')).toBeGreaterThan(token('fab'));
     });
 
-    // AppSelect and AppDatePicker panels are appended to <body>, so inside a
-    // modal they are siblings of the scrim rather than children. Both sat on
-    // 50, which left the winner to DOM insertion order.
+    // These panels append to <body>, so inside a modal they are siblings of
+    // the scrim. Both sat on 50, leaving the winner to DOM order.
     it('puts a field dropdown above the modal it opens inside, and under a confirm', () => {
         expect(token('field')).toBeGreaterThan(token('overlay'));
         expect(token('confirm')).toBeGreaterThan(token('field'));
@@ -58,9 +57,8 @@ describe('stacking order tokens', () => {
 });
 
 describe('no layer collides with another', () => {
-    // Two things landing on the same value is the bug the scale exists to
-    // prevent: equal z-index leaves the winner to DOM order, which is how
-    // error toasts once ended up behind the modal scrim.
+    // Equal z-index leaves the winner to DOM order, which is how error toasts
+    // once ended up behind the modal scrim.
     it('gives every token a distinct value', () => {
         const names = ['raised', 'section', 'rail', 'header', 'fab', 'overlay', 'field', 'confirm', 'toast'];
         const values = names.map(token);
@@ -68,10 +66,8 @@ describe('no layer collides with another', () => {
         expect(new Set(values).size).toBe(names.length);
     });
 
-    // 30 (--z-rail) is the lowest layer that competes in the page's root
-    // stacking context. Below that, a small literal is a local lift inside an
-    // element's own context — text over its card's decoration, a focused
-    // input over its sibling — and is left alone on purpose.
+    // 30 (--z-rail) is the lowest layer competing in the root stacking
+    // context. Below that, a small literal is a local lift and is left alone.
     it('writes nothing at that level as a bare number', () => {
         const bare = [
             ...allCss.matchAll(/z-index:\s*(\d+)/g),
@@ -90,8 +86,7 @@ describe('components use the layer classes', () => {
         expect(classes.some((name) => /^z-\d+$/.test(name))).toBe(false);
     });
 
-    // The admin header carried z-30, the rail's value, so the one piece of
-    // chrome that has to sit above the rail was tied with it.
+    // The header carried z-30, the rail's own value.
     it('gives the admin header the header layer', () => {
         const header = mount(AdminLayout, {
             props: { navItems: [], activeKey: 'edit' },

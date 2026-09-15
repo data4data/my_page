@@ -18,8 +18,7 @@ const railButtons = (wrapper) => wrapper.findAll('.admin-nav-item');
 const barButtons = (wrapper) => wrapper.findAll('.admin-bottom-nav-item');
 
 describe('AdminLayout navigation', () => {
-    // Small screens get a bottom bar instead of the stacked rail, which was
-    // spending most of a phone's first screenful on navigation.
+    // Small screens get a bottom bar instead of the stacked rail.
     it('renders both the rail and the bottom bar, each with every section', () => {
         const wrapper = mountLayout();
 
@@ -66,8 +65,7 @@ describe('AdminLayout navigation', () => {
 });
 
 describe('AdminLayout sticky rail', () => {
-    // The rail's divider has to reach the bottom of the page, so the aside
-    // keeps stretching and only the nav inside it travels.
+    // The divider has to reach the bottom, so only the nav travels.
     it('sticks the nav, not the aside', () => {
         const wrapper = mountLayout();
 
@@ -76,8 +74,7 @@ describe('AdminLayout sticky rail', () => {
     });
 
     it('falls back to the stylesheet header height when nothing has measured one', () => {
-        // jsdom has no ResizeObserver, which is the same position the page is
-        // in on its first paint: --admin-header must come from base.css then.
+        // jsdom has no ResizeObserver, same as the page's first paint.
         const wrapper = mountLayout();
 
         expect(wrapper.get('main').attributes('style')).toBeUndefined();

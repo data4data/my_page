@@ -7,22 +7,17 @@ use App\Models\User;
 
 class CategoryPolicy
 {
-    // Single-admin app today, but scoped defensively: only the category's
-    // owner (or anyone, for a shared/global default) can edit it.
+    // Single-admin today, but scoped anyway: the owner, or anyone for a
+    // shared global category.
     public function update(User $user, Category $category): bool
     {
         return $category->user_id === null || $category->user_id === $user->id;
     }
 
     /**
-     * Deleting is narrower than editing.
-     *
-     * A global category (`user_id` null) is shared, and `parent_id` carries
-     * `cascadeOnDelete` while `tasks.category_id` carries `nullOnDelete` — so
-     * removing one takes other people's subcategories with it and quietly
-     * unfiles their tasks. Editing a shared row is recoverable; that is not.
-     * So a global category may only go once nothing belonging to anyone else
-     * hangs off it.
+     * Narrower than editing. parent_id cascades and tasks.category_id nulls,
+     * so deleting a shared category takes other people's subcategories with
+     * it and unfiles their tasks. Editing one is recoverable; that is not.
      */
     public function delete(User $user, Category $category): bool
     {

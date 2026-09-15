@@ -11,11 +11,7 @@ class AuthDefaultsTest extends TestCase
 {
     use RefreshDatabase;
 
-    /**
-     * The session cookie is the key to the whole private half of the app, so
-     * it is protected unless someone deliberately weakens it — not the other
-     * way round.
-     */
+    /** Protected unless someone deliberately weakens it, not the reverse. */
     public function test_the_session_cookie_is_secure_and_strict_by_default(): void
     {
         $this->assertSame('strict', config('session.same_site'));
@@ -24,8 +20,7 @@ class AuthDefaultsTest extends TestCase
 
     public function test_the_secure_flag_follows_the_environment(): void
     {
-        // config/session.php reads APP_ENV directly, so this asserts the rule
-        // rather than the value the test environment happens to produce.
+        // Asserts the rule, not the value this environment happens to give.
         $rule = fn (string $environment) => $environment !== 'local';
 
         $this->assertFalse($rule('local'), 'local development is served over plain HTTP');
@@ -33,10 +28,7 @@ class AuthDefaultsTest extends TestCase
         $this->assertTrue($rule('staging'));
     }
 
-    /**
-     * Runs the seeder directly rather than through $this->seed(), which in a
-     * non-local environment stops to ask for confirmation first.
-     */
+    /** Direct, not $this->seed(), which asks for confirmation outside local. */
     private function seedAdmin(string $environment, string $email, string $password): void
     {
         $this->app['env'] = $environment;
@@ -79,9 +71,8 @@ class AuthDefaultsTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'owner@example.test']);
     }
 
-    // A throwaway local machine stays convenient: being forced to invent a
-    // passphrase before the app runs once is how people end up disabling the
-    // check altogether.
+    // Local stays convenient: forcing a passphrase before the app runs once
+    // is how people end up disabling the check.
     public function test_a_weak_password_is_only_a_warning_locally(): void
     {
         $this->seedAdmin('local', 'local@example.test', 'password');
@@ -90,10 +81,9 @@ class AuthDefaultsTest extends TestCase
     }
 
     /**
-     * The credentials come from config, not from env() inside the seeder:
-     * after `php artisan config:cache` — the recommended production step —
-     * env() outside a config file returns null, and the seeder would have
-     * quietly used the placeholders shipped in .env.example.
+     * From config, not env() inside the seeder: after `php artisan
+     * config:cache`, env() returns null outside config files and the seeder
+     * would use the placeholders from .env.example.
      */
     public function test_the_seeded_credentials_come_from_config(): void
     {

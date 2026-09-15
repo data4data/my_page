@@ -13,8 +13,8 @@ use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'password'])]
-// The two-factor columns are password equivalents: never serialized, and
-// never mass-assignable — TwoFactorService sets them explicitly.
+// The two-factor columns are password equivalents: never serialized and never
+// mass-assignable. TwoFactorService sets them explicitly.
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable
 {
@@ -38,9 +38,8 @@ class User extends Authenticatable
     }
 
     /**
-     * Enrolment is only finished once a code from the authenticator has been
-     * checked, which is what two_factor_confirmed_at records. A secret on its
-     * own means "setup started", and is never enforced at login.
+     * A secret on its own means setup was started and is never enforced.
+     * two_factor_confirmed_at records that a real code has been checked.
      */
     public function hasTwoFactorEnabled(): bool
     {

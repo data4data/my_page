@@ -12,9 +12,7 @@ const stubs = {
     AppIconSelect: { name: 'AppIconSelect', props: ['modelValue'], template: '<select />' },
     AppCheckbox: { name: 'AppCheckbox', props: ['modelValue'], emits: ['update:modelValue'], template: '<input type="checkbox" />' },
     // No @click re-emit: the stub's root is a real <button>, so the listener
-    // falls through to it. Emitting as well would fire every action twice —
-    // which for a reorder is a swap and a swap back, and looks like nothing
-    // happening at all.
+    // falls through. Emitting too would fire every action twice.
     AppButton: { template: '<button><slot /></button>' },
     Plus: true,
 };
@@ -33,8 +31,7 @@ describe('SocialLinksTab', () => {
             ],
         };
 
-        // Both, or a link switched off everywhere could never be switched
-        // back on.
+        // Both, or one switched off everywhere could never come back.
         expect(cards(mountTab(profile))).toHaveLength(2);
     });
 
@@ -77,8 +74,8 @@ describe('SocialLinksTab', () => {
         expect(profile.social_links[0].in_footer).toBe(false);
     });
 
-    // A link saved when one switch covered both places carries only
-    // is_visible; an unticked box would misreport a link that is on show.
+    // A link saved before the split carries only is_visible; an unticked box
+    // would misreport a link that is on show.
     it('shows a link from before the split as ticked in both places', () => {
         const profile = {
             social_links: [{ label: 'Legacy', url: 'https://legacy.test', icon: 'link', is_visible: true }],

@@ -48,10 +48,9 @@ class Task extends Model
     }
 
     /**
-     * How long the task was meant to take. Prefers the explicit
-     * planned_duration_minutes, falling back to the scheduled start→end span
-     * (tasks added through the calendar set times but not a duration), and 0
-     * when the task is open-ended.
+     * How long the task was meant to take. Prefers planned_duration_minutes,
+     * falls back to the start→end span (the calendar sets times but no
+     * duration), and returns 0 when the task is open-ended.
      */
     public function plannedMinutes(): int
     {
@@ -63,8 +62,8 @@ class Task extends Model
             return 0;
         }
 
-        // Raw timestamps rather than diffInMinutes(), whose sign/abs handling
-        // varies by Carbon version — same reason TimeLog::booted() does it.
+        // Raw timestamps: diffInMinutes()'s sign handling varies by Carbon
+        // version. TimeLog does the same.
         return max(0, (int) round(($this->end_datetime->timestamp - $this->start_datetime->timestamp) / 60));
     }
 }

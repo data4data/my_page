@@ -8,23 +8,20 @@ use App\Rules\CategoryRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-// Separate from StoreTaskRequest because a partial update swaps 'required' for
-// 'sometimes' — one rule set genuinely cannot serve both.
+// Separate from StoreTaskRequest: a partial update swaps 'required' for
+// 'sometimes', so one rule set cannot serve both.
 class UpdateTaskRequest extends FormRequest
 {
-    // Route-model binding has already run by the time this resolves, so
-    // route('task') is the Task itself. Returning false yields a 403,
-    // exactly like the abort_unless() this replaced.
+    // Route-model binding has run, so route('task') is the Task itself.
     public function authorize(): bool
     {
         return $this->user()->can('update', $this->route('task'));
     }
 
     /**
-     * A partial update may send either end alone, or start alone. Comparing
-     * only what was submitted lets both slip past, leaving a task that ends
-     * before it begins — so compare the *effective* pair: the submitted value
-     * where there is one, the stored value otherwise.
+     * A partial update may send either end alone, so comparing only what was
+     * submitted would let a task end before it begins. Compares the effective
+     * pair: the submitted value where there is one, the stored one otherwise.
      */
     public function withValidator($validator): void
     {
@@ -32,8 +29,7 @@ class UpdateTaskRequest extends FormRequest
             $task = $this->route('task');
 
             $start = $this->input('start_datetime') ?? $task?->start_datetime?->toDateTimeString();
-            // has(), not input(): sending an explicit null clears the end, and
-            // that must stay allowed.
+            // has(), not input(): an explicit null clears the end.
             $end = $this->has('end_datetime')
                 ? $this->input('end_datetime')
                 : $task?->end_datetime?->toDateTimeString();
@@ -51,8 +47,8 @@ class UpdateTaskRequest extends FormRequest
             'title' => ['sometimes', 'string', 'max:190'],
             'description' => ['nullable', 'string', 'max:4000'],
             'start_datetime' => ['sometimes', 'date'],
-            // Ordering is checked in withValidator(): after_or_equal:start_datetime
-            // does nothing here, because a partial payload need not carry the start.
+            // Checked in withValidator(): after_or_equal does nothing here,
+            // because a partial payload need not carry the start.
             'end_datetime' => ['nullable', 'date'],
             'planned_duration_minutes' => ['nullable', 'integer', 'min:0'],
             'status' => ['sometimes', Rule::enum(TaskStatus::class)],

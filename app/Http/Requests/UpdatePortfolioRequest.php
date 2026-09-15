@@ -7,16 +7,12 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Replaces the shape-only check the controller used to do, which asked "is
- * profile an array?" and then wrote fifteen fields plus four whole collections
- * without looking inside any of them.
+ * Checks types and lengths, not presence. The editor lets a field be cleared,
+ * so `required` on free text would reject payloads it legitimately produces.
  *
- * These rules mostly check **types and lengths, not presence**. The admin UI
- * lets a field be cleared, so a 'required' rule on free text would reject
- * payloads the editor legitimately produces — a worse bug than the one being
- * fixed. Presence is demanded only where the column is NOT NULL, because
+ * Presence is demanded only where the column is NOT NULL, because
  * ConvertEmptyStringsToNull turns a cleared field into null and the insert
- * would then fail with a 500 instead of a readable 422.
+ * would fail with a 500 instead of a readable 422.
  */
 class UpdatePortfolioRequest extends FormRequest
 {
@@ -61,35 +57,29 @@ class UpdatePortfolioRequest extends FormRequest
             'profile.initials' => ['sometimes', 'string', 'max:12'],
             'profile.default_language' => ['sometimes', Rule::in(['en', 'nl'])],
             'profile.show_language_toggle' => ['sometimes', 'boolean'],
-            // Flat list of {text, tone}: which words in the headline take an
-            // accent colour. `tone` is closed because each value is a CSS
-            // class on the public page (.headline-blue / .headline-gold).
+            // Which headline words take an accent colour. `tone` is closed
+            // because each value is a CSS class (.headline-blue / -gold).
             'profile.headline_highlights' => ['nullable', 'array'],
             'profile.headline_highlights.*.text' => ['required', 'string', 'max:60'],
             'profile.headline_highlights.*.tone' => ['required', Rule::in(['blue', 'gold'])],
-            // SafeUrl, not 'url': the seeded CTAs are fragments ("#work") and
-            // relative paths are valid here too. These three land in :href on
-            // the public page, which is why the scheme is checked at all.
+            // SafeUrl, not 'url': the seeded CTAs are fragments like "#work".
+            // These land in :href on the public page.
             'profile.primary_cta_url' => ['nullable', 'string', 'max:255', new SafeUrl],
             'profile.secondary_cta_url' => ['nullable', 'string', 'max:255', new SafeUrl],
             'profile.social_links' => ['nullable', 'array'],
             'profile.social_links.*.label' => ['nullable', 'string', 'max:60'],
             'profile.social_links.*.url' => ['required', 'string', 'max:255', new SafeUrl],
-            // Resolved through iconMap in resources/js/shared/icons.js; an
-            // unknown key renders nothing rather than failing.
+            // Resolved via iconMap; an unknown key renders nothing.
             'profile.social_links.*.icon' => ['nullable', 'string', 'max:60'],
-            // The two placements are independent; is_visible is the single
-            // switch they replaced and is still accepted from older payloads.
+            // is_visible is the single switch the two placements replaced,
+            // still accepted from older payloads.
             'profile.social_links.*.in_rail' => ['sometimes', 'boolean'],
             'profile.social_links.*.in_footer' => ['sometimes', 'boolean'],
             'profile.social_links.*.is_visible' => ['sometimes', 'boolean'],
 
             'metrics' => ['array'],
-            // Required, unlike the translated text below: the column is NOT
-            // NULL, and Laravel's ConvertEmptyStringsToNull middleware turns a
-            // cleared field into null before it ever reaches here. Without this
-            // rule that null reaches the insert and becomes a 500 — which is
-            // what the old shape-only validation allowed.
+            // Required because the column is NOT NULL and a cleared field
+            // arrives here as null. Without this the insert 500s.
             'metrics.*.value' => ['required', 'string', 'max:24'],
             'metrics.*.is_visible' => ['sometimes', 'boolean'],
 
@@ -126,10 +116,9 @@ class UpdatePortfolioRequest extends FormRequest
     }
 
     /**
-     * Every free-text field is a {en, nl} pair stored in a JSON column. The
-     * pair itself must be an array; each side may be empty but must be text,
-     * which is what stops a plain string or a nested object being written
-     * where the frontend expects .en / .nl.
+     * Every free-text field is an {en, nl} pair in a JSON column. Each side
+     * may be empty but must be text, so a plain string or a nested object
+     * cannot be written where the frontend expects .en / .nl.
      */
     private function translatedRules(string $key, bool $required): array
     {

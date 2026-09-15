@@ -1,12 +1,9 @@
-// The private workspace's URL prefix is chosen per install (ADMIN_PATH in
-// .env -> config/admin.php) and injected by the Blade shell as a <meta> tag,
-// so nothing in the JS bundle hardcodes it. Read once at module load rather
-// than per call: the tag is server-rendered and never changes afterwards.
+// The workspace prefix is per install (ADMIN_PATH) and comes from a <meta>
+// tag, so nothing in the bundle hardcodes it. Read once: the tag is
+// server-rendered and never changes.
 //
-// The fallback matches config/admin.php's own default and applies wherever the
-// tag is absent: unit tests under jsdom, and any page served to someone who
-// cannot reach the workspace, which is never told the real prefix. Nothing
-// there navigates into the admin routes, so the placeholder is never followed.
+// The fallback applies where the tag is absent — jsdom tests, and pages served
+// to someone who cannot reach the workspace. Nothing there follows it.
 const configured = document.querySelector('meta[name="admin-path"]')?.content?.trim();
 
 export const adminBase = `/${(configured || 'control-room').replace(/^\/+|\/+$/g, '')}`;

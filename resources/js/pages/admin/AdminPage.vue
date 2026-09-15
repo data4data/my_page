@@ -44,8 +44,7 @@ const {
 const saving = ref(false);
 const restoring = ref(false);
 const tab = ref('profile');
-// Settings keeps its own tab state: switching sections should not carry an
-// Edit-page tab across into it.
+// Its own tab state, so switching sections does not carry one across.
 const settingsTab = ref('language');
 
 // Saved versions of the public page, listed on the Content versions tab.
@@ -53,9 +52,7 @@ const revisions = ref([]);
 const revisionsLoading = ref(true);
 const restoringId = ref(null);
 
-// Top-level admin section — driven by the URL (each has its own real,
-// bookmarkable/refreshable path) rather than local component state, so
-// switching sections pushes a route instead of just flipping a ref.
+// Driven by the URL, so every section is bookmarkable and refreshable.
 const routeNameForView = {
     agenda: 'admin-agenda',
     insights: 'admin-insights',
@@ -67,16 +64,14 @@ const goToView = (key) => router.push({ name: routeNameForView[key] });
 
 const inquiries = ref([]);
 const inquiriesLoading = ref(true);
-// The connect form is public, so this list grows without bound over time and
-// arrives one page at a time.
+// The connect form is public, so this list arrives a page at a time.
 const inquiriesHasMore = ref(false);
 const inquiriesPage = ref(1);
 
 const securityEvents = ref(null);
 const securityLoading = ref(true);
 
-// computed (not a plain array) so labels re-render when the admin switches
-// their own working language via the header EN/NL toggle.
+// computed so the labels re-render when the EN/NL toggle changes.
 const navItems = computed(() => [
     { key: 'agenda', label: copy('agenda'), icon: Calendar },
     { key: 'insights', label: copy('insights'), icon: Inbox },
@@ -84,9 +79,8 @@ const navItems = computed(() => [
     { key: 'settings', label: copy('settings'), icon: Settings },
 ]);
 
-// Edit page is now only the content itself. Language and Content versions
-// moved to Settings: neither is page copy, and both are changed far less
-// often than the text around them.
+// Edit page is the content only. Language and Content versions are in
+// Settings: neither is page copy.
 const adminTabs = computed(() => [
     { value: 'profile', label: copy('tabProfile') },
     { value: 'metrics', label: copy('tabExperience') },
@@ -102,14 +96,12 @@ const settingsTabs = computed(() => [
     { value: 'versions', label: copy('tabVersions') },
 ]);
 
-// The Language tab edits fields in the portfolio payload, so it needs the
-// same Save button the Edit page has. The other two settings persist through
-// their own endpoints the moment you act on them.
+// Language edits the portfolio payload, so it needs the Save button. The
+// other settings save through their own endpoints as you act on them.
 const showSaveButton = computed(() => view.value === 'edit' || (view.value === 'settings' && settingsTab.value === 'language'));
 
-// Each of the three initial loads clears its own flag in `finally` and reports
-// its own failure: one of them failing must not leave that panel spinning, nor
-// take the other two down with it.
+// Each load clears its own flag and reports its own failure, so one failing
+// leaves the others alone.
 const fetchInquiries = async (page = 1) => {
     inquiriesLoading.value = true;
 
@@ -117,8 +109,7 @@ const fetchInquiries = async (page = 1) => {
         const body = await apiFetch(`${adminUrl('/inquiries')}?page=${page}`);
         const rows = body.inquiries ?? [];
 
-        // Page one replaces, later pages append — so "load more" grows the
-        // list while a refresh still starts clean.
+        // Page one replaces, later pages append.
         inquiries.value = page === 1 ? rows : [...inquiries.value, ...rows];
         inquiriesHasMore.value = body.has_more ?? false;
         inquiriesPage.value = body.page ?? page;
@@ -178,9 +169,8 @@ const savePortfolio = async () => {
     }
 };
 
-// Asks first, like restoreRevision below. It sits in the same list now, one
-// click away from the saved versions, and it is the more destructive of the
-// two — the warning note that used to guard it is gone.
+// Asks first, like restoreRevision: it is the more destructive of the two and
+// sits one click away from the saved versions.
 const restoreDefaults = async () => {
     if (!await confirm({ message: copy('restoreConfirm'), confirmLabel: copy('historyRestore') })) {
         return;
@@ -201,8 +191,7 @@ const restoreDefaults = async () => {
     }
 };
 
-// Restoring overwrites the live public page, so it asks first — via the shared
-// confirm() singleton rather than window.confirm.
+// Restoring overwrites the live public page, so it asks first.
 const restoreRevision = async (id) => {
     if (!await confirm({ message: copy('historyConfirm'), confirmLabel: copy('historyRestore') })) {
         return;
@@ -291,10 +280,8 @@ const updateTags = (project, value) => {
         </SectionTabs>
 
         <template #fab>
-            <!-- Only where there is unsaved payload to write: the Edit page,
-                 and Settings' Language tab, which edits the same payload.
-                 Agenda, Insights and the other settings persist through their
-                 own endpoints, and the button was overlapping their own. -->
+            <!-- Only where there is unsaved payload: the Edit page and
+                 Settings' Language tab. Everything else saves on its own. -->
             <AppButton v-if="showSaveButton" variant="primary" size="sm" class="fab-save" :disabled="saving" @click="savePortfolio">
                 {{ saving ? copy('saving') : copy('save') }}
                 <ArrowRight :size="16" />

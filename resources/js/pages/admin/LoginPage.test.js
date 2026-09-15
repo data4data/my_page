@@ -4,17 +4,14 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 const apiFetch = vi.fn();
 vi.mock('../../shared/api', () => ({ apiFetch: (...args) => apiFetch(...args) }));
 
-// admin-path.js reads the meta tag once, at module load, so the shell has to
-// be in place before LoginPage pulls it in — otherwise every URL below is
-// built from the fallback prefix instead of this one.
+// admin-path.js reads the tag once at module load, so the shell has to be in
+// place before LoginPage imports it.
 document.head.innerHTML = '<meta name="admin-path" content="test-workspace">'
     + '<meta name="csrf-token" content="test-token">';
 
 const LoginPage = (await import('./LoginPage.vue')).default;
 
-// jsdom does not perform navigation, so an assigned href would silently stay
-// as it was. Swapping location for a plain object makes the one line that
-// leaves this page observable.
+// jsdom does not navigate, so an assigned href would silently stay as it was.
 const realLocation = window.location;
 
 const stubs = {
@@ -60,8 +57,7 @@ describe('LoginPage two-step sign-in', () => {
         expect(options.method).toBe('POST');
     });
 
-    // The password was right and two-factor is on: the page must not navigate,
-    // because nothing is signed in yet.
+    // The password was right but nothing is signed in yet.
     it('shows the code step instead of navigating when a second factor is required', async () => {
         const wrapper = mountPage();
         await flushPromises();

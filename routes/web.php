@@ -20,32 +20,24 @@ Route::get('/hi-developer', [PortfolioController::class, 'app']);
 Route::get('/portfolio', [PortfolioController::class, 'show']);
 Route::post('/hi-developer', [DeveloperInquiryController::class, 'store'])->middleware('throttle:10,1');
 
-// The private workspace — admin editor and planning calendar — lives behind a
-// per-install prefix (ADMIN_PATH in .env, see config/admin.php) rather than
-// /admin, and nothing on the public page links to it. The prefix is read from
-// config, not written here, so no install ships with the same guessable URL.
-// The Blade shell passes the same value to the frontend as a <meta> tag, which
-// is what resources/js/shared/admin-path.js reads.
+// The private workspace lives behind a per-install prefix (ADMIN_PATH) rather
+// than /admin, and nothing on the public page links to it. Read from config,
+// never written here, so no two installs share a URL.
 
-// The way in and the way out sit behind the same prefix, but without the auth
-// middleware — you cannot be signed in yet when you ask for the login page.
-// At the standard /login, every commodity scanner probing for a login form
-// found a real one; here there is nothing at /login to find. The path reveals
-// nothing on its own, since anyone who can reach this URL already knows the
-// prefix — which is why the shell is willing to emit it here.
+// Login and logout sit behind the same prefix but without auth — you cannot
+// be signed in yet when you ask for the login page. There is nothing at the
+// standard /login for a scanner to find.
 Route::prefix(config('admin.path'))->group(function () {
     Route::get('/login', [PortfolioController::class, 'app'])->name('login')->middleware('guest');
     Route::post('/login', [AuthController::class, 'store'])->name('login.attempt')->middleware(['guest', 'throttle:login']);
-    // Second step for an account with two-factor on. Throttled like the
-    // password step: a six-digit code is otherwise cheap to guess.
+    // Second step. Throttled like the password step: six digits is cheap to
+    // guess otherwise.
     Route::post('/two-factor-challenge', [AuthController::class, 'challenge'])->name('two-factor.challenge')->middleware(['guest', 'throttle:login']);
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout')->middleware('auth');
 });
 
 Route::prefix(config('admin.path'))->middleware(['auth', 'role:admin'])->group(function () {
-    // SPA shell routes. Each top-level admin section has its own real,
-    // bookmarkable/refreshable URL — vue-router reads the path to decide
-    // which one is active.
+    // SPA shell routes. Each section has a real, bookmarkable URL.
     Route::get('/', [PortfolioController::class, 'app']);
     Route::get('/mijn-agenda', [PortfolioController::class, 'app']);
     Route::get('/insights', [PortfolioController::class, 'app']);
@@ -56,7 +48,7 @@ Route::prefix(config('admin.path'))->middleware(['auth', 'role:admin'])->group(f
     Route::put('/portfolio', [PortfolioController::class, 'update']);
     Route::post('/portfolio/seed-defaults', [PortfolioController::class, 'seedDefaults']);
 
-    // Saved versions of the public page, listed on the Reset content tab.
+    // Saved versions of the public page.
     Route::get('/portfolio/revisions', [PortfolioController::class, 'revisions']);
     Route::post('/portfolio/revisions/{revision}/restore', [PortfolioController::class, 'restore']);
     Route::get('/inquiries', [DeveloperInquiryController::class, 'index']);
@@ -64,9 +56,8 @@ Route::prefix(config('admin.path'))->middleware(['auth', 'role:admin'])->group(f
     // Sign-in attempts against this install, successful or not.
     Route::get('/security-events', [SecurityEventController::class, 'index']);
 
-    // Two-factor enrolment. Turning it off changes how you get in, so that
-    // one endpoint asks for the password again in the request body rather
-    // than riding on whatever session happens to be open.
+    // Two-factor enrolment. Turning it off asks for the password again,
+    // rather than riding on whatever session is open.
     Route::get('/two-factor', [TwoFactorController::class, 'show']);
     Route::post('/two-factor', [TwoFactorController::class, 'store']);
     Route::post('/two-factor/confirm', [TwoFactorController::class, 'confirm']);

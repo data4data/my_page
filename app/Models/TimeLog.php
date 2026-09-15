@@ -21,13 +21,11 @@ class TimeLog extends Model
 
     protected static function booted(): void
     {
-        // Kept as a stored column (not derived on read) so report totals
-        // are one SUM() query instead of per-row date-diffing in PHP.
+        // Stored, not derived on read, so report totals are one SUM().
         static::saving(function (TimeLog $log): void {
             if ($log->started_at && $log->ended_at) {
-                // Floored at 0, matching Task::plannedMinutes(): the column is
-                // unsignedInteger, so a backwards pair would be rejected by
-                // MySQL in strict mode and stored silently by SQLite.
+                // Floored at 0: the column is unsigned, so a backwards pair
+                // errors on MySQL and stores silently on SQLite.
                 $log->duration_minutes = max(0, (int) round(
                     ($log->ended_at->timestamp - $log->started_at->timestamp) / 60
                 ));

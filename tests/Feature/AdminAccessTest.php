@@ -26,8 +26,8 @@ class AdminAccessTest extends TestCase
         $this->get('/admin')->assertNotFound();
     }
 
-    // The workspace being unguessable is worth little while the door to it
-    // sits at the URL every credential scanner tries first.
+    // An unguessable workspace is worth little if the door to it sits at the
+    // URL every scanner tries first.
     public function test_there_is_no_login_form_at_the_guessable_path(): void
     {
         $this->get('/login')->assertNotFound();
@@ -41,9 +41,8 @@ class AdminAccessTest extends TestCase
     }
 
     /**
-     * The login page has to build its own form action and its vue-router path,
-     * so it needs the prefix. Handing it over there gives away nothing: you
-     * cannot have asked for this URL without already knowing the prefix.
+     * The login page builds its own form action and router path, so it needs
+     * the prefix. Asking for this URL means you already knew it.
      */
     public function test_the_login_page_is_told_the_prefix_it_is_already_served_from(): void
     {
@@ -84,10 +83,8 @@ class AdminAccessTest extends TestCase
 
     public function test_the_public_page_does_not_leak_the_workspace_prefix(): void
     {
-        // Every route renders the same Blade shell, so the tag that hands the
-        // prefix to the frontend used to go out on the public visit card too —
-        // putting the deliberately-unguessable private URL in page source for
-        // any anonymous visitor. Guests are told nothing.
+        // Every route renders the same shell, so the tag that hands the prefix
+        // to the frontend used to go out on the public page too.
         foreach (['/', '/hi-developer'] as $path) {
             $this->get($path)
                 ->assertOk()
@@ -167,15 +164,14 @@ class AdminAccessTest extends TestCase
         $this->assertGuest();
     }
 
-    // A bare per-address throttle stops one machine walking a password list
-    // but not a spread-out attempt against one account, so the limiter keys
-    // on both. See AppServiceProvider::configureLoginRateLimiting().
+    // Per address alone misses a spread-out attempt on one account, so the
+    // limiter keys on both.
     public function test_repeated_failures_against_one_account_are_throttled(): void
     {
         $user = User::factory()->create(['password' => 'secret-password']);
 
-        // Each attempt comes from a different address, so only the
-        // per-account limit can be what stops them.
+        // Different address each time, so only the per-account limit can stop
+        // them.
         for ($attempt = 0; $attempt < 12; $attempt++) {
             $this->withServerVariables(['REMOTE_ADDR' => "10.0.0.{$attempt}"])
                 ->postJson($this->adminUrl('/login'), ['email' => $user->email, 'password' => 'wrong'])

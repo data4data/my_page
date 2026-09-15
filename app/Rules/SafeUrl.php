@@ -6,24 +6,20 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * A link the public page is allowed to render into an href.
+ * A link the public page may put in an href.
  *
- * Deliberately not Laravel's `url` rule: the seeded CTAs are page fragments
- * ("#work") and the editor legitimately produces relative paths, both of
- * which `url` rejects — that would be the same trap UpdatePortfolioRequest's
- * docblock describes, a rule stricter than the UI it validates.
+ * Not Laravel's `url` rule, which rejects page fragments like "#work" and
+ * relative paths — both of which the editor legitimately produces.
  *
- * What actually matters is the scheme. PublicPage.vue binds these values
- * straight into :href, so "javascript:..." stored here executes for every
- * visitor to the public page. A value with no scheme can only point back at
- * this site, so it is left alone.
+ * Only the scheme matters: these go straight into :href, so a stored
+ * "javascript:..." would run for every visitor. No scheme at all can only
+ * point back at this site, so it is allowed.
  */
 class SafeUrl implements ValidationRule
 {
     private const ALLOWED_SCHEMES = ['http', 'https', 'mailto', 'tel'];
 
-    // Mirrors how a browser finds a scheme, rather than parse_url(), which
-    // returns nothing for values a browser would still act on.
+    // Not parse_url(): it returns nothing for values a browser still acts on.
     private const SCHEME_PATTERN = '/^\s*([a-z][a-z0-9+.\-]*)\s*:/i';
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
@@ -38,9 +34,8 @@ class SafeUrl implements ValidationRule
             return;
         }
 
-        // Browsers strip control characters before resolving a URL, so
-        // "java\nscript:..." runs even though it does not look like a scheme
-        // here. Refusing them outright is simpler than emulating that.
+        // Browsers strip control characters first, so "java\nscript:..."
+        // would still run. Simpler to refuse them than to emulate that.
         if (preg_match('/[\x00-\x1F\x7F]/', $value)) {
             $fail('The :attribute must not contain control characters.');
 

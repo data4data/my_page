@@ -4,13 +4,10 @@ import { X } from '@lucide/vue';
 import { copy } from '../../shared/i18n';
 
 /**
- * The overlay, the card, the close button and the keyboard behaviour every
- * modal in this app needs. Three components had the first three copied by
- * hand and none of the fourth: no role, no focus handling, and no way to
- * leave with the keyboard.
+ * The overlay, card, close button and keyboard behaviour every modal needs.
  *
- * ConfirmDialog stays separate on purpose — it is an alertdialog raised from
- * *inside* these, so it carries its own higher stacking layer.
+ * ConfirmDialog stays separate: it is an alertdialog raised from inside these,
+ * so it sits on its own higher stacking layer.
  */
 const props = defineProps({
     // Task editor: more fields than the connect form, so it gets more room.
@@ -18,8 +15,7 @@ const props = defineProps({
         type: String,
         default: 'default', // default | wide
     },
-    // Names the dialog for screen readers, which otherwise announce it as an
-    // unlabelled group.
+    // Names the dialog for screen readers.
     label: {
         type: String,
         default: '',
@@ -30,20 +26,17 @@ const emit = defineEmits(['close']);
 
 const dialog = ref(null);
 
-// What had focus before the modal opened, so it can be handed back on close
-// rather than dumping the user at the top of the page.
+// Handed back on close, so focus does not jump to the top of the page.
 let previouslyFocused = null;
 
-// No layout-based visibility check: these modals show and hide with v-if, so
-// anything hidden is not in the DOM to begin with, and offsetParent would
-// make the trap depend on rendered geometry.
+// No offsetParent check: these modals use v-if, so anything hidden is not in
+// the DOM, and it would make the trap depend on rendered geometry.
 const focusableWithin = () => [...(dialog.value?.querySelectorAll(
     'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
 ) ?? [])].filter((element) => !element.closest('[hidden]'));
 
 const onKeydown = (event) => {
-    // A PrimeVue dropdown inside the modal handles its own Escape; closing
-    // the whole modal out from under it would be the wrong response.
+    // A dropdown inside the modal handles its own Escape first.
     if (event.defaultPrevented) {
         return;
     }
@@ -58,9 +51,8 @@ const onKeydown = (event) => {
         return;
     }
 
-    // Select and DatePicker overlays are appended to <body>, so focus can
-    // legitimately sit outside this element. Only wrap when it is inside,
-    // rather than yanking it back out of a portal.
+    // Select and DatePicker overlays append to <body>, so focus can sit
+    // outside this element. Only wrap when it is inside.
     if (!dialog.value?.contains(document.activeElement)) {
         return;
     }
@@ -88,8 +80,7 @@ onMounted(async () => {
     document.addEventListener('keydown', onKeydown);
 
     await nextTick();
-    // The card itself, not the first field: landing on an input skips the
-    // heading a screen reader should read first.
+    // The card, not the first field: an input would skip the heading.
     dialog.value?.focus();
 });
 
