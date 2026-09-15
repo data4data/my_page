@@ -89,7 +89,7 @@ class PlanningModelsTest extends TestCase
     }
 
     // duration_minutes is an unsignedInteger column: a backwards pair would be
-    // rejected by MySQL in strict mode and stored silently by SQLite.
+    // rejected by MySQL in strict mode.
     public function test_a_backwards_time_log_never_stores_a_negative_duration(): void
     {
         $task = Task::create([

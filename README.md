@@ -41,7 +41,7 @@ Reached at an unlinked, non-obvious URL and gated by login. Four sections in the
 - PHP 8.3+
 - Composer
 - Node.js + npm
-- A database — SQLite works out of the box (`database/database.sqlite` is already in the repo); MySQL is also supported.
+- MySQL 8+ — used for development, tests and production alike, so the engine never differs between them.
 
 ## Quick start (demo)
 
@@ -55,12 +55,14 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-`.env.example` points at MySQL. For the fastest path, switch to SQLite:
+Create the two databases — one to work in, one for the test suite:
 
-```env
-DB_CONNECTION=sqlite
-DB_DATABASE=/absolute/path/to/database/database.sqlite
+```sql
+CREATE DATABASE portfolio CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE portfolio_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
+
+Then point `.env` at the first one (`DB_DATABASE=portfolio`).
 
 Choose your workspace URL and admin login **before** seeding:
 
@@ -162,7 +164,7 @@ npm run test:watch      # same, in watch mode
 vendor/bin/pint         # PHP code style
 ```
 
-Backend tests run against in-memory SQLite regardless of your `.env` database, so they never touch your local data.
+Backend tests run against `portfolio_test` — the same engine as production, so strict mode, foreign-key indexing and JSON handling behave the same in the suite as they will live. Only the database *name* is pinned in `phpunit.xml`; host and credentials come from your `.env`, and your development data is never touched.
 
 ## Content model
 

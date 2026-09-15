@@ -147,7 +147,7 @@ class DefaultPortfolioContent
                 ['group' => 'input', 'title' => ['en' => 'Integrations', 'nl' => 'Integraties'], 'description' => ['en' => 'APIs, tools, and services', 'nl' => 'APIs, tools en services'], 'icon' => 'link'],
                 ['group' => 'core', 'title' => ['en' => 'Backend', 'nl' => 'Backend'], 'description' => ['en' => 'Laravel', 'nl' => 'Laravel'], 'icon' => 'box'],
                 ['group' => 'core', 'title' => ['en' => 'Frontend', 'nl' => 'Frontend'], 'description' => ['en' => 'Vue.js', 'nl' => 'Vue.js'], 'icon' => 'monitor'],
-                ['group' => 'core', 'title' => ['en' => 'Database', 'nl' => 'Database'], 'description' => ['en' => 'MySQL / SQLite', 'nl' => 'MySQL / SQLite'], 'icon' => 'database'],
+                ['group' => 'core', 'title' => ['en' => 'Database', 'nl' => 'Database'], 'description' => ['en' => 'MySQL', 'nl' => 'MySQL'], 'icon' => 'database'],
                 ['group' => 'core', 'title' => ['en' => 'Automation', 'nl' => 'Automatisering'], 'description' => ['en' => 'Workflows', 'nl' => 'Workflows'], 'icon' => 'zap'],
                 ['group' => 'core', 'title' => ['en' => 'Cloud', 'nl' => 'Cloud'], 'description' => ['en' => 'Deployments', 'nl' => 'Deployments'], 'icon' => 'cloud'],
                 ['group' => 'output', 'title' => ['en' => 'Web Application', 'nl' => 'Webapplicatie'], 'description' => ['en' => 'Usable product', 'nl' => 'Bruikbaar product'], 'icon' => 'globe'],

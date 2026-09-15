@@ -17,9 +17,9 @@ return new class extends Migration
             $table->dateTime('start_datetime');
             $table->dateTime('end_datetime')->nullable();
             $table->unsignedInteger('planned_duration_minutes')->nullable();
-            // Plain string (not a DB-level enum) for portability across
-            // MySQL/SQLite — validated against TaskStatus in the controller,
-            // cast to it on the model.
+            // A plain string, not a DB enum: adding a status to a DB enum
+            // needs an ALTER TABLE. Validated against TaskStatus on the way
+            // in and cast to it on the model.
             $table->string('status')->default('planned');
             $table->unsignedInteger('sort_order')->default(0);
             $table->text('result_notes')->nullable();

@@ -5,12 +5,9 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * SQLite does not create an index for a foreign key; MySQL does. Since SQLite
- * is what this project develops against, every FK column was unindexed there.
- *
- * Only composites MySQL's own FK index does not already cover are added, so
- * nothing here is a duplicate on either engine. Each starts with the FK
- * column, so it doubles as the plain prefix index SQLite was missing.
+ * InnoDB indexes every foreign key column on its own, so none of these is a
+ * plain FK index. They are composites matching how the app actually reads:
+ * the FK column first, then the column it orders or filters by.
  */
 return new class extends Migration
 {

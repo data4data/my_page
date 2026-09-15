@@ -2,8 +2,8 @@
 
 namespace App\Enums;
 
-// Plain string column validated against this, not a DB enum — same
-// MySQL/SQLite portability reason as TaskStatus.
+// A plain string column validated against this, not a DB enum — same reason
+// as TaskStatus.
 enum SecurityEventType: string
 {
     case LoginSucceeded = 'login_succeeded';

@@ -25,9 +25,12 @@ php artisan migrate --seed        # set ADMIN_EMAIL/ADMIN_PASSWORD first
 composer run dev                  # serve + queue + logs + vite
 ```
 
-`.env.example` defaults to MySQL; SQLite is simpler locally and the file already
-exists in the repo. `ADMIN_PATH` sets the URL prefix the private workspace lives
-behind — per-install, never hardcoded. Changing it needs `php artisan route:clear`.
+MySQL everywhere, including tests — the same engine as production, so strict
+mode, foreign-key indexing and JSON handling behave the same in all three.
+Create the test database once: `CREATE DATABASE portfolio_test;`.
+
+`ADMIN_PATH` sets the URL prefix the private workspace lives behind —
+per-install, never hardcoded. Changing it needs `php artisan route:clear`.
 
 ## 2. Branch first
 
@@ -94,7 +97,7 @@ If a dev server is already running, reuse it rather than starting a second one o
 the same port. Touching real local content? Back the database up first:
 
 ```bash
-cp database/database.sqlite /tmp/database.sqlite.backup-$(date +%H%M%S)
+mysqldump -u root -p portfolio > /tmp/portfolio-backup-$(date +%H%M%S).sql
 ```
 
 **Dates changed?** Re-read the time-handling section of `CLAUDE.md`, then look at
