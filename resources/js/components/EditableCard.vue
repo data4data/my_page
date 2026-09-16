@@ -1,7 +1,12 @@
 <script setup>
 import { ChevronDown, ChevronUp, Trash2 } from '@lucide/vue';
-import AppButton from './ui/AppButton.vue';
+import AppCheckbox from './ui/AppCheckbox.vue';
+import { copy } from '../shared/i18n';
 
+// One item in an ordered, editable collection — a metric, an expertise card,
+// a process step, a project, a social link. The head carries everything that
+// is true of the item as a whole (its name, where it sits, whether the public
+// page shows it, and the reorder/remove controls); the slot holds its fields.
 defineProps({
     title: {
         type: String,
@@ -11,32 +16,80 @@ defineProps({
         type: Number,
         required: true,
     },
+    // Shown as "2 of 5". A position with no total is just a number.
+    total: {
+        type: Number,
+        required: true,
+    },
     collection: {
         type: String,
         required: true,
     },
+    // Optional: social links have no per-item visibility (their two placement
+    // checkboxes do that job), so the toggle is left out rather than faked.
+    visible: {
+        type: Boolean,
+        default: null,
+    },
 });
 
-defineEmits(['move', 'remove']);
+defineEmits(['move', 'remove', 'update:visible']);
 </script>
 
 <template>
-    <section class="editable-card">
-        <header>
-            <strong>{{ title }} {{ index + 1 }}</strong>
-            <div>
-                <AppButton variant="icon" aria-label="Move up" @click="$emit('move', collection, index, -1)">
-                    <ChevronUp :size="16" />
-                </AppButton>
-                <AppButton variant="icon" aria-label="Move down" @click="$emit('move', collection, index, 1)">
-                    <ChevronDown :size="16" />
-                </AppButton>
-                <AppButton variant="icon-danger" aria-label="Remove" @click="$emit('remove', collection, index)">
-                    <Trash2 :size="16" />
-                </AppButton>
+    <section class="item-card">
+        <header class="item-card-head">
+            <!-- Optional preview of whatever identifies the item at a
+                 glance — the social link's icon, say. -->
+            <slot name="lead" />
+
+            <strong class="item-card-title">{{ title }}</strong>
+            <span class="item-card-position">{{ index + 1 }} {{ copy('positionOf') }} {{ total }}</span>
+
+            <div class="item-card-tools">
+                <AppCheckbox
+                    v-if="visible !== null"
+                    :model-value="visible"
+                    @update:model-value="$emit('update:visible', $event)"
+                >{{ copy('visible') }}</AppCheckbox>
+
+                <span v-if="visible !== null" class="item-card-divider" aria-hidden="true"></span>
+
+                <button
+                    type="button"
+                    class="icon-button"
+                    :disabled="index === 0"
+                    :aria-label="copy('moveUp')"
+                    :title="copy('moveUp')"
+                    @click="$emit('move', collection, index, -1)"
+                >
+                    <ChevronUp :size="14" aria-hidden="true" />
+                </button>
+
+                <button
+                    type="button"
+                    class="icon-button"
+                    :disabled="index === total - 1"
+                    :aria-label="copy('moveDown')"
+                    :title="copy('moveDown')"
+                    @click="$emit('move', collection, index, 1)"
+                >
+                    <ChevronDown :size="14" aria-hidden="true" />
+                </button>
+
+                <button
+                    type="button"
+                    class="icon-button icon-button-danger"
+                    :aria-label="copy('remove')"
+                    :title="copy('remove')"
+                    @click="$emit('remove', collection, index)"
+                >
+                    <Trash2 :size="14" aria-hidden="true" />
+                </button>
             </div>
         </header>
-        <div class="admin-grid">
+
+        <div class="item-card-body">
             <slot />
         </div>
     </section>

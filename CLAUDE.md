@@ -170,24 +170,30 @@ Controllers validate, authorize, delegate, and return JSON. Rules that outlive a
 |---|---|
 | Agenda | the planner |
 | Insights | connect-form messages, news, and the sign-in trail — `Security` last and `right: true`, since it is a log you check rather than a feed you read |
-| Edit page | the public page's content, and nothing else |
+| Edit page | the public page's content, and nothing else — the six content tabs plus **Shared**, trailing, for the values that are the same in both languages (initials, the CTA URLs, the accent word lists) |
 | Settings | Language, two-step sign-in, Content versions — changed rarely, and none of it is page copy |
 
 Only the Edit page and Settings' Language tab put content in the unsaved payload, so `showSaveButton` in `AdminPage` is what decides whether the save button appears. Everything else in Settings and Insights persists through its own endpoint the moment you act on it.
 
 **Admin shell** (`resources/js/components/admin/`):
-- `AdminLayout.vue` — header + navigation + content column. The rail and header share `bg-cream/90` so the chrome reads as one surface; the rail's right border is the single vertical divider, which is why `.admin-panel` drops its own left/bottom border at `lg` and runs flush into it. The row is capped at `max-w-7xl`, so past that width the page's own white used to show to the left of the rail — `.admin-rail` paints over it with a solid `box-shadow` offset `-100vw`, which unlike a positioned pseudo-element cannot widen the page into a horizontal scrollbar.
+- `AdminLayout.vue` — the rail and the frame the sheet sits in. **There is no header:** the initials badge, the EN/NL switch, the theme switch and sign-out all live at the bottom of the rail, which is what retired `--admin-header`, the `ResizeObserver` that measured it, and the sticky offset the old rail nav hung off.
 
-  **The rail's nav is sticky, the rail is not.** `.admin-rail-nav` sticks below the header so the sections stay reachable down a long Agenda or editor, while the aside keeps stretching the full height of the row because its right border is the one vertical divider and has to reach the bottom. The offset comes from `--admin-header`, which `AdminLayout` measures with a `ResizeObserver` and writes onto the layout root: the header wraps to a second line when its title, language switch and sign-out button stop fitting, so a hardcoded height would let the nav slide under a translucent header. `base.css` carries the one-line value as the fallback for first paint and for jsdom.
+  **The rail is two groups.** Destinations at the top; anything flagged `foot: true` in `navItems` is pinned to the bottom above the switchers — the same flag-on-the-item convention the tab strip uses for `right`. Settings carries it.
 
-  **The navigation is two elements, one per size.** The rail is `hidden lg:block`; below `lg` a fixed bottom bar (`.admin-bottom-nav`) takes over, because four sections is what that pattern is for and a stacked rail spent most of a phone's first screenful before any content appeared. Both render the same `navItems` and both set `aria-current="page"`, so the active section is never signalled by colour alone. Anything anchored to the bottom of the viewport has to clear the bar: `--admin-bottom-nav` in `base.css` is the one height, used by `.admin-content`'s padding and by both floating buttons in `responsive.css`, all with `env(safe-area-inset-bottom)` added.
-- `SectionTabs.vue` — the shared "folder bookmark" tab strip + `.admin-panel` card. **The only place the panel is rendered.** Passing `:tabs="[]"` still yields the card, just with no tab row.
+  **A fixed panel inside a placeholder aside.** `.admin-rail` reserves `--admin-rail` in the flex row and `.admin-rail-panel` is drawn fixed at that same width, so opening the rail below `lg` overlays the sheet rather than reflowing it — content under an open rail must not slide sideways while you are pointing at something. One token moves both halves, so they cannot disagree about where the sheet starts.
+
+  **Below `lg` the rail collapses to icons** (`--admin-rail-collapsed`) and opens to `--admin-rail-open` on hover, keyboard focus, or the chevron, which pins it for touch (no hover, no focus) and persists that choice. The three differences between open and shut — label opacity, the switcher stack's axis, the auto margin before sign-out — are carried by three custom properties set on the panel in `responsive.css`, so a state lives in one rule instead of a descendant selector per property. The open state keys off the **panel**, not the placeholder: the panel grows past the placeholder's box, so a pointer resting on an open rail would otherwise leave it and collapse it again. Labels are hidden with `opacity`, not `display`, so the icon-only rail still announces each row.
+
+  The small-screen bottom bar is gone with `--admin-bottom-nav`; so are both floating buttons and `--z-fab`, replaced by the sheet's action bar.
+- `AdminSheet.vue` — the card every section renders into: page heading, the underline tab strip, the body, and the action bar along the bottom. **The only place that shape is rendered** (it replaced `SectionTabs.vue`, and with it `.admin-panel` and the folder-bookmark tabs). Agenda's day/week/month switch and the Edit page's content tabs were two different controls doing one job; now they are the same strip.
+
+  Real tab semantics — `role="tablist"`/`tab`/`tabpanel`, roving `tabindex`, Left/Right/Home/End — because a `role="tab"` without keyboard handling is a promise the widget does not keep. Passing `:tabs="[]"` still yields the card and its heading, just with no tab row. The `status` and `actions` slots fill the action bar; a section that supplies neither gets no empty strip. The bar is `sticky bottom-0`, which is how the save button stays reachable down a long editor — the job the floating button did.
 
 The **Content versions** tab (`pages/admin/ContentVersionsTab.vue`, under Settings) is a single list of states you can go back to. The seeded defaults are its **first row**, not a separate section — they are just another version to restore. `AdminPage.vue` owns the state (`revisions`, `revisionsLoading`, `restoring`, `restoringId`) and refreshes the list after every save, reset and restore, so a new version appears without a reload. Both restore paths go through the shared `confirm()` and both lock every button in the list while one is in flight: they overwrite the live public page, and the defaults row is now one click away from the saved versions rather than guarded by its own warning block.
 
-Like its sibling tabs it opens straight into an `.admin-note` with no `<h3>` — the tab strip already names the section.
+Like its sibling tabs it carries no heading of its own — the sheet's title and subtitle already name the section and say what the tab edits, which is the job the `.admin-note` paragraphs inside the old panel were doing.
 
-For the panel to stretch to the bottom of the page, its ancestors must form an unbroken flex column. `AdminLayout`'s content column and `CalendarView`'s wrapper both participate — Agenda nests the panel one level deeper than Insights/Edit, so a change there needs checking on all three sections.
+For the sheet to stretch to the bottom of the page, its ancestors must form an unbroken flex column: `.admin-shell` → `.admin-frame` → `.admin-sheet`. Agenda, Insights and Edit each render their own sheet, so a change to that chain needs checking on all three.
 
 **Agenda** (`resources/js/pages/admin/agenda/`): `CalendarView` (mode switching, filters, period navigation, task CRUD wiring) → `DayView` / `WeekView` / `MonthView` / `CategoriesView` / `ReportView`, plus `TaskCard`, `TaskModal`, `CategoryModal`.
 
@@ -215,36 +221,53 @@ Weeks are Monday-based everywhere: Carbon's default `startOfWeek()` server-side,
 
 `resources/js/components/ui/` wraps PrimeVue — installed **unstyled** and pinned to the **MIT-licensed v4 line** (v5 moved to a commercial licence requiring a key) — with this app's look, styled once in the `resources/css/` partials (see below).
 
-Components: `AppButton` (variants: primary/secondary/accent/menu/menu-gold/lang/link/icon/icon-danger), `AppInput`, `AppTextarea`, `AppSelect` (optional `filterable`), `AppMultiSelect`, `AppIconSelect`, `AppCheckbox`, `AppDatePicker`, `AppTranslatedField` (one label over grouped EN/NL inputs — the standard way every bilingual field is edited), `AppModal`, plus `ConfirmDialog` and `ToastStack`.
+Components: `AppButton`, `AppInput`, `AppTextarea`, `AppSelect` (optional `filterable`), `AppMultiSelect`, `AppIconSelect`, `AppCheckbox`, `AppDatePicker`, `AppPillSwitch`, `AppLanguageCards`, `AppModal`, plus `ConfirmDialog` and `ToastStack`.
 
-**`AppModal` is the shell every modal uses** — overlay, card, close button, `role="dialog"`, Escape, a Tab trap, and returning focus to whatever opened it. `TaskModal`, `CategoryModal` and `DeveloperConnectModal` each had the first three copied by hand and none of the rest. It skips an Escape that another component already called `preventDefault()` on, and leaves focus alone when it sits outside the card, because `AppSelect` and `AppDatePicker` overlays are appended to `<body>`. `ConfirmDialog` stays separate: it is an `alertdialog` raised from inside these, so it carries its own higher `--z-confirm` layer. `EditableCard.vue` is the reorder/remove wrapper used across the editable content tabs.
+`AppButton`'s variants come in two families, and they are not interchangeable: **public page** (`primary`/`secondary`/`accent`/`menu`/`menu-gold`/`lang`/`link`) are the uppercase tracked pills the visit card is built from; **workspace** (`solid`/`outline`/`icon`/`icon-danger`) are quieter 13px controls drawn from the surface tokens, so they invert with the theme. A settings row full of tracked capitals reads as shouting.
+
+**`AppModal` is the shell every modal uses** — overlay, card, close button, `role="dialog"`, Escape, a Tab trap, and returning focus to whatever opened it. `TaskModal`, `CategoryModal` and `DeveloperConnectModal` each had the first three copied by hand and none of the rest. It skips an Escape that another component already called `preventDefault()` on, and leaves focus alone when it sits outside the card, because `AppSelect` and `AppDatePicker` overlays are appended to `<body>`. `ConfirmDialog` stays separate: it is an `alertdialog` raised from inside these, so it carries its own higher `--z-confirm` layer. `EditableCard.vue` is one item in an ordered collection: its head carries the item's name, its position, the Visible toggle and the reorder/remove buttons, and its body holds the fields. `AppLanguageCards.vue` renders its slot once per language into two side-by-side cards, which replaced the per-field EN/NL pair — a card with four translated fields used to interleave them, so reading one language end to end meant reading every other row. `AppPillSwitch.vue` is the one switcher shape in the workspace (EN/NL, light/dark, default language, show/hide); it takes its colours from `--pill-*` set by whatever contains it rather than a variant prop.
 
 **Unstyled mode means PrimeVue ships no CSS at all** — every class comes from our `pt` map, and anything the default theme would have done for us has to be done by hand. Two consequences that have already bitten:
 
 - PrimeVue's `Checkbox` binds `onChange` to its `<input>` only. `AppCheckbox` gets away with an `sr-only` input because its root is a `<label>` that forwards the click; `AppMultiSelect`'s "select all" header checkbox has no such wrapper, so its input is a transparent full-size overlay (`.field-checkbox-input-overlay`) instead. Option rows keep `sr-only` — the `<li>` carries MultiSelect's own handler, and an overlay there would double-toggle.
 - State attributes differ per component: `Checkbox` uses `data-p-checked`, `DatePicker` uses `aria-selected` / a space-separated `data-p` token. Check the rendered DOM rather than assuming.
 
-Styling is Tailwind v4 via `@tailwindcss/vite` (no `tailwind.config.js` — v4 is CSS-first) plus `tailwindcss-primeui`. Colours come from the `@theme` token block; prefer `text-ink`/`bg-cream`/`border-sand` over raw hex. Fonts load through `laravel-vite-plugin/fonts` (Bunny Fonts, not Google Fonts).
+Styling is Tailwind v4 via `@tailwindcss/vite` (no `tailwind.config.js` — v4 is CSS-first) plus `tailwindcss-primeui`. Colours come from the `@theme` token block; prefer `text-ink`/`bg-cream`/`border-sand` on the public page and the surface tokens in the workspace (see Light and dark) over raw hex. Fonts load through `laravel-vite-plugin/fonts` (Bunny Fonts, not Google Fonts).
+
+### Light and dark
+
+The private workspace has both; the public visit card has neither, on purpose.
+
+**Every value that differs between the two lives in one `light-dark()`** in `theme.css`, not in a `:root` block restated under `[data-theme='dark']` — two lists of the same twenty colours is two lists that drift. Which half applies is decided by `color-scheme`, which `theme.css` sets from a `data-theme` attribute on `<html>`.
+
+**`data-theme` is held, not set.** `shared/theme.js` exposes `holdTheme()`/`releaseTheme()`; `AdminLayout` holds it on mount and releases it on unmount, counting holders because a route change can mount the next layout before the previous one tears down. With no attribute — the public page, and the first paint before the script runs — `color-scheme` stays `normal` and every `light-dark()` resolves to its light half. That is what keeps the visit card, *and the connect modal's fields that share `forms.css`*, out of dark mode on an owner who picked dark in here. The watcher that applies it is declared at module scope: one created inside a component's setup belongs to that component's effect scope, so the first layout's unmount would kill it while a second was still holding.
+
+**Workspace rules draw from the surface tokens** — `--color-sheet`, `--color-sunken`, `--color-raised`, `--color-field`, `--color-body`/`--color-strong`/`--color-mute`/`--color-faint`, `--color-hairline`/`--color-ring`, `--color-solid`, `--color-marker`. They are named for the job, not the colour, because the value flips: `sheet` is white in light and near-black in dark, so **a literal `bg-white` or `border-sand` inside `admin.css` is a bug** — it stays light when everything around it does not. The public page keeps using the brand palette (`bg-cream`, `text-ink`, `border-sand`) and so cannot be dragged into dark mode by a token it never opted into.
+
+`forms.css` is shared by both halves and is itself written against the surface tokens, so a field themes itself wherever it is rendered — including the Select and DatePicker panels, which portal to `<body>` and so sit outside `.admin-shell` but still inside the `:root` that carries `color-scheme`. The public connect modal is the one place that must *not* follow the workspace, and `overlays.css` remaps the tokens back to the brand palette under `:root:not([data-theme]) .connect-modal` — "not in the workspace", since the attribute is only held while `AdminLayout` is mounted. Scoping that to the modal rather than to the page is deliberate: `TaskModal` and `CategoryModal` share the same `.connect-modal` card and stay on the workspace palette.
+
+`LoginPage` is deliberately excluded — it is the door to the workspace rather than part of it, never mounts `AdminLayout`, and so never carries the attribute.
 
 **`resources/css/app.css` is only an entry point** — it imports partials split by concern, and import order *is* cascade order:
 
 | File | Holds |
 |---|---|
-| `theme.css` | `@theme` tokens: colours, fonts, breakpoints |
-| `base.css` | `@layer base`: the `--z-*` and width scales on `:root`, `html`/`body`, the ambient wash |
+| `theme.css` | `@theme` tokens: brand colours, the workspace surface tokens (both halves, via `light-dark()`), fonts, breakpoints |
+| `base.css` | `@layer base`: the `--z-*`, rail-width and page-width scales on `:root`, `html`/`body`, the ambient wash |
 | `layout.css` | `.page-grid` track system, `.u-*` span helpers, `.layer-*` stacking utilities |
 | `buttons.css` | `.eyebrow` and every button variant |
 | `public.css` | the visit card: header, hero, rails, sections, projects, contact |
-| `admin.css` | admin chrome and the agenda/planning views |
-| `forms.css` | `.admin-grid` and the PrimeVue field styling |
-| `overlays.css` | modals shared by public and admin |
+| `admin.css` | the rail, the sheet, the shared cards, and the agenda/planning views |
+| `forms.css` | `.admin-grid` and the PrimeVue field styling, on the surface tokens so a field themes itself |
+| `overlays.css` | modals shared by public and admin, and the remap that keeps the public connect modal on the brand palette |
 | `responsive.css` | every media query, together so breakpoints stay reviewable |
 
-Three rules when editing:
+Four rules when editing:
 
 1. All `@import`s must stay above `@plugin`/`@source` (CSS requires `@import` first, and Lightning CSS enforces it).
-2. **Anything competing in the page's root stacking context takes a `--z-*` token** from the scale in `base.css` — `raised`, `section`, `rail`, `header`, `fab`, `overlay`, `field`, `confirm`, `toast` — used as `z-index: var(--z-x)` in CSS or a `.layer-x` class in a template. Never a bare number at that level. Equal ad-hoc `z-50` values on the toast container and the modal overlay are what once buried error toasts behind the modal scrim, and `field` exists because `AppSelect`/`AppDatePicker` panels append to `<body>`, so inside a modal they are the scrim's sibling rather than its child. A small literal lift *inside* an element's own stacking context — text over its card's decorative pseudo-element, a focused input over its sibling — is a different thing and stays local. `layering.test.js` enforces both halves.
+2. **Anything competing in the page's root stacking context takes a `--z-*` token** from the scale in `base.css` — `raised`, `section`, `rail`, `header`, `overlay`, `field`, `confirm`, `toast` — used as `z-index: var(--z-x)` in CSS or a `.layer-x` class in a template. Never a bare number at that level. Equal ad-hoc `z-50` values on the toast container and the modal overlay are what once buried error toasts behind the modal scrim, and `field` exists because `AppSelect`/`AppDatePicker` panels append to `<body>`, so inside a modal they are the scrim's sibling rather than its child. A small literal lift *inside* an element's own stacking context — text over its card's decorative pseudo-element, a focused input over its sibling — is a different thing and stays local. `layering.test.js` enforces both halves.
 3. **Media queries reference the breakpoint tokens, not numbers** — `@media (width >= theme(--breakpoint-lg))`, and `(width < theme(--breakpoint-md))` for the "below" side. Hand-computed boundaries like `47.9375rem` drift away from the ones Tailwind's own `md:` variants use, which is how a band of widths once fell through to the desktop layout. The one literal left is the ambient-wash threshold in `base.css`, which corresponds to no breakpoint.
+4. **Workspace rules use the surface tokens, never the brand palette or a literal.** `bg-sheet` not `bg-white`, `border-hairline` not `border-sand`, `text-body` not `text-ink`. The brand palette has one value; the surface tokens have two, and only the second kind follows the theme. This is the rule that decides whether a new card is still readable in dark mode.
 
 ## Not yet built
 

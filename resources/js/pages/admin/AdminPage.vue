@@ -1,16 +1,17 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowRight, Calendar, Inbox, Pencil, Settings } from '@lucide/vue';
+import { Calendar, Inbox, Pencil, Settings } from '@lucide/vue';
 import AppButton from '../../components/ui/AppButton.vue';
 import AdminLayout from '../../components/admin/AdminLayout.vue';
-import SectionTabs from '../../components/admin/SectionTabs.vue';
+import AdminSheet from '../../components/admin/AdminSheet.vue';
 import ProfileTab from './ProfileTab.vue';
 import MetricsTab from './MetricsTab.vue';
 import ExpertiseTab from './ExpertiseTab.vue';
 import ProcessTab from './ProcessTab.vue';
 import ProjectsTab from './ProjectsTab.vue';
 import SocialLinksTab from './SocialLinksTab.vue';
+import SharedTab from './SharedTab.vue';
 import InsightsPage from './InsightsPage.vue';
 import ContentVersionsTab from './ContentVersionsTab.vue';
 import LanguageTab from './LanguageTab.vue';
@@ -76,7 +77,8 @@ const navItems = computed(() => [
     { key: 'agenda', label: copy('agenda'), icon: Calendar },
     { key: 'insights', label: copy('insights'), icon: Inbox },
     { key: 'edit', label: copy('editPage'), icon: Pencil },
-    { key: 'settings', label: copy('settings'), icon: Settings },
+    // Pinned to the bottom of the rail, apart from the three destinations.
+    { key: 'settings', label: copy('settings'), icon: Settings, foot: true },
 ]);
 
 // Edit page is the content only. Language and Content versions are in
@@ -88,6 +90,9 @@ const adminTabs = computed(() => [
     { value: 'process', label: copy('tabProcess') },
     { value: 'projects', label: copy('tabProjects') },
     { value: 'social', label: copy('tabSocial') },
+    // Trailing, like Insights' Security tab: values that are the same in
+    // both languages, rather than another slice of page copy.
+    { value: 'shared', label: copy('tabShared'), right: true },
 ]);
 
 const settingsTabs = computed(() => [
@@ -99,6 +104,34 @@ const settingsTabs = computed(() => [
 // Language edits the portfolio payload, so it needs the Save button. The
 // other settings save through their own endpoints as you act on them.
 const showSaveButton = computed(() => view.value === 'edit' || (view.value === 'settings' && settingsTab.value === 'language'));
+
+// What the server last confirmed, serialised. The action bar says "Unsaved
+// changes" against this rather than against a flag set by a deep watcher: a
+// watcher also fires when fetchPortfolio() replaces the payload, so a plain
+// reload would have reported edits nobody made.
+const savedPayload = ref('');
+const dirty = computed(() => Boolean(savedPayload.value) && savedPayload.value !== JSON.stringify(data.value));
+const saveStatus = computed(() => (dirty.value ? copy('unsavedChanges') : copy('allSaved')));
+
+// One subtitle per tab, under the page title.
+const EDIT_SUBTITLES = {
+    profile: 'subtitleEditProfile',
+    metrics: 'subtitleEditMetrics',
+    expertise: 'subtitleEditExpertise',
+    process: 'subtitleEditProcess',
+    projects: 'subtitleEditProjects',
+    social: 'subtitleEditSocial',
+    shared: 'subtitleEditShared',
+};
+
+const SETTINGS_SUBTITLES = {
+    language: 'subtitleSettingsLanguage',
+    'two-factor': 'subtitleSettingsTwoFactor',
+    versions: 'subtitleSettingsVersions',
+};
+
+const editSubtitle = computed(() => copy(EDIT_SUBTITLES[tab.value] ?? ''));
+const settingsSubtitle = computed(() => copy(SETTINGS_SUBTITLES[settingsTab.value] ?? ''));
 
 // Each load clears its own flag and reports its own failure, so one failing
 // leaves the others alone.
@@ -142,7 +175,12 @@ const fetchSecurityEvents = async () => {
 
 const loadMoreInquiries = () => fetchInquiries(inquiriesPage.value + 1).catch(reportFailure);
 
-fetchPortfolio().catch(reportFailure);
+// Snapshot once the payload lands, so `dirty` has something to compare to.
+const loadPortfolio = () => fetchPortfolio().then(() => {
+    savedPayload.value = JSON.stringify(data.value);
+});
+
+loadPortfolio().catch(reportFailure);
 fetchInquiries().catch(reportFailure);
 fetchRevisions().catch(reportFailure);
 fetchSecurityEvents().catch(reportFailure);
@@ -157,7 +195,7 @@ const savePortfolio = async () => {
             message: copy('error'),
         });
 
-        await fetchPortfolio();
+        await loadPortfolio();
         // The save just created a new version — refresh the list so it shows up
         // without a page reload.
         await fetchRevisions();
@@ -181,7 +219,7 @@ const restoreDefaults = async () => {
     try {
         await apiFetch(adminUrl('/portfolio/seed-defaults'), { method: 'POST', message: copy('error') });
 
-        await fetchPortfolio();
+        await loadPortfolio();
         await fetchRevisions();
         toast.success(copy('restored'));
     } catch (error) {
@@ -202,7 +240,7 @@ const restoreRevision = async (id) => {
     try {
         await apiFetch(adminUrl(`/portfolio/revisions/${id}/restore`), { method: 'POST', message: copy('error') });
 
-        await fetchPortfolio();
+        await loadPortfolio();
         await fetchRevisions();
         toast.success(copy('historyRestored'));
     } catch (error) {
@@ -236,7 +274,7 @@ const updateTags = (project, value) => {
 </script>
 
 <template>
-    <main v-if="loading" class="min-h-screen bg-white px-6 py-10 text-ink">
+    <main v-if="loading" class="min-h-dvh px-6 py-10" style="background: var(--color-ground); color: var(--color-body)">
         <div class="mx-auto max-w-7xl">{{ copy('loading') }}</div>
     </main>
 
@@ -256,7 +294,13 @@ const updateTags = (project, value) => {
             @load-more="loadMoreInquiries"
         />
 
-        <SectionTabs v-else-if="view === 'settings'" v-model="settingsTab" :tabs="settingsTabs">
+        <AdminSheet
+            v-else-if="view === 'settings'"
+            v-model="settingsTab"
+            :tabs="settingsTabs"
+            :title="copy('settings')"
+            :subtitle="settingsSubtitle"
+        >
             <LanguageTab v-if="settingsTab === 'language'" :profile="profile" />
             <TwoFactorCard v-else-if="settingsTab === 'two-factor'" />
             <ContentVersionsTab
@@ -268,24 +312,46 @@ const updateTags = (project, value) => {
                 :restore-revision="restoreRevision"
                 :restoring-id="restoringId"
             />
-        </SectionTabs>
 
-        <SectionTabs v-else v-model="tab" :tabs="adminTabs">
+            <!-- Only Language puts anything in the unsaved payload; the other
+                 two settings tabs persist as you act on them. -->
+            <template v-if="showSaveButton" #status>{{ saveStatus }}</template>
+
+            <template v-if="showSaveButton" #actions>
+                <AppButton variant="outline" :disabled="!dirty || saving" @click="loadPortfolio().catch(reportFailure)">
+                    {{ copy('cancel') }}
+                </AppButton>
+                <AppButton variant="solid" :disabled="saving" @click="savePortfolio">
+                    {{ saving ? copy('saving') : copy('save') }}
+                </AppButton>
+            </template>
+        </AdminSheet>
+
+        <AdminSheet
+            v-else
+            v-model="tab"
+            :tabs="adminTabs"
+            :title="copy('editPage')"
+            :subtitle="editSubtitle"
+        >
             <ProfileTab v-if="tab === 'profile'" :profile="profile" />
-            <MetricsTab v-else-if="tab === 'metrics'" :metrics="metrics" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
-            <ExpertiseTab v-else-if="tab === 'expertise'" :expertise="expertise" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
-            <ProcessTab v-else-if="tab === 'process'" :process-steps="processSteps" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
-            <ProjectsTab v-else-if="tab === 'projects'" :projects="projects" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :update-tags="updateTags" />
+            <MetricsTab v-else-if="tab === 'metrics'" :metrics="metrics" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :profile="profile" />
+            <ExpertiseTab v-else-if="tab === 'expertise'" :expertise="expertise" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :profile="profile" />
+            <ProcessTab v-else-if="tab === 'process'" :process-steps="processSteps" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :profile="profile" />
+            <ProjectsTab v-else-if="tab === 'projects'" :projects="projects" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :update-tags="updateTags" :profile="profile" />
             <SocialLinksTab v-else-if="tab === 'social'" :profile="profile" />
-        </SectionTabs>
+            <SharedTab v-else-if="tab === 'shared'" :profile="profile" />
 
-        <template #fab>
-            <!-- Only where there is unsaved payload: the Edit page and
-                 Settings' Language tab. Everything else saves on its own. -->
-            <AppButton v-if="showSaveButton" variant="primary" size="sm" class="fab-save" :disabled="saving" @click="savePortfolio">
-                {{ saving ? copy('saving') : copy('save') }}
-                <ArrowRight :size="16" />
-            </AppButton>
-        </template>
+            <template #status>{{ saveStatus }}</template>
+
+            <template #actions>
+                <AppButton variant="outline" :disabled="!dirty || saving" @click="loadPortfolio().catch(reportFailure)">
+                    {{ copy('cancel') }}
+                </AppButton>
+                <AppButton variant="solid" :disabled="saving" @click="savePortfolio">
+                    {{ saving ? copy('saving') : copy('save') }}
+                </AppButton>
+            </template>
+        </AdminSheet>
     </AdminLayout>
 </template>

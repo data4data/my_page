@@ -1,15 +1,22 @@
 <script setup>
+import { computed } from 'vue';
 import { Plus } from '@lucide/vue';
+import AppTextarea from '../../components/ui/AppTextarea.vue';
+import AppInput from '../../components/ui/AppInput.vue';
 import AppIconSelect from '../../components/ui/AppIconSelect.vue';
-import AppTranslatedField from '../../components/ui/AppTranslatedField.vue';
 import AppSelect from '../../components/ui/AppSelect.vue';
-import AppCheckbox from '../../components/ui/AppCheckbox.vue';
 import AppButton from '../../components/ui/AppButton.vue';
+import AppLanguageCards from '../../components/ui/AppLanguageCards.vue';
 import EditableCard from '../../components/EditableCard.vue';
+import { copy, t } from '../../shared/i18n';
 
 defineProps({
     processSteps: {
         type: Array,
+        required: true,
+    },
+    profile: {
+        type: Object,
         required: true,
     },
     addItem: {
@@ -26,25 +33,51 @@ defineProps({
     },
 });
 
-const processGroupOptions = [
-    { label: 'Input', value: 'input' },
-    { label: 'Core', value: 'core' },
-    { label: 'Output', value: 'output' },
-];
+// The three groups are a fixed vocabulary on the public panel, not free text,
+// so they stay a select. Labels are computed for the EN/NL switch.
+const processGroupOptions = computed(() => [
+    { label: copy('processGroupInput'), value: 'input' },
+    { label: copy('processGroupCore'), value: 'core' },
+    { label: copy('processGroupOutput'), value: 'output' },
+]);
 </script>
 
 <template>
-    <div class="space-y-4">
-        <div class="admin-note">
-            These steps fill the "How I work" input / core / output panel on the public page. Change order, group, text, icon, and visibility here.
-        </div>
-        <EditableCard v-for="(item, index) in processSteps" :key="index" title="Process step" :index="index" collection="process_steps" @move="moveItem" @remove="removeItem">
-            <label>Group<AppSelect v-model="item.group" :options="processGroupOptions" /></label>
-            <label>Icon<AppIconSelect v-model="item.icon" /></label>
-            <div class="admin-full"><AppTranslatedField label="Title" v-model="item.title" /></div>
-            <div class="admin-full"><AppTranslatedField label="Description" v-model="item.description" multiline rows="2" /></div>
-            <AppCheckbox v-model="item.is_visible">Visible</AppCheckbox>
+    <div class="flex flex-col gap-3">
+        <p v-if="processSteps.length === 0" class="admin-note">{{ copy('empty') }}</p>
+
+        <EditableCard
+            v-for="(item, index) in processSteps"
+            :key="index"
+            :title="t(item.title) || copy('untitled')"
+            :index="index"
+            :total="processSteps.length"
+            collection="process_steps"
+            :visible="item.is_visible !== false"
+            @move="moveItem"
+            @remove="removeItem"
+            @update:visible="item.is_visible = $event"
+        >
+            <div class="lang-grid">
+                <label class="field-label">{{ copy('fieldIcon') }}<AppIconSelect v-model="item.icon" /></label>
+                <label class="field-label">{{ copy('fieldGroup') }}<AppSelect v-model="item.group" :options="processGroupOptions" /></label>
+            </div>
+
+            <AppLanguageCards :default-language="profile.default_language">
+                <template #default="{ locale }">
+                    <label class="field-label">{{ copy('fieldTitle') }}<AppInput v-model="item.title[locale]" /></label>
+                    <label class="field-label">{{ copy('fieldDescription') }}<AppTextarea v-model="item.description[locale]" rows="2" /></label>
+                </template>
+            </AppLanguageCards>
         </EditableCard>
-        <AppButton variant="accent" size="sm" class="fab-add" @click="addItem('process_steps', { group: 'core', title: { en: 'New step', nl: 'Nieuwe stap' }, description: { en: 'Short description', nl: 'Korte beschrijving' }, icon: 'sparkles' })"><Plus :size="16" /> Add process step</AppButton>
+
+        <AppButton
+            variant="solid"
+            class="self-start"
+            @click="addItem('process_steps', { group: 'core', title: { en: 'New step', nl: 'Nieuwe stap' }, description: { en: 'Short description', nl: 'Korte beschrijving' }, icon: 'sparkles' })"
+        >
+            <Plus :size="14" aria-hidden="true" />
+            {{ copy('addProcessStep') }}
+        </AppButton>
     </div>
 </template>

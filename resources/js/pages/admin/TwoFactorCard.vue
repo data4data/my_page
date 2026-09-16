@@ -111,8 +111,8 @@ const newRecoveryCodes = async () => {
                 <img :src="setup.qr_data_uri" alt="" width="228" height="228" class="two-factor-qr">
 
                 <div class="min-w-0">
-                    <p class="text-sm leading-6 text-graphite">{{ copy('twoFactorScan') }}</p>
-                    <p class="mt-2 text-xs uppercase tracking-[0.08em] text-graphite">{{ copy('twoFactorSetupKey') }}</p>
+                    <p class="text-sm leading-6 text-mute">{{ copy('twoFactorScan') }}</p>
+                    <p class="mt-2 text-xs uppercase tracking-[0.08em] text-mute">{{ copy('twoFactorSetupKey') }}</p>
                     <code class="two-factor-key">{{ setup.setup_key }}</code>
                 </div>
             </div>
@@ -129,15 +129,15 @@ const newRecoveryCodes = async () => {
 
             <!-- Recovery codes, shown at enrolment and whenever regenerated. -->
             <div v-if="setup?.recovery_codes" class="mt-5">
-                <p class="text-xs uppercase tracking-[0.08em] text-graphite">{{ copy('twoFactorRecovery') }}</p>
-                <p class="mt-1 text-sm leading-6 text-graphite">{{ copy('twoFactorRecoveryHint') }}</p>
+                <p class="text-xs uppercase tracking-[0.08em] text-mute">{{ copy('twoFactorRecovery') }}</p>
+                <p class="mt-1 text-sm leading-6 text-mute">{{ copy('twoFactorRecoveryHint') }}</p>
                 <ul class="two-factor-codes mt-2">
                     <li v-for="recovery in setup.recovery_codes" :key="recovery"><code>{{ recovery }}</code></li>
                 </ul>
             </div>
 
             <template v-if="state.enabled">
-                <p class="mt-5 text-sm text-graphite">
+                <p class="mt-5 text-sm text-mute">
                     <strong class="tabular-nums">{{ state.recovery_codes_left }}</strong> {{ copy('twoFactorRecoveryLeft') }}
                 </p>
 
@@ -155,7 +155,7 @@ const newRecoveryCodes = async () => {
                     </AppButton>
                 </form>
 
-                <p class="mt-5 text-xs leading-6 text-taupe">
+                <p class="mt-5 text-xs leading-6 text-faint">
                     {{ copy('twoFactorLocked') }}
                     <code class="two-factor-key">php artisan two-factor:disable {{ state.email ?? '' }}</code>
                 </p>

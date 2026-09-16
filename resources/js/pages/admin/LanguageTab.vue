@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Eye, EyeOff } from '@lucide/vue';
+import AppPillSwitch from '../../components/ui/AppPillSwitch.vue';
 import { copy, LANGUAGES } from '../../shared/i18n';
 
 const props = defineProps({
@@ -10,58 +11,63 @@ const props = defineProps({
     },
 });
 
-const isDefault = (value) => (props.profile.default_language || 'en') === value;
+// A two-option switch rather than checkboxes: exactly one language is the
+// default, so picking one implicitly unpicks the other and the site can never
+// end up with no default at all.
+const defaultLanguage = computed({
+    get: () => props.profile.default_language || 'en',
+    set: (value) => {
+        props.profile.default_language = value;
+    },
+});
 
-// A two-option segmented control rather than checkboxes: exactly one language
-// is the default, so picking one implicitly unpicks the other and the site
-// can never end up with no default at all.
-const makeDefault = (value) => {
-    props.profile.default_language = value;
-};
+const switcherShown = computed({
+    get: () => props.profile.show_language_toggle !== false,
+    set: (value) => {
+        props.profile.show_language_toggle = value;
+    },
+});
 
-const switcherShown = computed(() => props.profile.show_language_toggle !== false);
+const languageOptions = computed(() => LANGUAGES.map((language) => ({
+    value: language.value,
+    label: language.value.toUpperCase(),
+    ariaLabel: language.label,
+})));
 
-const toggleSwitcher = () => {
-    props.profile.show_language_toggle = !switcherShown.value;
-};
+// Shown/hidden rather than on/off: the eye says which state you are looking
+// at, and the label underneath says what hiding it costs.
+const switcherOptions = computed(() => [
+    { value: true, icon: Eye, ariaLabel: copy('languageSwitcherShown') },
+    { value: false, icon: EyeOff, ariaLabel: copy('languageSwitcherHidden') },
+]);
 </script>
 
 <template>
-    <div class="flex flex-col gap-2">
-        <div class="language-row">
-            <span class="flex-1 text-sm text-ink">{{ copy('languageDefaultLabel') }}</span>
-
-            <div class="language-segment" role="group" :aria-label="copy('languageDefaultLabel')">
-                <button
-                    v-for="language in LANGUAGES"
-                    :key="language.value"
-                    type="button"
-                    class="language-segment-option"
-                    :class="{ active: isDefault(language.value) }"
-                    :aria-pressed="isDefault(language.value)"
-                    @click="makeDefault(language.value)"
-                >
-                    {{ language.label }}
-                </button>
+    <div class="flex flex-col gap-2.5">
+        <div class="setting-row">
+            <div class="setting-row-text">
+                <span class="setting-row-name">{{ copy('languageDefaultLabel') }}</span>
+                <span class="setting-row-hint">{{ copy('languageDefaultHint') }}</span>
             </div>
+
+            <AppPillSwitch
+                v-model="defaultLanguage"
+                :options="languageOptions"
+                :aria-label="copy('languageDefaultLabel')"
+            />
         </div>
 
-        <div class="language-row">
-            <span class="flex-1 text-sm text-ink">{{ copy('languageSwitcherLabel') }}</span>
+        <div class="setting-row">
+            <div class="setting-row-text">
+                <span class="setting-row-name">{{ copy('languageSwitcherLabel') }}</span>
+                <span class="setting-row-hint">{{ copy('languageVisibilityHint') }}</span>
+            </div>
 
-            <button
-                type="button"
-                class="language-eye"
-                :class="{ 'language-eye-off': !switcherShown }"
-                :aria-pressed="switcherShown"
-                :title="copy('languageToggleVisibility')"
+            <AppPillSwitch
+                v-model="switcherShown"
+                :options="switcherOptions"
                 :aria-label="copy('languageToggleVisibility')"
-                @click="toggleSwitcher"
-            >
-                <component :is="switcherShown ? Eye : EyeOff" :size="16" />
-            </button>
+            />
         </div>
-
-        <p class="mt-1 text-xs leading-5 text-taupe">{{ copy('languageVisibilityHint') }}</p>
     </div>
 </template>

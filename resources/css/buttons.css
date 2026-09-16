@@ -33,29 +33,33 @@
         @apply px-4 py-2.5 shadow-none;
     }
 
-    /* Floating "Add ..." button in the admin list tabs, always reachable
-       without scrolling. Shadow restated after .btn-compact's shadow-none
-       (same specificity, later wins) — a floating button still needs it. */
-    .fab-add {
-        @apply fixed bottom-6 right-6 shadow-[0_18px_45px_rgba(7,21,35,0.35)];
-        z-index: var(--z-fab);
+    /* Workspace buttons. Deliberately unlike the public page's uppercase
+       pills above: this is a tool, and a settings row full of 12px tracked
+       capitals reads as shouting. Both draw from the surface tokens, so they
+       invert with the theme — `solid` is ink-on-white in light and
+       white-on-ink in dark, which is the same button either way. */
+    .solid-button,
+    .outline-button {
+        @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-[0.8125rem] font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
     }
 
-    .fab-add.btn-compact {
-        @apply shadow-[0_18px_45px_rgba(47,117,168,0.4)];
+    .solid-button {
+        background: var(--color-solid);
+        color: var(--color-solid-text);
     }
 
-    /* Floating "Save changes" — same corner as .fab-add, stacked above it
-       (higher bottom offset) so the two never overlap on a list tab where
-       both are visible at once. Always on top: saving applies to every tab,
-       not just the one currently open. */
-    .fab-save {
-        @apply fixed bottom-24 right-6 shadow-[0_18px_45px_rgba(7,21,35,0.35)];
-        z-index: var(--z-fab);
+    .solid-button:not(:disabled):hover {
+        opacity: 0.88;
     }
 
-    .fab-save.btn-compact {
-        @apply shadow-[0_18px_45px_rgba(7,21,35,0.35)];
+    .outline-button {
+        box-shadow: inset 0 0 0 1px var(--color-ring);
+        color: var(--color-strong);
+    }
+
+    .outline-button:not(:disabled):hover {
+        background: var(--color-sunken);
+        color: var(--color-body);
     }
 
     .light-button {

@@ -222,27 +222,91 @@
     }
 }
 
-/* Below lg the navigation is a fixed bottom bar, so anything at the bottom of
-   the viewport has to clear it. Height: --admin-bottom-nav in base.css. */
+/* Below lg the rail collapses to icons and opens on hover, keyboard focus or
+   the pin. Every difference between the two states is carried by three custom
+   properties set on the panel, so a state lives in exactly one rule rather
+   than being chased across a descendant selector per property.
+
+   The open state keys off the *panel*, not the .admin-rail placeholder: the
+   panel is fixed and grows past the placeholder's 56px, so a pointer resting
+   on an open rail would leave the placeholder's box and collapse it again. */
 @media (width < theme(--breakpoint-lg)) {
-    .admin-content {
-        padding-bottom: calc(var(--admin-bottom-nav) + env(safe-area-inset-bottom, 0px) + 1.5rem);
+    :root {
+        --admin-rail: var(--admin-rail-collapsed);
     }
 
-    .fab-add {
-        bottom: calc(var(--admin-bottom-nav) + env(safe-area-inset-bottom, 0px) + 1rem);
+    .admin-rail-panel {
+        --rail-open: 0; /* label opacity */
+        --rail-dir: column; /* the switcher stack */
+        --rail-push: 0; /* the auto margin before sign-out */
+
+        @apply gap-3 px-2 pb-4 pt-4;
     }
 
-    /* Keeps the 4.5rem gap the two floating buttons have on desktop. */
-    .fab-save {
-        bottom: calc(var(--admin-bottom-nav) + env(safe-area-inset-bottom, 0px) + 5.5rem);
+    .admin-rail-panel:hover,
+    .admin-rail-panel:focus-within,
+    .admin-rail.pinned .admin-rail-panel {
+        width: var(--admin-rail-open);
+        box-shadow: 0 18px 50px rgb(24 24 27 / 0.18);
+
+        --rail-open: 1;
+        --rail-dir: row;
+        --rail-push: auto;
+    }
+
+    .admin-rail-label {
+        opacity: var(--rail-open);
+    }
+
+    /* Icon stays at the same x in both states — the label appears beside it
+       rather than the whole row sliding. */
+    .admin-nav-item {
+        @apply justify-start px-2.5;
+    }
+
+    .admin-rail-brand {
+        @apply px-1.5;
+    }
+
+    .admin-rail-utils {
+        @apply items-center px-1.5;
+        flex-direction: var(--rail-dir);
+    }
+
+    .admin-rail-signout {
+        margin-left: var(--rail-push);
+    }
+
+    /* Two 40px squares stacked while collapsed, a pill again once open. */
+    .pill-switch {
+        flex-direction: var(--rail-dir);
+    }
+
+    .admin-rail-pin {
+        @apply grid;
+    }
+
+    .admin-rail.pinned .admin-rail-pin svg {
+        @apply rotate-180;
+    }
+
+    .admin-frame {
+        @apply pr-2 pt-2;
     }
 }
 
-/* The header title is set for a desktop bar and wraps at phone widths. */
+/* Touch targets. The collapsed rail is the only way to move around the
+   workspace on a phone, so its rows get the full 44px rather than the 40px
+   that is comfortable under a mouse. */
 @media (width < theme(--breakpoint-md)) {
-    .admin-header-title {
-        font-size: 1.5rem;
+    .admin-nav-item,
+    .admin-rail-icon-button,
+    .pill-switch-option {
+        min-height: 2.75rem;
+    }
+
+    .pill-switch-option {
+        @apply w-11;
     }
 }
 

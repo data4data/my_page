@@ -1,113 +1,427 @@
-/* Imported by app.css. Part of the split described there. */
+/* Imported by app.css. Part of the split described there.
+
+   Everything in here draws from the workspace surface tokens in theme.css
+   (--color-sheet, --color-sunken, --color-body, ...) rather than the brand
+   palette. That is the whole dark-mode mechanism: the tokens carry both
+   values, so a rule written against them themes itself. A literal `bg-white`
+   or `border-sand` in this file is a bug — it will stay light when the rest
+   of the workspace goes dark. */
 
 @layer components {
-    /* Same card language as .admin-panel: bordered box, blue top border
-       marks the active/selected one instead of a filled pill. */
-    .admin-tab {
-        @apply rounded-lg border border-sand border-t-2 bg-white/55 px-4 py-2 text-graphite transition hover:border-t-accent/40 hover:text-accent;
+    /* ---------------------------------------------------------------
+       Shell: rail on the left, sheet filling the rest.
+       --------------------------------------------------------------- */
+
+    .admin-shell {
+        @apply flex min-h-dvh;
+        background: var(--color-ground);
+        color: var(--color-body);
     }
 
-    .admin-tab.active {
-        @apply border-t-accent bg-white text-ink;
-    }
-
-    /* The content-editor tab strip: sits flush on top of .admin-panel like
-       a folder bookmark. Tabs just touch the panel (no overlap) so the
-       panel's own top border stays a single uninterrupted, uniformly
-       colored line all the way across — a translucent tab background
-       painted over that line would wash it out to a lighter shade right
-       under the active tab, which is the bug this avoids. */
-    .bookmark-tab {
-        @apply rounded-t-lg border border-b-0 border-sand bg-transparent px-4 py-2 text-graphite transition hover:text-accent;
-    }
-
-    .bookmark-tab.active {
-        @apply border-x-2 border-t-2 border-accent bg-white/55 text-ink;
-    }
-
-    /* Open on the left and bottom from lg up: the aside's border is the one
-       vertical divider between chrome and content, so the panel drops its own
-       left border/rounding and runs flush to it — carrying the blue top line
-       across to meet that divider — and drops the bottom edge so it runs off
-       the end of the page instead of closing into a floating card.
-       lg:flex-1 is what makes it fill the remaining height (its ancestors
-       form a flex column down from the viewport-height row). */
-    .admin-panel {
-        @apply relative rounded-lg border border-sand border-t-2 border-t-accent bg-white/55 p-5 shadow-[0_24px_80px_rgba(44,34,24,0.08)] md:p-7 lg:flex-1 lg:rounded-b-none lg:rounded-l-none lg:border-b-0 lg:border-l-0;
-    }
-
-    /* Left-nav destination rows (whole admin sections, not in-page tabs) —
-       an accent fill marks the active one instead of .admin-tab's top-border
-       mark, and padding/gap is sized for an icon + label row rather than a
-       condensed uppercase text pill. */
-    /* The row is capped at max-w-7xl, so on a wide screen the page's white
-       showed to the left of the rail. This carries the rail's background out
-       to the viewport edge; the divider stays on the aside. */
+    /* Reserves the rail's footprint in the row. The panel itself is fixed, so
+       opening it below lg overlays the sheet instead of reflowing it — the
+       content under an open rail must not jump sideways while you are
+       pointing at something. */
     .admin-rail {
-        /* A shadow, not a positioned pseudo-element: it paints outside the
-           box without taking part in layout, so it cannot widen the page into
-           a horizontal scrollbar. */
-        box-shadow: -100vw 0 0 0 color-mix(in oklab, var(--color-cream) 90%, transparent);
+        @apply relative flex-none;
+        width: var(--admin-rail);
     }
 
-    /* The aside keeps stretching: its right border is the one vertical
-       divider and has to reach the bottom. Only the nav travels. */
+    .admin-rail-panel {
+        @apply fixed left-0 flex flex-col gap-5 overflow-hidden px-4 pb-5 pt-6;
+        inset-block: 0;
+        z-index: var(--z-rail);
+        width: var(--admin-rail);
+        background: var(--color-rail);
+        transition: width 180ms ease;
+
+        /* Every pill inside the rail reads these; the sheet sets its own set
+           below. One control, two contexts, no variant prop. */
+        --pill-track: var(--color-rail-track);
+        --pill-text: var(--color-rail-faint);
+        --pill-active: var(--color-rail-active);
+        --pill-active-text: var(--color-rail-active-text);
+    }
+
+    .admin-rail-brand {
+        @apply flex items-center gap-2.5 px-2.5 no-underline;
+    }
+
+    .admin-rail-badge {
+        @apply grid h-8 w-8 flex-none place-items-center rounded-[0.5625rem] text-xs font-semibold;
+        background: var(--color-rail-brand);
+        color: var(--color-rail-brand-text);
+    }
+
+    .admin-rail-caption {
+        @apply whitespace-nowrap text-xs;
+        color: var(--color-rail-faint);
+    }
+
+    .admin-rail-divider {
+        @apply mx-2.5 h-px flex-none;
+        background: var(--color-rail-divider);
+    }
+
     .admin-rail-nav {
-        position: sticky;
-        /* Clear of the header, which is sticky and translucent. */
-        top: calc(var(--admin-header) + 1rem);
-        /* Only bites if the nav outgrows the viewport. */
-        max-height: calc(100dvh - var(--admin-header) - 2rem);
-        overflow-y: auto;
+        @apply flex flex-col gap-0.5;
+    }
+
+    /* Settings and the switchers, pushed to the bottom of the rail. */
+    .admin-rail-foot {
+        @apply mt-auto flex flex-col gap-0.5;
     }
 
     .admin-nav-item {
-        @apply flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-semibold text-graphite transition hover:bg-accent-soft hover:text-accent;
+        @apply flex w-full items-center gap-2.5 whitespace-nowrap rounded-[0.5625rem] px-2.5 py-2.5 text-left text-sm transition;
+        color: var(--color-rail-text);
+    }
+
+    .admin-nav-item:hover {
+        background: var(--color-rail-hover);
+        color: var(--color-rail-text-strong);
     }
 
     .admin-nav-item.active {
-        @apply bg-accent text-white;
+        @apply font-medium;
+        background: var(--color-rail-active);
+        color: var(--color-rail-active-text);
+        box-shadow: 0 1px 2px rgb(24 24 27 / 0.07);
     }
 
+    .admin-nav-item > svg {
+        @apply flex-none;
+    }
+
+    .admin-nav-count {
+        @apply ml-auto text-[0.6875rem] font-medium tabular-nums;
+        color: var(--color-rail-faint);
+    }
+
+    /* Clipped away rather than removed when the rail is collapsed: opacity
+       keeps the label in the accessibility tree, so the icon-only rail still
+       announces "Insights" instead of an unlabelled button. */
+    .admin-rail-label {
+        @apply min-w-0;
+        transition: opacity 140ms ease;
+    }
+
+    .admin-rail-utils {
+        @apply flex items-center gap-1.5 px-2.5 py-1.5;
+    }
+
+    .admin-rail-signout {
+        @apply ml-auto flex;
+    }
+
+    .admin-rail-icon-button {
+        @apply grid h-[1.625rem] w-[1.625rem] flex-none place-items-center rounded-[0.4375rem] transition;
+        color: var(--color-rail-faint);
+    }
+
+    .admin-rail-icon-button:hover {
+        background: var(--color-rail-hover);
+        color: var(--color-rail-text-strong);
+    }
+
+    /* Only meaningful while the rail is collapsed; responsive.css shows it. */
+    .admin-rail-pin {
+        @apply hidden;
+    }
+
+    /* ---------------------------------------------------------------
+       Sheet: the card every section renders into.
+       --------------------------------------------------------------- */
+
+    .admin-frame {
+        @apply flex min-w-0 flex-1 flex-col pr-3 pt-3;
+    }
+
+    /* Open at the bottom — it runs off the end of the page rather than
+       closing into a floating card. */
+    .admin-sheet {
+        @apply flex min-w-0 flex-1 flex-col rounded-t-xl;
+        background: var(--color-sheet);
+        color: var(--color-body);
+
+        --pill-track: var(--color-raised);
+        --pill-text: var(--color-mute);
+        --pill-active: var(--color-chip);
+        --pill-active-text: var(--color-chip-text);
+    }
+
+    .admin-sheet-head {
+        @apply flex-none px-5 pt-6 md:px-[2.125rem];
+        border-bottom: 1px solid var(--color-hairline-soft);
+    }
+
+    .admin-sheet-heading {
+        @apply flex flex-col gap-1;
+    }
+
+    .admin-sheet-title {
+        @apply text-[1.4375rem] font-medium tracking-[-0.02em];
+        color: var(--color-body);
+    }
+
+    .admin-sheet-subtitle {
+        @apply text-[0.8125rem];
+        color: var(--color-faint);
+    }
+
+    /* Scrolls sideways rather than wrapping: seven Edit-page tabs on a phone
+       would otherwise become three stacked rows and push the content down
+       past the fold. */
+    .admin-sheet-tabs {
+        @apply mt-4 flex gap-5 overflow-x-auto;
+        scrollbar-width: thin;
+    }
+
+    .sheet-tab {
+        @apply whitespace-nowrap border-b-2 border-transparent px-0.5 py-2.5 text-sm transition;
+        color: var(--color-faint);
+    }
+
+    .sheet-tab:hover {
+        color: var(--color-body);
+    }
+
+    .sheet-tab.active {
+        @apply font-medium;
+        border-bottom-color: var(--color-marker);
+        color: var(--color-body);
+    }
+
+    /* Security, Shared — a tab you check rather than one you read through. */
+    .sheet-tab-right {
+        @apply ml-auto;
+    }
+
+    .admin-sheet-body {
+        @apply min-w-0 flex-1 px-5 py-5 md:px-[2.125rem];
+    }
+
+    /* The panel takes focus when a tab is chosen, so it needs a focus ring
+       that does not look like a mistake. */
+    .admin-sheet-body:focus-visible {
+        @apply outline-none;
+    }
+
+    /* Sticky, not merely last: on a long editor the save button has to stay
+       reachable, which is the job the floating button it replaced was doing. */
+    .admin-sheet-bar {
+        @apply sticky bottom-0 flex min-h-[3.25rem] flex-wrap items-center gap-3.5 px-5 py-2.5 md:px-[2.125rem];
+        z-index: var(--z-raised);
+        border-top: 1px solid var(--color-hairline);
+        background: var(--color-bar);
+    }
+
+    .admin-sheet-status {
+        @apply inline-flex min-w-0 items-center gap-2 text-xs;
+        color: var(--color-faint);
+    }
+
+    .admin-sheet-status::before {
+        content: '';
+        @apply h-1.5 w-1.5 flex-none rounded-full;
+        background: var(--color-signal);
+    }
+
+    .admin-sheet-actions {
+        @apply ml-auto flex flex-wrap items-center gap-2;
+    }
+
+    /* ---------------------------------------------------------------
+       Controls shared across sections.
+       --------------------------------------------------------------- */
+
+    /* Rounded track with a chip on the selected option — EN/NL and light/dark
+       in the rail, default language and show/hide in Settings, on/off for
+       two-step sign-in. Colours come from --pill-* set by the container. */
+    .pill-switch {
+        @apply inline-flex flex-none p-0.5;
+        border-radius: 999px;
+        background: var(--pill-track, var(--color-raised));
+    }
+
+    .pill-switch-option {
+        @apply grid h-6 min-w-8 place-items-center px-2.5 text-xs font-semibold transition;
+        border-radius: 999px;
+        color: var(--pill-text, var(--color-mute));
+    }
+
+    .pill-switch-option-icon {
+        @apply w-[1.625rem] min-w-0 px-0;
+    }
+
+    .pill-switch-option.active {
+        background: var(--pill-active, var(--color-chip));
+        color: var(--pill-active-text, var(--color-chip-text));
+        box-shadow: 0 1px 2px rgb(24 24 27 / 0.1);
+    }
+
+    .pill-switch-option:disabled {
+        @apply cursor-not-allowed opacity-45;
+    }
+
+    /* ‹ label › period stepper above the calendar and the report. */
+    .period-nav {
+        @apply inline-flex flex-none items-center gap-0.5 rounded-[0.5625rem] p-0.5;
+        background: var(--color-raised);
+    }
+
+    .period-nav-button {
+        @apply grid h-7 w-7 place-items-center rounded-[0.4375rem] transition;
+        color: var(--color-mute);
+    }
+
+    .period-nav-button:hover {
+        background: var(--color-sheet);
+        color: var(--color-body);
+    }
+
+    .period-nav-label {
+        @apply px-2 text-center text-[0.8125rem] font-medium tabular-nums;
+        color: var(--color-mute);
+    }
+
+    /* The toolbar row between the sheet header and the content: period
+       stepper on the left, filters on the right. */
+    .admin-toolbar {
+        @apply mb-4 flex flex-wrap items-center gap-2.5;
+    }
+
+    .admin-toolbar-end {
+        @apply ml-auto flex flex-wrap items-center gap-2;
+    }
+
+    /* Was an info-blue callout. Now a muted card: the sheet header's subtitle
+       says what the tab is for, so this is a footnote, not an announcement. */
     .admin-note {
-        @apply rounded-lg border border-info bg-info-bg px-4 py-3 text-sm leading-6 text-info-text;
+        @apply rounded-[0.625rem] px-3.5 py-3 text-[0.8125rem] leading-6;
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
+        color: var(--color-mute);
     }
 
-    /* Saved-version list on the Content versions tab (ContentVersionsTab.vue).
-       Deliberately lighter than .editable-card — these rows are a log to scan,
-       not content to edit. */
-    .history-list {
-        @apply mt-4 divide-y divide-sand overflow-hidden rounded-lg border border-sand bg-parchment/50;
+    /* The repeating content card: a head row with the item's name, its
+       position, the Visible toggle and the reorder/delete buttons, over a
+       body holding the fields. */
+    .item-card {
+        @apply overflow-hidden rounded-[0.6875rem];
+        background: var(--color-sheet);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
     }
 
-    .history-row {
-        @apply flex flex-wrap items-center justify-between gap-3 px-4 py-3;
+    .item-card-head {
+        @apply flex flex-wrap items-center gap-2.5 px-3.5 py-2.5;
+        border-bottom: 1px solid var(--color-hairline);
     }
 
-    /* The defaults row leads the list and resets everything, so it reads a
-       little heavier than the saved versions below it. */
-    .history-row-defaults {
-        @apply bg-cream/70;
+    /* Small preview plate in the card head — the link's icon, so a list of
+       social links is scannable by symbol as well as by label. */
+    .item-card-lead {
+        @apply grid h-[1.625rem] w-[1.625rem] flex-none place-items-center rounded-[0.4375rem];
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
+        color: var(--color-body);
     }
 
-    .history-row-note {
-        @apply text-sm text-taupe;
+    .item-card-title {
+        @apply min-w-0 truncate text-[0.8125rem] font-semibold;
+        color: var(--color-body);
     }
 
-    .history-meta {
-        @apply flex min-w-0 flex-col gap-0.5;
+    .item-card-position {
+        @apply flex-none text-xs tabular-nums;
+        color: var(--color-mute);
     }
 
-    .history-time {
-        @apply flex items-center gap-2 text-sm font-semibold text-ink;
+    .item-card-tools {
+        @apply ml-auto flex flex-none items-center gap-2;
     }
 
-    .history-author {
-        @apply text-xs text-taupe;
+    .item-card-divider {
+        @apply h-5 w-px flex-none;
+        background: var(--color-hairline);
     }
 
-    /* Toast notifications (ToastStack.vue) — one color per type, stacked
-       top-to-bottom in DOM/push order via TransitionGroup below. */
+    .item-card-body {
+        @apply flex flex-col gap-3.5 p-3.5;
+    }
+
+    /* Square outline button for reorder/delete/add-child. */
+    .icon-button {
+        @apply grid h-7 w-7 flex-none place-items-center rounded-lg transition;
+        box-shadow: inset 0 0 0 1px var(--color-ring);
+        color: var(--color-strong);
+    }
+
+    .icon-button:hover {
+        background: var(--color-sunken);
+    }
+
+    .icon-button:disabled {
+        @apply cursor-not-allowed opacity-40;
+    }
+
+    .icon-button-danger {
+        color: var(--color-alert);
+    }
+
+    /* One card per language, side by side, holding that language's half of
+       every translated field on the item. */
+    .lang-card {
+        @apply overflow-hidden rounded-[0.625rem];
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
+    }
+
+    .lang-card-head {
+        @apply flex items-center gap-2 px-3.5 py-2.5;
+        border-bottom: 1px solid var(--color-hairline);
+        background: var(--color-raised);
+    }
+
+    .lang-card-tag {
+        @apply rounded-[0.3125rem] px-1.5 py-0.5 text-[0.6875rem] font-semibold tracking-[0.04em];
+        background: var(--color-field);
+        color: var(--color-mute);
+        box-shadow: inset 0 0 0 1px var(--color-ring);
+    }
+
+    /* The default language leads, so its tag is the solid one. */
+    .lang-card-tag-default {
+        background: var(--color-solid);
+        color: var(--color-solid-text);
+        box-shadow: none;
+    }
+
+    .lang-card-name {
+        @apply text-xs;
+        color: var(--color-mute);
+    }
+
+    .lang-card-body {
+        @apply flex flex-col gap-2.5 px-3.5 pb-3.5 pt-3;
+    }
+
+    /* Two equal columns from md up, stacked below it. */
+    .lang-grid {
+        @apply grid gap-3;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    @media (width >= theme(--breakpoint-md)) {
+        .lang-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    /* ---------------------------------------------------------------
+       Toasts (ToastStack.vue) — one colour per type, stacked in push order.
+       --------------------------------------------------------------- */
+
     .app-toast {
         @apply flex items-start gap-3 rounded-lg border px-4 py-3 shadow-[0_16px_40px_rgba(44,34,24,0.14)];
     }
@@ -144,12 +458,33 @@
         width: 100%;
     }
 
-    /* Agenda (Planning Calendar) task cards — --task-color is set inline
-       per-card from the task's category color so one rule covers every
-       category instead of a class per hex value. */
+    /* ---------------------------------------------------------------
+       Agenda.
+       --------------------------------------------------------------- */
+
+    /* --task-color is set inline per card from the task's category, so one
+       rule covers every category instead of a class per hex value. */
     .task-card {
-        @apply block w-full cursor-pointer rounded-lg border border-sand bg-white/70 p-3 text-left shadow-[0_6px_16px_rgba(44,34,24,0.06)] transition hover:border-accent/50;
+        @apply w-full cursor-pointer rounded-[0.625rem] text-left transition;
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
         border-left: 3px solid var(--task-color, var(--color-steel));
+    }
+
+    /* Two layouts for one card. Day view has the full sheet width, so its
+       tasks read as rows — time, title, status, timer on one line. A week
+       column is a seventh of that, where the same row would wrap into an
+       unreadable staircase, so there the card stacks. */
+    .task-card-row {
+        @apply flex items-center gap-3.5 p-3;
+    }
+
+    .task-card-stack {
+        @apply flex flex-col gap-2 p-2.5;
+    }
+
+    .task-card:hover {
+        box-shadow: inset 0 0 0 1px var(--color-ring);
     }
 
     .task-card-done {
@@ -160,78 +495,161 @@
         @apply opacity-50;
     }
 
-    .task-card-skipped .task-card-title {
+    .task-card-skipped .task-card-title,
+    .task-card-done .task-card-title {
         @apply line-through;
     }
 
-    .task-card-title {
-        @apply text-sm font-semibold leading-5 text-ink;
+    .task-card-time {
+        @apply flex-none text-xs tabular-nums;
+        color: var(--color-faint);
     }
 
-    .task-card-time {
-        @apply mt-1 text-xs text-taupe;
+    .task-card-main {
+        @apply flex min-w-0 flex-1 flex-col gap-0.5;
+    }
+
+    .task-card-title {
+        @apply truncate text-sm font-medium;
+        color: var(--color-body);
     }
 
     .task-card-category {
-        @apply text-[11px] font-semibold uppercase tracking-[0.06em] text-graphite;
+        @apply truncate text-xs;
+        color: var(--color-faint);
     }
 
     .task-card-status {
-        @apply rounded-full bg-cream px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-taupe;
+        @apply flex-none rounded-full px-2.5 py-0.5 text-xs font-medium;
+        box-shadow: inset 0 0 0 1px var(--color-ring);
+        color: var(--color-faint);
     }
 
-    /* Idle: outline pill, click to start. Running: filled solid, click to
-       stop — the elapsed time (ticking every second, see TaskCard.vue)
-       replaces the play icon's label so it reads like a live stopwatch. */
+    /* Idle: outline pill, click to start. Running: solid, click to stop — the
+       elapsed time replaces the label so it reads like a live stopwatch. */
     .timer-button {
-        @apply inline-flex items-center gap-1 rounded-full border border-sand bg-white px-2 py-0.5 text-[10px] font-semibold tabular-nums text-graphite transition hover:border-accent hover:text-accent;
+        @apply inline-flex flex-none items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium tabular-nums transition;
+        box-shadow: inset 0 0 0 1px var(--color-ring);
+        color: var(--color-strong);
+    }
+
+    .timer-button:hover {
+        color: var(--color-body);
     }
 
     .timer-button-running {
-        @apply border-accent bg-accent text-white hover:text-white;
+        background: var(--color-solid);
+        color: var(--color-solid-text);
+        box-shadow: none;
+    }
+
+    .timer-button-running:hover {
+        color: var(--color-solid-text);
     }
 
     .week-day-header {
-        @apply flex items-baseline justify-between rounded-md border border-sand bg-cream px-3 py-2;
+        @apply flex items-baseline justify-between gap-1.5 rounded-[0.5625rem] px-2.5 py-2;
+        background: var(--color-raised);
+        color: var(--color-body);
     }
 
     .week-day-header-today {
-        @apply border-accent bg-accent-soft;
+        background: var(--color-solid);
+        color: var(--color-solid-text);
     }
 
     .week-day-weekday {
-        @apply text-xs font-semibold uppercase tracking-[0.08em] text-graphite;
+        @apply text-xs font-semibold;
     }
 
     .week-day-date {
-        @apply text-xs text-taupe;
+        @apply text-xs tabular-nums;
+        color: var(--color-mute);
+    }
+
+    .week-day-header-today .week-day-date {
+        color: inherit;
     }
 
     .week-day-empty {
-        @apply rounded-lg border border-dashed border-sand px-3 py-4 text-center text-xs text-muted;
+        @apply rounded-[0.5625rem] px-2.5 py-2 text-center text-xs;
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
+        color: var(--color-faint);
     }
 
-    /* Report view. Bars are plain divs scaled by inline width rather than a
-       charting library — one dependency-free rule covers every category,
-       and the fill colour is the category's own. */
+    .month-cell {
+        @apply relative flex min-h-24 flex-col items-start gap-1 rounded-[0.5625rem] p-2 text-left transition;
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
+    }
+
+    .month-cell:hover {
+        box-shadow: inset 0 0 0 1px var(--color-ring);
+    }
+
+    .month-cell-outside {
+        @apply opacity-45;
+        background: transparent;
+    }
+
+    .month-cell-day {
+        @apply text-xs tabular-nums;
+        color: var(--color-faint);
+    }
+
+    /* Today is a filled disc rather than a tinted cell: the cell fill is
+       already doing the in-month/out-of-month job. */
+    .month-cell-today .month-cell-day {
+        @apply grid h-5 w-5 place-items-center rounded-full font-semibold;
+        background: var(--color-solid);
+        color: var(--color-solid-text);
+    }
+
+    .month-task-chip {
+        @apply block w-full truncate rounded-[0.3125rem] px-1.5 py-0.5 text-left text-[0.6875rem] leading-snug transition;
+        background: var(--color-sheet);
+        box-shadow: 0 0 0 1px var(--color-hairline);
+        border-left: 2px solid var(--task-color, var(--color-steel));
+        color: var(--color-body);
+    }
+
+    .month-task-more {
+        @apply text-[0.6875rem];
+        color: var(--color-faint);
+    }
+
+    /* Report. Bars are plain divs scaled by inline width rather than a
+       charting library — one dependency-free rule covers every category, and
+       the fill colour is the category's own. */
     .report-stat {
-        @apply flex flex-col gap-1 rounded-lg border border-sand bg-white/55 px-4 py-3;
+        @apply flex flex-col gap-1.5 rounded-[0.6875rem] px-4 py-3.5;
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
     }
 
     .report-stat-label {
-        @apply text-xs font-semibold uppercase tracking-[0.08em] text-graphite;
+        @apply text-xs;
+        color: var(--color-faint);
     }
 
     .report-stat-value {
-        @apply font-serif text-2xl leading-tight text-ink;
+        @apply text-[1.75rem] font-normal leading-tight tracking-[-0.03em] tabular-nums;
+        color: var(--color-body);
+    }
+
+    .report-stat-note {
+        @apply text-xs;
+        color: var(--color-faint);
     }
 
     .report-section-title {
-        @apply text-xs font-semibold uppercase tracking-[0.08em] text-graphite;
+        @apply text-sm font-semibold;
+        color: var(--color-body);
     }
 
     .report-bar-track {
-        @apply mt-1 h-2 w-full overflow-hidden rounded-full bg-cream;
+        @apply mt-1 h-1.5 w-full overflow-hidden rounded-full;
+        background: var(--color-hairline);
     }
 
     .report-bar-fill {
@@ -241,164 +659,197 @@
 
     /* Tracked ran past the plan — flagged rather than silently capped. */
     .report-bar-fill-over {
-        @apply bg-danger;
+        background: var(--color-danger);
     }
 
-    /* Language settings: one row per language, with a "default" pill and an
-       eye that hides it from the EN/NL switcher. */
-    .language-row {
-        @apply flex items-center gap-3 rounded-lg border border-sand bg-white/55 px-4 py-3;
+    .report-status-chip {
+        @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs;
+        box-shadow: inset 0 0 0 1px var(--color-ring);
+        color: var(--color-mute);
     }
 
-    /* Segmented control — the lit half is the default language. auto-cols-fr
-       gives every option an equal share of the width regardless of how long
-       its label is (or how many languages there are), so the halves stay
-       even instead of "English" being narrower than "Nederlands". */
-    .language-segment {
-        @apply inline-grid shrink-0 auto-cols-fr grid-flow-col overflow-hidden rounded-full border border-sand bg-white;
-    }
-
-    .language-segment-option {
-        @apply px-4 py-1.5 text-center text-xs font-semibold text-graphite transition hover:text-accent;
-    }
-
-    .language-segment-option.active {
-        @apply bg-accent text-white hover:text-white;
-    }
-
-    .language-eye {
-        @apply grid h-9 w-9 shrink-0 place-items-center rounded-full border border-sand bg-white text-accent transition hover:border-accent hover:bg-accent hover:text-white;
-    }
-
-    /* Hidden reads as muted; the locked default eye reads as unavailable
-       rather than merely off. */
-    .language-eye-off {
-        @apply text-muted;
-    }
-
-    .language-eye:disabled {
-        @apply cursor-not-allowed opacity-45 hover:border-sand hover:bg-white hover:text-accent;
-    }
-
-    /* Category manager */
-    .category-row-group {
-        @apply rounded-lg border border-sand bg-white/55 p-2;
-    }
+    /* ---------------------------------------------------------------
+       Categories.
+       --------------------------------------------------------------- */
 
     .category-row {
-        @apply flex items-center gap-3 rounded-md px-2 py-2 transition hover:bg-cream/60;
+        @apply flex items-center gap-3 rounded-[0.625rem] px-3.5 py-2.5 transition;
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
     }
 
-    /* Subcategories are indented and hung off a rule, so one level of nesting
-       reads at a glance without needing a separate heading per parent. */
+    /* One level of nesting, hung off the parent by indent alone — a rule as
+       well would fight the card's own inset ring. */
     .category-row-child {
-        @apply ml-4 border-l border-sand pl-4;
+        @apply pl-9;
+    }
+
+    .category-group {
+        @apply flex flex-col gap-1;
     }
 
     .category-swatch {
-        @apply inline-block h-4 w-4 shrink-0 rounded-full border border-sand;
+        @apply inline-block h-2.5 w-2.5 flex-none rounded-[3px];
+    }
+
+    .category-name {
+        @apply min-w-0 flex-1 truncate text-sm;
+        color: var(--color-body);
+    }
+
+    .category-row-child .category-name {
+        color: var(--color-mute);
     }
 
     .color-swatch {
         @apply h-7 w-7 rounded-full border-2 border-transparent transition hover:scale-110;
-        box-shadow: 0 0 0 1px var(--color-sand);
+        box-shadow: 0 0 0 1px var(--color-ring);
     }
 
     .color-swatch.active {
-        @apply border-white;
-        box-shadow: 0 0 0 2px var(--color-ink);
+        box-shadow: 0 0 0 2px var(--color-body);
     }
 
     .color-swatch-input {
-        @apply h-7 w-9 cursor-pointer rounded border border-sand bg-white p-0.5;
+        @apply h-7 w-9 cursor-pointer rounded p-0.5;
+        background: var(--color-field);
+        box-shadow: inset 0 0 0 1px var(--color-ring);
     }
 
-    .report-status-chip {
-        @apply inline-flex items-center gap-2 rounded-full border border-sand bg-white/70 px-3 py-1 text-xs text-graphite;
+    /* ---------------------------------------------------------------
+       Insights: inquiries, the sign-in trail, two-step sign-in.
+       --------------------------------------------------------------- */
+
+    .inquiry-card {
+        @apply overflow-hidden rounded-[0.6875rem];
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
     }
 
-    /* Month view grid cell — a plain button (not <div>) so a day is
-       click-to-open-in-Day-view, matching the rest of the read-only Agenda
-       interactions this phase. */
-    .month-cell {
-        @apply relative flex min-h-24 flex-col items-start gap-1 rounded-lg border border-sand bg-white/55 p-2 text-left transition hover:border-accent/50;
+    .inquiry-card-head {
+        @apply flex flex-wrap items-center gap-2.5 px-3.5 py-2.5;
+        border-bottom: 1px solid var(--color-hairline);
+        background: var(--color-raised);
     }
 
-    .month-cell-outside {
-        @apply bg-cream/60 opacity-50;
+    .inquiry-card-name {
+        @apply text-[0.8125rem] font-semibold;
+        color: var(--color-body);
     }
 
-    .month-cell-today {
-        @apply border-accent bg-accent-soft;
+    .inquiry-card-time {
+        @apply ml-auto text-xs tabular-nums;
+        color: var(--color-mute);
     }
 
-    .month-cell-day {
-        @apply text-xs font-semibold text-ink;
+    .inquiry-card-body {
+        @apply grid gap-2 px-3.5 py-3.5;
+        grid-template-columns: minmax(0, 1fr);
     }
 
-    .month-task-chip {
-        @apply block w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] leading-4 text-ink transition hover:brightness-95;
-        background: color-mix(in srgb, var(--task-color, var(--color-steel)) 18%, white);
-        border-left: 2px solid var(--task-color, var(--color-steel));
+    @media (width >= theme(--breakpoint-md)) {
+        .inquiry-card-body {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            column-gap: 1.25rem;
+        }
     }
 
-    .month-task-more {
-        @apply text-[10px] font-semibold text-taupe;
+    .inquiry-field {
+        @apply flex min-w-0 gap-2 text-[0.8125rem];
     }
 
-    /* Sign-in trail. The table scrolls inside its own container in the
-       template: an IPv6 literal is wide and the panel must not scroll. */
+    .inquiry-field-label {
+        @apply flex-none;
+        color: var(--color-faint);
+    }
+
+    .inquiry-field a {
+        @apply inline-flex min-w-0 items-center gap-1.5 truncate;
+        color: var(--color-marker);
+    }
+
+    .inquiry-message {
+        @apply text-[0.8125rem] leading-relaxed;
+        grid-column: 1 / -1;
+        color: var(--color-body);
+    }
+
+    /* The table scrolls inside its own container in the template: an IPv6
+       literal is wide and the sheet must not scroll sideways. */
     .security-table {
-        @apply w-full min-w-[34rem] border-collapse text-sm;
+        @apply w-full min-w-[34rem] border-collapse text-[0.8125rem];
     }
 
     .security-table th {
-        @apply border-b border-sand px-3 py-2 text-left text-xs font-semibold uppercase tracking-[0.08em] text-graphite;
+        @apply px-0 py-2 text-left text-xs font-medium;
+        border-bottom: 1px solid var(--color-hairline-soft);
+        color: var(--color-faint);
     }
 
     .security-table td {
-        @apply border-b border-sand/60 px-3 py-2 text-ink;
+        @apply px-0 py-2.5;
+        border-bottom: 1px solid var(--color-hairline-soft);
+        color: var(--color-body);
+    }
+
+    .security-table .is-numeric {
+        @apply text-right tabular-nums;
     }
 
     .security-row {
-        @apply grid items-center gap-3 rounded-md border border-sand bg-white px-3 py-2;
+        @apply grid items-center gap-3 rounded-[0.5625rem] px-3 py-2.5;
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
         /* Outcome, address, address typed, time. */
         grid-template-columns: minmax(9rem, auto) minmax(8rem, auto) minmax(0, 1fr) auto;
     }
 
+    /* Colour repeats the label, never replaces it — and the dot repeats the
+       colour, so the outcome survives both a greyscale print and a reader. */
     .security-row-outcome {
-        @apply text-xs font-semibold uppercase tracking-[0.08em];
+        @apply inline-flex items-center gap-2 text-xs font-medium;
     }
 
-    /* Colour repeats the label, never replaces it. */
+    .security-row-outcome::before {
+        content: '';
+        @apply h-1.5 w-1.5 flex-none rounded-full;
+        background: currentcolor;
+    }
+
     .security-row-login_succeeded .security-row-outcome {
-        @apply text-success-text;
+        color: var(--color-success-text);
     }
 
     .security-row-login_failed .security-row-outcome {
-        @apply text-danger-text;
+        color: var(--color-danger-text);
     }
 
     .security-row-login_blocked .security-row-outcome {
-        @apply text-warning-text;
+        color: var(--color-warning-text);
     }
 
-    /* Two-step sign-in (Insights -> Security). */
     .two-factor {
-        @apply rounded-md border border-sand bg-parchment/60 p-4;
+        @apply rounded-[0.6875rem] p-4;
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
     }
 
     .two-factor-setup {
         @apply flex flex-wrap items-start gap-5;
     }
 
-    /* White plate: the parchment ground lowers the contrast a scanner needs. */
+    /* Light plate whatever the theme: a dark ground drops the contrast a
+       scanner needs, and the QR itself is drawn in black. */
     .two-factor-qr {
-        @apply shrink-0 rounded-md border border-sand bg-white p-2;
+        @apply shrink-0 rounded-[0.625rem] bg-white p-2;
+        box-shadow: 0 0 0 1px var(--color-ring);
     }
 
     .two-factor-key {
-        @apply mt-1 inline-block break-all rounded border border-sand bg-white px-2 py-1 font-mono text-xs text-ink;
+        @apply mt-1 inline-block break-all rounded px-2 py-1 font-mono text-xs;
+        background: var(--color-field);
+        box-shadow: inset 0 0 0 1px var(--color-ring);
+        color: var(--color-body);
     }
 
     .two-factor-codes {
@@ -407,37 +858,102 @@
     }
 
     .two-factor-codes code {
-        @apply block rounded border border-sand bg-white px-2 py-1 text-center font-mono text-xs text-ink;
+        @apply block rounded px-2 py-1 text-center font-mono text-xs;
+        background: var(--color-field);
+        box-shadow: inset 0 0 0 1px var(--color-ring);
+        color: var(--color-body);
     }
 
-    /* Small-screen navigation. A bottom bar rather than the stacked rail:
-       it sits where a thumb already is. */
-    .admin-bottom-nav {
-        @apply fixed inset-x-0 bottom-0 grid grid-flow-col justify-stretch border-t border-sand bg-cream/95 backdrop-blur;
-        /* Chrome, like the header. Below --z-fab so a floating button still
-           floats over it. */
-        z-index: var(--z-header);
-        /* Clears the iOS home indicator. */
-        padding-bottom: env(safe-area-inset-bottom, 0px);
+    /* ---------------------------------------------------------------
+       Settings.
+       --------------------------------------------------------------- */
+
+    /* One setting per row: name and explanation on the left, its control on
+       the right. Language, the switcher's visibility, two-step sign-in. */
+    .setting-row {
+        @apply flex flex-wrap items-center gap-4 rounded-[0.6875rem] px-4 py-3.5;
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
     }
 
-    .admin-bottom-nav-item {
-        @apply flex flex-col items-center justify-center gap-1 px-2 text-[0.6875rem] font-semibold leading-none text-graphite transition;
-        /* Taller than the 44px minimum, so icon and label both fit. */
-        min-height: var(--admin-bottom-nav);
+    .setting-row-text {
+        @apply flex min-w-[12rem] flex-1 flex-col gap-1;
     }
 
-    .admin-bottom-nav-item span {
-        @apply max-w-full truncate;
+    .setting-row-name {
+        @apply text-sm font-medium;
+        color: var(--color-body);
     }
 
-    /* Colour plus a marker, so it is not signalled by hue alone. */
-    .admin-bottom-nav-item.active {
-        @apply relative text-accent;
+    .setting-row-hint {
+        @apply text-xs leading-relaxed;
+        color: var(--color-faint);
     }
 
-    .admin-bottom-nav-item.active::before {
-        content: '';
-        @apply absolute inset-x-3 top-0 h-0.5 rounded-full bg-accent;
+    /* Saved-version list. Deliberately lighter than .item-card — these rows
+       are a log to scan, not content to edit. */
+    .history-row {
+        @apply flex flex-wrap items-center gap-3.5 rounded-[0.625rem] px-3.5 py-3;
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
+    }
+
+    /* Leads the list and resets everything, so it reads a little heavier
+       than the saved versions below it. */
+    .history-row-defaults {
+        background: var(--color-raised);
+    }
+
+    .history-meta {
+        @apply flex min-w-0 flex-1 flex-col gap-0.5;
+    }
+
+    .history-time {
+        @apply inline-flex items-center gap-2 text-[0.8125rem] font-medium tabular-nums;
+        color: var(--color-body);
+    }
+
+    .history-author {
+        @apply text-xs;
+        color: var(--color-faint);
+    }
+
+    /* Nothing here yet, and saying so plainly rather than with a fake row. */
+    .admin-empty {
+        @apply flex flex-col items-center gap-2.5 rounded-xl px-8 py-12 text-center;
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
+    }
+
+    .admin-empty-icon {
+        @apply grid h-11 w-11 place-items-center rounded-xl;
+        background: var(--color-sunken);
+        color: var(--color-faint);
+    }
+
+    .admin-empty-title {
+        @apply text-[0.9375rem] font-medium;
+        color: var(--color-body);
+    }
+
+    .admin-empty-note {
+        @apply max-w-[25rem] text-[0.8125rem] leading-relaxed;
+        color: var(--color-faint);
+    }
+
+    /* ---------------------------------------------------------------
+       Fields.
+       --------------------------------------------------------------- */
+
+    /* The workspace's field label: a quiet 12px caption over the control,
+       rather than the tracked uppercase .admin-grid label it replaces. */
+    .field-label {
+        @apply flex flex-col gap-1.5 text-xs;
+        color: var(--color-mute);
+    }
+
+    /* Groups fields inside a language card — Hero, Buttons, Footer. */
+    .field-section-heading {
+        @apply text-[0.6875rem] font-semibold;
+        color: var(--color-faint);
     }
 }

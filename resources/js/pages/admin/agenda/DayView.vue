@@ -32,6 +32,7 @@ const dayTasks = computed(() => {
             v-for="task in dayTasks"
             :key="task.id"
             :task="task"
+            layout="row"
             @edit="$emit('edit-task', $event)"
             @start-timer="$emit('start-timer', $event)"
             @stop-timer="$emit('stop-timer', $event)"

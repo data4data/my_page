@@ -1,12 +1,12 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { ExternalLink } from '@lucide/vue';
-import SectionTabs from '../../components/admin/SectionTabs.vue';
+import { ExternalLink, Newspaper } from '@lucide/vue';
+import AdminSheet from '../../components/admin/AdminSheet.vue';
 import AppButton from '../../components/ui/AppButton.vue';
 import SecurityTab from './SecurityTab.vue';
 import { copy } from '../../shared/i18n';
 
-defineProps({
+const props = defineProps({
     inquiries: {
         type: Array,
         required: true,
@@ -36,12 +36,33 @@ const tab = ref('connections');
 // computed so the labels re-render when the admin switches EN/NL.
 // Security sits last and to the right: it is a log you check, not one of the
 // two feeds you read. `right: true` pushes it across the strip, the same way
-// SectionTabs handles any trailing tab.
+// the sheet handles any trailing tab.
 const insightsTabs = computed(() => [
     { value: 'connections', label: copy('insightsConnections') },
     { value: 'news', label: copy('insightsNews') },
     { value: 'security', label: copy('insightsSecurity'), right: true },
 ]);
+
+const SUBTITLES = {
+    connections: 'subtitleInsightsConnections',
+    news: 'subtitleInsightsNews',
+    security: 'subtitleInsightsSecurity',
+};
+
+const subtitle = computed(() => copy(SUBTITLES[tab.value] ?? ''));
+
+// What the action bar reports: how much of the list is on screen. Only the
+// connections tab has a count worth stating — the other two say nothing
+// rather than filling the bar with something untrue.
+const status = computed(() => {
+    if (tab.value !== 'connections' || props.inquiriesLoading) {
+        return '';
+    }
+
+    // The label as translated, not lower-cased into a sentence: which words
+    // keep a capital is a per-language rule, not a JS one.
+    return `${props.inquiries.length}${props.inquiriesHasMore ? '+' : ''} · ${copy('insightsConnections')}`;
+});
 
 const formatDate = (value) => new Date(value).toLocaleString(undefined, {
     dateStyle: 'medium',
@@ -50,31 +71,50 @@ const formatDate = (value) => new Date(value).toLocaleString(undefined, {
 </script>
 
 <template>
-    <SectionTabs v-model="tab" :tabs="insightsTabs">
-        <div v-if="tab === 'connections'" class="space-y-4">
-            <div class="admin-note">
-                {{ copy('insightsInfo') }}
-            </div>
+    <AdminSheet v-model="tab" :tabs="insightsTabs" :title="copy('insights')" :subtitle="subtitle">
+        <div v-if="tab === 'connections'" class="flex flex-col gap-2.5">
+            <p class="admin-note">{{ copy('insightsInfo') }}</p>
+
             <p v-if="inquiriesLoading" class="admin-note">{{ copy('insightsLoading') }}</p>
             <p v-else-if="inquiries.length === 0" class="admin-note">{{ copy('insightsEmpty') }}</p>
-            <article v-for="inquiry in inquiries" :key="inquiry.id" class="editable-card">
-                <header>
-                    <strong>{{ inquiry.name }}</strong>
-                    <span class="text-xs font-normal normal-case text-taupe">{{ formatDate(inquiry.created_at) }}</span>
+
+            <article v-for="inquiry in inquiries" :key="inquiry.id" class="inquiry-card">
+                <header class="inquiry-card-head">
+                    <strong class="inquiry-card-name">{{ inquiry.name }}</strong>
+                    <time class="inquiry-card-time" :datetime="inquiry.created_at">{{ formatDate(inquiry.created_at) }}</time>
                 </header>
-                <div class="admin-grid text-sm normal-case">
-                    <p><span class="admin-note-label">{{ copy('insightsEmail') }}</span> <a class="text-link" :href="`mailto:${inquiry.email}`">{{ inquiry.email }}</a></p>
-                    <p v-if="inquiry.company"><span class="admin-note-label">{{ copy('insightsCompany') }}</span> {{ inquiry.company }}</p>
-                    <p v-if="inquiry.portfolio_url"><span class="admin-note-label">{{ copy('insightsPortfolio') }}</span> <a class="text-link" :href="inquiry.portfolio_url" target="_blank" rel="noopener">{{ inquiry.portfolio_url }} <ExternalLink :size="13" /></a></p>
-                    <p v-if="inquiry.linkedin_url"><span class="admin-note-label">{{ copy('insightsLinkedin') }}</span> <a class="text-link" :href="inquiry.linkedin_url" target="_blank" rel="noopener">{{ inquiry.linkedin_url }} <ExternalLink :size="13" /></a></p>
-                    <p class="admin-full whitespace-pre-line leading-6">{{ inquiry.message }}</p>
+
+                <div class="inquiry-card-body">
+                    <p class="inquiry-field">
+                        <span class="inquiry-field-label">{{ copy('insightsEmail') }}</span>
+                        <a :href="`mailto:${inquiry.email}`">{{ inquiry.email }}</a>
+                    </p>
+                    <p v-if="inquiry.company" class="inquiry-field">
+                        <span class="inquiry-field-label">{{ copy('insightsCompany') }}</span>
+                        <span class="truncate">{{ inquiry.company }}</span>
+                    </p>
+                    <p v-if="inquiry.portfolio_url" class="inquiry-field">
+                        <span class="inquiry-field-label">{{ copy('insightsPortfolio') }}</span>
+                        <a :href="inquiry.portfolio_url" target="_blank" rel="noopener">
+                            <span class="truncate">{{ inquiry.portfolio_url }}</span>
+                            <ExternalLink :size="12" aria-hidden="true" />
+                        </a>
+                    </p>
+                    <p v-if="inquiry.linkedin_url" class="inquiry-field">
+                        <span class="inquiry-field-label">{{ copy('insightsLinkedin') }}</span>
+                        <a :href="inquiry.linkedin_url" target="_blank" rel="noopener">
+                            <span class="truncate">{{ inquiry.linkedin_url }}</span>
+                            <ExternalLink :size="12" aria-hidden="true" />
+                        </a>
+                    </p>
+                    <p class="inquiry-message whitespace-pre-line">{{ inquiry.message }}</p>
                 </div>
             </article>
 
             <AppButton
                 v-if="inquiriesHasMore"
-                variant="secondary"
-                size="sm"
+                variant="outline"
+                class="self-start"
                 :disabled="inquiriesLoading"
                 @click="$emit('load-more')"
             >
@@ -82,11 +122,19 @@ const formatDate = (value) => new Date(value).toLocaleString(undefined, {
             </AppButton>
         </div>
 
-        <div v-else-if="tab === 'news'" class="space-y-4">
-            <div class="admin-note">{{ copy('insightsNewsInfo') }}</div>
-            <p class="week-day-empty">{{ copy('underConstruction') }}</p>
+        <!-- Keeps its place in the strip so the plan stays visible, and says
+             plainly that it holds nothing rather than showing an empty list
+             that looks like a failed load. -->
+        <div v-else-if="tab === 'news'" class="flex flex-col gap-2.5">
+            <div class="admin-empty">
+                <span class="admin-empty-icon"><Newspaper :size="20" aria-hidden="true" /></span>
+                <strong class="admin-empty-title">{{ copy('underConstruction') }}</strong>
+                <p class="admin-empty-note">{{ copy('insightsNewsInfo') }}</p>
+            </div>
         </div>
 
         <SecurityTab v-else :events="securityEvents" :loading="securityLoading" />
-    </SectionTabs>
+
+        <template v-if="status" #status>{{ status }}</template>
+    </AdminSheet>
 </template>

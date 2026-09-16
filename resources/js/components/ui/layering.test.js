@@ -20,7 +20,7 @@ const token = (name) => {
 
 describe('stacking order tokens', () => {
     it('defines every layer as a token rather than an ad-hoc number', () => {
-        for (const name of ['raised', 'section', 'rail', 'header', 'fab', 'overlay', 'field', 'confirm', 'toast']) {
+        for (const name of ['raised', 'section', 'rail', 'header', 'overlay', 'field', 'confirm', 'toast']) {
             expect(token(name), `--z-${name} should be defined`).toBeTypeOf('number');
         }
     });
@@ -43,11 +43,6 @@ describe('stacking order tokens', () => {
         expect(token('section')).toBeGreaterThan(token('raised'));
     });
 
-    it('keeps the floating action button above the chrome but under a modal', () => {
-        expect(token('fab')).toBeGreaterThan(token('header'));
-        expect(token('overlay')).toBeGreaterThan(token('fab'));
-    });
-
     // These panels append to <body>, so inside a modal they are siblings of
     // the scrim. Both sat on 50, leaving the winner to DOM order.
     it('puts a field dropdown above the modal it opens inside, and under a confirm', () => {
@@ -60,7 +55,7 @@ describe('no layer collides with another', () => {
     // Equal z-index leaves the winner to DOM order, which is how error toasts
     // once ended up behind the modal scrim.
     it('gives every token a distinct value', () => {
-        const names = ['raised', 'section', 'rail', 'header', 'fab', 'overlay', 'field', 'confirm', 'toast'];
+        const names = ['raised', 'section', 'rail', 'header', 'overlay', 'field', 'confirm', 'toast'];
         const values = names.map(token);
 
         expect(new Set(values).size).toBe(names.length);
@@ -86,14 +81,13 @@ describe('components use the layer classes', () => {
         expect(classes.some((name) => /^z-\d+$/.test(name))).toBe(false);
     });
 
-    // The header carried z-30, the rail's own value.
-    it('gives the admin header the header layer', () => {
-        const header = mount(AdminLayout, {
-            props: { navItems: [], activeKey: 'edit' },
-            global: { stubs: { AppButton: true, LogOut: true } },
-        }).get('header');
+    // The workspace lost its header in the redesign; the rail's fixed panel
+    // is now the only workspace chrome competing in the root stacking context,
+    // and it takes the rail token rather than a number of its own.
+    it('gives the rail panel the rail layer from the token, not a literal', () => {
+        const rule = allCss.match(/\.admin-rail-panel\s*\{[^}]*\}/);
 
-        expect(header.classes()).toContain('layer-header');
-        expect(header.classes().some((name) => /^z-\d+$/.test(name))).toBe(false);
+        expect(rule, '.admin-rail-panel should be declared in admin.css').not.toBeNull();
+        expect(rule[0]).toContain('z-index: var(--z-rail)');
     });
 });

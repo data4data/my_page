@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { ChevronLeft, ChevronRight } from '@lucide/vue';
 import AppButton from '../../../components/ui/AppButton.vue';
 import AppTextarea from '../../../components/ui/AppTextarea.vue';
+import AppPillSwitch from '../../../components/ui/AppPillSwitch.vue';
 import { useToast } from '../../../shared/toast';
 import {
     usePlanning,
@@ -159,27 +160,35 @@ const statusRows = computed(() => TASK_STATUSES
     .filter((row) => row.count > 0));
 
 load();
+
+// Computed so the two labels follow the EN/NL switch like every other string.
+const periodOptions = computed(() => [
+    { value: 'week', label: copy('week') },
+    { value: 'month', label: copy('month') },
+]);
 </script>
 
 <template>
     <div>
-        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div class="flex items-center gap-2">
-                <AppButton variant="icon" :aria-label="copy('previousPeriod')" @click="shiftPeriod(-1)">
-                    <ChevronLeft :size="16" />
-                </AppButton>
-                <button type="button" class="min-w-64 rounded-md px-1 text-center font-serif text-xl leading-tight text-ink transition hover:text-accent" @click="goToCurrent">
-                    {{ periodLabel }}
+        <div class="admin-toolbar">
+            <div class="period-nav">
+                <button type="button" class="period-nav-button" :aria-label="copy('previousPeriod')" @click="shiftPeriod(-1)">
+                    <ChevronLeft :size="15" aria-hidden="true" />
                 </button>
-                <AppButton variant="icon" :aria-label="copy('nextPeriod')" @click="shiftPeriod(1)">
-                    <ChevronRight :size="16" />
-                </AppButton>
+                <button type="button" class="period-nav-label" @click="goToCurrent">{{ periodLabel }}</button>
+                <button type="button" class="period-nav-button" :aria-label="copy('nextPeriod')" @click="shiftPeriod(1)">
+                    <ChevronRight :size="15" aria-hidden="true" />
+                </button>
             </div>
 
-            <nav class="flex gap-2 text-xs font-semibold uppercase tracking-[0.18em]">
-                <button class="admin-tab" :class="{ active: periodType === 'week' }" @click="setPeriodType('week')">{{ copy('week') }}</button>
-                <button class="admin-tab" :class="{ active: periodType === 'month' }" @click="setPeriodType('month')">{{ copy('month') }}</button>
-            </nav>
+            <div class="admin-toolbar-end">
+                <AppPillSwitch
+                    :options="periodOptions"
+                    :model-value="periodType"
+                    :aria-label="copy('report')"
+                    @update:model-value="setPeriodType"
+                />
+            </div>
         </div>
 
         <p v-if="loading" class="admin-note mt-4">{{ copy('loading') }}</p>
@@ -207,13 +216,13 @@ load();
                 <p v-if="categoryRows.length === 0" class="week-day-empty mt-3">{{ copy('reportEmpty') }}</p>
 
                 <template v-else>
-                    <p class="mt-1 text-xs leading-5 text-taupe">{{ copy('reportBarHint') }}</p>
+                    <p class="mt-1 text-xs leading-5 text-faint">{{ copy('reportBarHint') }}</p>
 
                     <ul class="mt-3 flex flex-col gap-4">
                         <li v-for="row in categoryRows" :key="row.category_id ?? 'uncategorized'" :title="rowTooltip(row)">
                             <div class="flex items-baseline justify-between gap-3">
-                                <span class="text-sm text-ink">{{ row.label }}</span>
-                                <span class="text-xs tabular-nums text-taupe">
+                                <span class="text-sm text-body">{{ row.label }}</span>
+                                <span class="text-xs tabular-nums text-faint">
                                     {{ formatMinutes(row.tracked) }} / {{ formatMinutes(row.planned) }}
                                     <template v-if="row.percent !== null"> · {{ row.percent }}%</template>
                                     <template v-else> · {{ copy('reportUnplanned') }}</template>
@@ -248,7 +257,7 @@ load();
 
             <section class="mt-6">
                 <h3 class="report-section-title">{{ copy('reflectionTitle') }}</h3>
-                <p class="mt-1 text-xs leading-5 text-taupe">{{ copy('reflectionHint') }}</p>
+                <p class="mt-1 text-xs leading-5 text-faint">{{ copy('reflectionHint') }}</p>
                 <AppTextarea v-model="reflectionNotes" class="mt-3" rows="4" :placeholder="copy('reflectionPlaceholder')" />
                 <div class="mt-3 flex justify-end">
                     <AppButton variant="accent" size="sm" :disabled="savingReflection" @click="storeReflection">

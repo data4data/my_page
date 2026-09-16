@@ -206,7 +206,7 @@ const submit = () => {
             <label class="admin-full">
                 {{ copy('taskPlannedDuration') }}
                 <AppInput v-model="form.planned_duration_minutes" type="number" min="0" step="5" />
-                <span class="mt-1 block text-xs leading-5 text-taupe">{{ copy('taskPlannedDurationHint') }}</span>
+                <span class="mt-1 block text-xs leading-5 text-faint">{{ copy('taskPlannedDurationHint') }}</span>
             </label>
 
             <label class="admin-full">

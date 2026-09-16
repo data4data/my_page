@@ -2,7 +2,7 @@
 
 @layer components {
     .admin-note-label {
-        @apply mr-1 text-xs font-semibold uppercase text-graphite;
+        @apply mr-1 text-xs font-semibold uppercase text-mute;
         letter-spacing: 0.08em;
     }
 
@@ -15,14 +15,14 @@
     }
 
     .admin-grid label {
-        @apply grid gap-2 text-xs font-semibold uppercase text-graphite;
+        @apply grid gap-2 text-xs font-semibold uppercase text-mute;
         letter-spacing: 0.08em;
     }
 
     /* Shared field look for AppInput/AppTextarea/AppSelect/AppCheckbox (resources/js/components/ui/) — change it once, here. */
     .field-input,
     .field-textarea {
-        @apply w-full rounded-md border border-sand bg-white px-3 py-3 text-sm normal-case text-ink outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10;
+        @apply w-full rounded-md border border-ring bg-field px-3 py-3 text-sm normal-case text-body outline-none transition focus:border-marker focus:ring-4 focus:ring-marker/20;
         letter-spacing: 0;
     }
 
@@ -49,11 +49,11 @@
     }
 
     .field-datepicker-icon {
-        @apply pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-graphite;
+        @apply pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-mute;
     }
 
     .field-datepicker-panel {
-        @apply mt-1 rounded-md border border-sand bg-white p-3 shadow-[0_18px_45px_rgba(7,21,35,0.15)];
+        @apply mt-1 rounded-md border border-ring bg-field p-3 shadow-[0_18px_45px_rgba(7,21,35,0.15)];
         /* Above the modal scrim: this panel portals to <body>, so inside a
            modal it is the scrim's sibling, not its child. */
         z-index: var(--z-field);
@@ -64,15 +64,15 @@
     }
 
     .field-datepicker-title {
-        @apply flex items-center gap-2 text-sm font-semibold text-ink;
+        @apply flex items-center gap-2 text-sm font-semibold text-body;
     }
 
     .field-datepicker-select {
-        @apply cursor-pointer rounded px-1 py-0.5 text-sm font-semibold text-ink transition hover:text-accent;
+        @apply cursor-pointer rounded px-1 py-0.5 text-sm font-semibold text-body transition hover:text-marker;
     }
 
     .field-datepicker-nav {
-        @apply grid h-7 w-7 place-items-center rounded-full border border-sand bg-white text-accent transition hover:border-accent hover:bg-accent hover:text-white;
+        @apply grid h-7 w-7 place-items-center rounded-full border border-ring bg-field text-marker transition hover:border-marker hover:bg-marker hover:text-white;
     }
 
     .field-datepicker-dayview {
@@ -84,7 +84,7 @@
     }
 
     .field-datepicker-weekday {
-        @apply text-[11px] font-semibold uppercase tracking-[0.06em] text-graphite;
+        @apply text-[11px] font-semibold uppercase tracking-[0.06em] text-mute;
     }
 
     .field-datepicker-day-cell {
@@ -92,7 +92,7 @@
     }
 
     .field-datepicker-day {
-        @apply grid h-8 w-8 cursor-pointer place-items-center rounded-full text-sm text-ink transition hover:bg-cream;
+        @apply grid h-8 w-8 cursor-pointer place-items-center rounded-full text-sm text-body transition hover:bg-raised;
     }
 
     /* PrimeVue marks state with aria-selected and a space-separated data-p
@@ -100,7 +100,7 @@
        is what the Checkbox uses. Matched with ~= so extra tokens still hit. */
     .field-datepicker-day[aria-selected='true'],
     .field-datepicker-day[data-p~='selected'] {
-        @apply bg-accent text-white hover:bg-accent;
+        @apply bg-marker text-white hover:bg-marker;
     }
 
     .field-datepicker-day[aria-disabled='true'] {
@@ -109,7 +109,7 @@
 
     /* Today, when it isn't the selected day: outlined rather than filled. */
     .field-datepicker-day-cell[data-p-today='true'] .field-datepicker-day:not([aria-selected='true']) {
-        @apply border border-accent;
+        @apply border border-marker;
     }
 
     .field-datepicker-grid {
@@ -117,36 +117,36 @@
     }
 
     .field-datepicker-grid-item {
-        @apply cursor-pointer rounded px-2 py-2 text-center text-sm text-ink transition hover:bg-cream;
+        @apply cursor-pointer rounded px-2 py-2 text-center text-sm text-body transition hover:bg-raised;
     }
 
     .field-datepicker-grid-item[aria-selected='true'],
     .field-datepicker-grid-item[data-p~='selected'] {
-        @apply bg-accent text-white;
+        @apply bg-marker text-white;
     }
 
     .field-datepicker-timepicker {
-        @apply mt-3 flex items-center justify-center gap-2 border-t border-sand pt-3;
+        @apply mt-3 flex items-center justify-center gap-2 border-t border-ring pt-3;
     }
 
     .field-datepicker-time-unit {
-        @apply flex flex-col items-center gap-1 text-sm tabular-nums text-ink;
+        @apply flex flex-col items-center gap-1 text-sm tabular-nums text-body;
     }
 
     .field-datepicker-time-separator {
-        @apply text-sm font-semibold text-graphite;
+        @apply text-sm font-semibold text-mute;
     }
 
     .field-datepicker-time-button {
-        @apply grid h-6 w-6 place-items-center rounded-full text-graphite transition hover:bg-cream hover:text-accent;
+        @apply grid h-6 w-6 place-items-center rounded-full text-mute transition hover:bg-raised hover:text-marker;
     }
 
     .field-datepicker-buttonbar {
-        @apply mt-3 flex items-center justify-between gap-2 border-t border-sand pt-3;
+        @apply mt-3 flex items-center justify-between gap-2 border-t border-ring pt-3;
     }
 
     .field-select-root {
-        @apply relative flex w-full cursor-pointer items-center justify-between rounded-md border border-sand bg-white px-3 py-3 text-sm normal-case text-ink outline-none transition focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/10;
+        @apply relative flex w-full cursor-pointer items-center justify-between rounded-md border border-ring bg-field px-3 py-3 text-sm normal-case text-body outline-none transition focus-within:border-marker focus-within:ring-4 focus-within:ring-marker/20;
         letter-spacing: 0;
     }
 
@@ -155,11 +155,11 @@
     }
 
     .field-select-dropdown {
-        @apply ml-2 grid place-items-center text-graphite;
+        @apply ml-2 grid place-items-center text-mute;
     }
 
     .field-select-overlay {
-        @apply mt-1 overflow-hidden rounded-md border border-sand bg-white shadow-[0_18px_45px_rgba(7,21,35,0.15)];
+        @apply mt-1 overflow-hidden rounded-md border border-ring bg-field shadow-[0_18px_45px_rgba(7,21,35,0.15)];
         /* Above the modal scrim — see .field-datepicker-panel. */
         z-index: var(--z-field);
     }
@@ -169,12 +169,12 @@
     }
 
     .field-select-option {
-        @apply cursor-pointer px-3 py-2 transition hover:bg-cream;
+        @apply cursor-pointer px-3 py-2 transition hover:bg-raised;
     }
 
     /* Search box shown at the top of a filterable select's dropdown (AppIconSelect). */
     .field-select-filter-header {
-        @apply border-b border-sand p-2;
+        @apply border-b border-ring p-2;
     }
 
     .field-select-filter-field {
@@ -190,38 +190,8 @@
         @apply flex items-center gap-2 capitalize;
     }
 
-    /* AppTranslatedField: one label over a row of EN/NL InputGroups, so a
-       bilingual value reads and edits as a single record. */
-    .field-group-label {
-        @apply block text-xs font-semibold uppercase text-graphite;
-        letter-spacing: 0.08em;
-    }
-
-    .field-group-row {
-        @apply mt-2 flex flex-wrap gap-3;
-    }
-
-    .field-group-unit {
-        @apply flex flex-1 items-stretch;
-        min-width: 220px;
-    }
-
-    .field-group-addon {
-        @apply flex flex-none items-center gap-1.5 rounded-l-md border border-r-0 border-sand bg-white px-3 text-xs font-semibold uppercase text-accent;
-        letter-spacing: 0.08em;
-    }
-
-    .field-group-field {
-        @apply w-full rounded-r-md border border-sand bg-white px-3 py-3 text-sm normal-case text-ink outline-none transition focus:z-10 focus:border-accent focus:ring-4 focus:ring-accent/10;
-        letter-spacing: 0;
-    }
-
-    textarea.field-group-field {
-        resize: vertical;
-    }
-
     .field-checkbox-root {
-        @apply inline-flex w-fit cursor-pointer flex-row items-center gap-2 self-center text-sm normal-case text-ink;
+        @apply inline-flex w-fit cursor-pointer flex-row items-center gap-2 self-center text-sm normal-case text-body;
         letter-spacing: 0;
     }
 
@@ -249,7 +219,7 @@
     }
 
     .field-checkbox-box {
-        @apply grid h-4 w-4 flex-none place-items-center rounded border border-graphite transition;
+        @apply grid h-4 w-4 flex-none place-items-center rounded border border-ring transition;
     }
 
     /* data-p-checked lands on Checkbox's own root (the "contents" div), not
@@ -259,39 +229,19 @@
        scoping to it left every multiselect box looking permanently
        unchecked even while its value was selected. */
     [data-p-checked='true'] .field-checkbox-box {
-        @apply border-ink bg-ink;
+        background: var(--color-solid);
+        border-color: var(--color-solid);
     }
 
     .field-checkbox-icon {
-        @apply h-3 w-3 text-white;
+        @apply h-3 w-3;
+        color: var(--color-solid-text);
     }
 
-    .icon-button {
-        @apply grid h-9 w-9 place-items-center rounded-full border border-sand bg-white text-accent transition hover:border-accent hover:bg-accent hover:text-white;
-    }
-
-    /* Delete is a distinct, less-reversible action — black instead of the
-       blue used for reorder, so it doesn't read as "just another move button". */
-    .icon-button-danger {
-        @apply grid h-9 w-9 place-items-center rounded-full border border-sand bg-white text-ink transition hover:border-ink hover:bg-ink hover:text-white;
-    }
-
-    .editable-card {
-        @apply rounded-lg border border-sand border-l-2 border-l-ink bg-parchment/70 p-4;
-    }
-
-    .editable-card > header {
-        @apply mb-4 flex items-center justify-between gap-4;
-    }
-
-    .editable-card > header strong {
-        @apply text-sm font-semibold uppercase;
-        letter-spacing: 0.12em;
-    }
-
-    .editable-card > header div {
-        @apply flex gap-2;
-    }
+    /* .icon-button, .icon-button-danger and the editable card moved to
+       admin.css: they are card tools and a card, not field styling, and this
+       file loads after admin.css — a second definition here would silently
+       win over the one sitting next to the cards it belongs to. */
 
     /* Honeypot wrapper. Off-screen rather than display:none or hidden, both of
        which a bot can check for and skip. Nothing here is announced or

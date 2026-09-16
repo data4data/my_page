@@ -42,33 +42,32 @@ const formatDate = (value) => new Date(value).toLocaleString(undefined, {
 </script>
 
 <template>
-    <div>
-        <!-- No heading: the tab strip above already reads "Content versions",
-             and the sibling tabs open straight into an .admin-note too. -->
-        <div class="admin-note">{{ copy('historyHint') }}</div>
+    <div class="flex flex-col gap-2.5">
+        <!-- No heading: the tab strip above already reads "Content versions". -->
+        <p class="admin-note">{{ copy('historyHint') }}</p>
 
-        <ul class="history-list">
+        <ul class="flex list-none flex-col gap-2.5 p-0">
             <!-- The shipped defaults are just another version to go back to,
                  so they lead the list rather than sitting in their own block. -->
             <li class="history-row history-row-defaults">
                 <div class="history-meta">
                     <span class="history-time">
-                        <RefreshCcw :size="14" />
+                        <RefreshCcw :size="14" aria-hidden="true" />
                         {{ copy('historyDefaults') }}
                     </span>
                     <span class="history-author">{{ copy('restoreHint') }}</span>
                 </div>
-                <AppButton variant="primary" size="sm" :disabled="busy" @click="restoreDefaults">
-                    <RefreshCcw :size="15" />
+                <AppButton variant="solid" :disabled="busy" @click="restoreDefaults">
+                    <RefreshCcw :size="14" aria-hidden="true" />
                     {{ restoring ? copy('restoring') : copy('historyRestore') }}
                 </AppButton>
             </li>
 
-            <li v-if="revisionsLoading" class="history-row history-row-note">
-                {{ copy('historyLoading') }}
+            <li v-if="revisionsLoading" class="history-row">
+                <span class="history-author">{{ copy('historyLoading') }}</span>
             </li>
-            <li v-else-if="revisions.length === 0" class="history-row history-row-note">
-                {{ copy('historyEmpty') }}
+            <li v-else-if="revisions.length === 0" class="history-row">
+                <span class="history-author">{{ copy('historyEmpty') }}</span>
             </li>
 
             <li v-for="revision in revisions" v-else :key="revision.id" class="history-row history-row-revision">
@@ -81,8 +80,8 @@ const formatDate = (value) => new Date(value).toLocaleString(undefined, {
                         <template v-else>{{ copy('historyUnknown') }}</template>
                     </span>
                 </div>
-                <AppButton variant="secondary" size="sm" :disabled="busy" @click="restoreRevision(revision.id)">
-                    <Undo2 :size="15" />
+                <AppButton variant="outline" :disabled="busy" @click="restoreRevision(revision.id)">
+                    <Undo2 :size="14" aria-hidden="true" />
                     {{ restoringId === revision.id ? copy('historyRestoring') : copy('historyRestore') }}
                 </AppButton>
             </li>

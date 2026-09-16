@@ -1,8 +1,9 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { LogOut } from '@lucide/vue';
-import AppButton from '../ui/AppButton.vue';
+import { ChevronRight, LogOut, Moon, Sun } from '@lucide/vue';
+import AppPillSwitch from '../ui/AppPillSwitch.vue';
 import { copy, lang, LANGUAGES, languageSwitcherShown, setLang } from '../../shared/i18n';
+import { holdTheme, releaseTheme, setTheme, theme } from '../../shared/theme';
 import { csrfToken } from '../../shared/api';
 import { adminUrl } from '../../shared/admin-path';
 
@@ -25,73 +26,64 @@ const props = defineProps({
     },
 });
 
+defineEmits(['navigate']);
+
 // Turning the switcher off hides it here too, not just on the public page.
 const showLanguageSwitcher = computed(() => languageSwitcherShown(props.profile));
 
-defineEmits(['navigate']);
+// The rail is two groups: destinations at the top, Settings on its own at the
+// bottom above the switchers. `foot: true` marks the second group — the same
+// flag-on-the-item convention the tab strip already uses for `right`.
+const primaryItems = computed(() => props.navItems.filter((item) => !item.foot));
+const footItems = computed(() => props.navItems.filter((item) => item.foot));
 
-// The nav sticks below the header, so it needs the header's height. Measured,
-// not hardcoded: the header wraps to two lines when its contents stop fitting.
-// base.css carries a fallback for the first paint and for jsdom.
-const header = ref(null);
-const headerHeight = ref(null);
-let observer = null;
+const languageOptions = computed(() => LANGUAGES.map((language) => ({
+    value: language.value,
+    label: language.value.toUpperCase(),
+})));
 
-onMounted(() => {
-    if (! header.value || typeof ResizeObserver === 'undefined') {
-        return;
-    }
+// Icon-only, so each half carries its own aria-label; computed so the labels
+// follow the EN/NL switch like every other string.
+const themeOptions = computed(() => [
+    { value: 'light', icon: Sun, ariaLabel: copy('themeLight') },
+    { value: 'dark', icon: Moon, ariaLabel: copy('themeDark') },
+]);
 
-    observer = new ResizeObserver(([entry]) => {
-        headerHeight.value = `${Math.round(entry.target.getBoundingClientRect().height)}px`;
-    });
+// Below lg the rail is icon-only and widens on hover or keyboard focus. Touch
+// has neither, so the chevron pins it open; persisted because a rail that
+// un-pinned itself on every navigation would be worse than no pin at all.
+const PIN_KEY = 'workspace-rail-pinned';
+const pinned = ref(localStorage.getItem(PIN_KEY) === '1');
 
-    observer.observe(header.value);
-});
+const togglePin = () => {
+    pinned.value = !pinned.value;
+    localStorage.setItem(PIN_KEY, pinned.value ? '1' : '0');
+};
 
-onBeforeUnmount(() => observer?.disconnect());
+// `data-theme` on <html> is what selects the dark half of every light-dark()
+// in theme.css. Held only while the workspace is mounted, so the public page
+// and the overlays that append to <body> stay light. See shared/theme.js.
+onMounted(holdTheme);
+onBeforeUnmount(releaseTheme);
 </script>
 
 <template>
-    <main class="flex min-h-screen flex-col bg-white text-ink" :style="headerHeight ? { '--admin-header': headerHeight } : null">
-        <header ref="header" class="layer-header sticky top-0 shrink-0 border-b border-sand bg-cream/90 backdrop-blur">
-            <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
-                <div class="flex flex-wrap items-baseline gap-3">
-                    <a href="/" class="admin-header-title text-3xl font-semibold tracking-normal">{{ initials }}</a>
-                    <span class="admin-header-title text-3xl font-semibold tracking-normal text-accent">{{ copy('contentStudio') }}</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <div v-if="showLanguageSwitcher" class="flex items-center gap-1">
-                        <AppButton
-                            v-for="language in LANGUAGES"
-                            :key="language.value"
-                            variant="lang"
-                            size="sm"
-                            :active="lang === language.value"
-                            @click="setLang(language.value)"
-                        >
-                            {{ language.value.toUpperCase() }}
-                        </AppButton>
-                    </div>
-                    <form method="POST" :action="adminUrl('/logout')">
-                        <input type="hidden" name="_token" :value="csrfToken()">
-                        <AppButton variant="secondary" size="sm" type="submit" :aria-label="copy('logout')">
-                            <LogOut :size="16" />
-                        </AppButton>
-                    </form>
-                </div>
-            </div>
-        </header>
+    <div class="admin-shell">
+        <!-- Reserves the collapsed/expanded footprint in the flex row. The
+             panel inside is fixed, so widening it on hover overlays the sheet
+             instead of reflowing it. -->
+        <aside class="admin-rail" :class="{ pinned }">
+            <div class="admin-rail-panel">
+                <a href="/" class="admin-rail-brand">
+                    <span class="admin-rail-badge">{{ initials }}</span>
+                    <span class="admin-rail-label admin-rail-caption">{{ copy('contentStudio') }}</span>
+                </a>
 
-        <!-- Stretched to the remaining viewport height, so the aside's border
-             runs from under the header to the bottom on every page, not just
-             as far as that page's content reaches. -->
-        <div class="mx-auto flex w-full max-w-7xl flex-1 flex-col lg:flex-row">
-            <!-- Same cream as the header, so the chrome reads as one surface. -->
-            <aside class="admin-rail hidden bg-cream/90 px-5 py-8 lg:block lg:w-60 lg:shrink-0 lg:border-r lg:border-sand">
-                <nav :aria-label="copy('contentStudio')" class="admin-rail-nav flex flex-col gap-2">
+                <div class="admin-rail-divider"></div>
+
+                <nav class="admin-rail-nav" :aria-label="copy('contentStudio')">
                     <button
-                        v-for="item in navItems"
+                        v-for="item in primaryItems"
                         :key="item.key"
                         type="button"
                         class="admin-nav-item"
@@ -99,37 +91,72 @@ onBeforeUnmount(() => observer?.disconnect());
                         :aria-current="item.key === activeKey ? 'page' : undefined"
                         @click="$emit('navigate', item.key)"
                     >
-                        <component :is="item.icon" :size="18" />
-                        {{ item.label }}
+                        <component :is="item.icon" :size="18" aria-hidden="true" />
+                        <span class="admin-rail-label">{{ item.label }}</span>
+                        <span v-if="item.count" class="admin-nav-count">{{ item.count }}</span>
                     </button>
                 </nav>
-            </aside>
 
-            <!-- No left/bottom padding from lg up, so the panel sits flush
-                 against the divider. flex-col so .admin-panel can grow. -->
-            <div class="admin-content flex min-w-0 flex-1 flex-col px-5 py-8 lg:pb-0 lg:pl-0">
-                <slot />
+                <div class="admin-rail-foot">
+                    <button
+                        v-for="item in footItems"
+                        :key="item.key"
+                        type="button"
+                        class="admin-nav-item"
+                        :class="{ active: item.key === activeKey }"
+                        :aria-current="item.key === activeKey ? 'page' : undefined"
+                        @click="$emit('navigate', item.key)"
+                    >
+                        <component :is="item.icon" :size="18" aria-hidden="true" />
+                        <span class="admin-rail-label">{{ item.label }}</span>
+                    </button>
+
+                    <div class="admin-rail-divider"></div>
+
+                    <div class="admin-rail-utils">
+                        <AppPillSwitch
+                            v-if="showLanguageSwitcher"
+                            :options="languageOptions"
+                            :model-value="lang"
+                            :aria-label="copy('languageSwitch')"
+                            @update:model-value="setLang"
+                        />
+
+                        <AppPillSwitch
+                            :options="themeOptions"
+                            :model-value="theme"
+                            :aria-label="copy('themeSwitch')"
+                            @update:model-value="setTheme"
+                        />
+
+                        <form method="POST" :action="adminUrl('/logout')" class="admin-rail-signout">
+                            <input type="hidden" name="_token" :value="csrfToken()">
+                            <button type="submit" class="admin-rail-icon-button" :aria-label="copy('logout')" :title="copy('logout')">
+                                <LogOut :size="15" aria-hidden="true" />
+                            </button>
+                        </form>
+
+                        <!-- Only does anything while the rail is collapsed, so
+                             it is hidden from lg up rather than rendered inert. -->
+                        <button
+                            type="button"
+                            class="admin-rail-icon-button admin-rail-pin"
+                            :aria-pressed="pinned"
+                            :aria-label="pinned ? copy('navCollapse') : copy('navExpand')"
+                            :title="pinned ? copy('navCollapse') : copy('navExpand')"
+                            @click="togglePin"
+                        >
+                            <ChevronRight :size="15" aria-hidden="true" />
+                        </button>
+                    </div>
+                </div>
             </div>
+        </aside>
+
+        <!-- Inset on three sides and open at the bottom: the sheet runs off the
+             end of the page rather than closing into a floating card. -->
+        <div class="admin-frame">
+            <slot />
         </div>
-
-        <!-- A bottom bar instead of the rail on small screens: it stays in
-             reach of a thumb, and the stacked rail used most of a phone's
-             first screenful before any content appeared. -->
-        <nav class="admin-bottom-nav lg:hidden" :aria-label="copy('contentStudio')">
-            <button
-                v-for="item in navItems"
-                :key="item.key"
-                type="button"
-                class="admin-bottom-nav-item"
-                :class="{ active: item.key === activeKey }"
-                :aria-current="item.key === activeKey ? 'page' : undefined"
-                @click="$emit('navigate', item.key)"
-            >
-                <component :is="item.icon" :size="20" aria-hidden="true" />
-                <span>{{ item.label }}</span>
-            </button>
-        </nav>
-
-        <slot name="fab" />
-    </main>
+    </div>
 </template>
