@@ -66,6 +66,16 @@ class UpdatePortfolioRequest extends FormRequest
             // These land in :href on the public page.
             'profile.primary_cta_url' => ['nullable', 'string', 'max:255', new SafeUrl],
             'profile.secondary_cta_url' => ['nullable', 'string', 'max:255', new SafeUrl],
+
+            // A real address, not SafeUrl: this one is turned into a mailto:
+            // by the page rather than used as the href it was typed as.
+            'profile.contact_email' => ['nullable', 'string', 'email', 'max:190'],
+
+            // 'url', not SafeUrl: a preview image has to be an absolute
+            // http(s) address a crawler on another host can fetch, so the
+            // fragments and relative paths SafeUrl exists to allow are all
+            // useless here.
+            'profile.social_image_url' => ['nullable', 'string', 'url:http,https', 'max:255'],
             'profile.social_links' => ['nullable', 'array'],
             'profile.social_links.*.label' => ['nullable', 'string', 'max:60'],
             'profile.social_links.*.url' => ['required', 'string', 'max:255', new SafeUrl],

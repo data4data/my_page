@@ -56,6 +56,21 @@ const setTerms = (tone, value) => {
 
         <div class="grid gap-3 md:grid-cols-2">
             <label class="field-label">
+                {{ copy('fieldContactEmail') }}
+                <AppInput v-model="profile.contact_email" type="email" maxlength="190" />
+            </label>
+
+            <label class="field-label">
+                {{ copy('fieldSocialImage') }}
+                <AppInput v-model="profile.social_image_url" maxlength="255" />
+            </label>
+        </div>
+
+        <p class="admin-note">{{ copy('fieldContactEmailHint') }}</p>
+        <p class="admin-note">{{ copy('fieldSocialImageHint') }}</p>
+
+        <div class="grid gap-3 md:grid-cols-2">
+            <label class="field-label">
                 {{ copy('fieldAccentBlue') }}
                 <AppInput :model-value="termsFor('blue')" @update:model-value="setTerms('blue', $event)" />
             </label>
