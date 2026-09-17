@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import CategoryModal from './CategoryModal.vue';
+import CategoryModal from '../agenda/CategoryModal.vue';
 
 // Only one level of nesting is supported, so "Work" (which has a child) must
 // never be offered as a parent — doing so would create a grandchild that no

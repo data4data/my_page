@@ -7,21 +7,33 @@ use App\Models\PortfolioProfile;
 use App\Models\PortfolioRevision;
 use App\Services\PortfolioContentService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class PortfolioController extends Controller
 {
     public function __construct(private PortfolioContentService $content) {}
 
-    public function app(Request $request): View
+    public function app(Request $request, ?string $locale = null): View|RedirectResponse
     {
         // Not activeProfile(), which throws: every page must still render on
         // a fresh install before anything is seeded.
         $profile = PortfolioProfile::query()->where('is_active', true)->first();
         $inWorkspace = $this->insideWorkspace($request);
+        $default = $profile->default_language ?? 'en';
 
-        $role = $profile ? ($profile->role['en'] ?? $profile->role['nl'] ?? '') : '';
+        // One page, one URL. The default language lives at the unprefixed
+        // path, so /en and / would otherwise be the same page twice and split
+        // whatever ranking either of them earned.
+        if ($locale !== null && $locale === $default) {
+            return redirect($this->barePath($request, $locale), 301);
+        }
+
+        $active = $locale ?? $default;
+
+        $role = $profile ? $this->translated($profile->role, $active) : '';
         $title = $profile ? trim($profile->initials.($role ? " | {$role}" : '')) : 'Digital Visit Card';
 
         return view('app', [
@@ -33,9 +45,15 @@ class PortfolioController extends Controller
             'adminPath' => $inWorkspace ? config('admin.path') : null,
             // Null inside the workspace: those pages are private, so they get
             // the noindex below instead of a description to share.
-            'meta' => $inWorkspace ? null : $this->publicMeta($profile, $request, $title),
+            'meta' => $inWorkspace ? null : $this->publicMeta($profile, $request, $title, $active, $default),
             'noindex' => $inWorkspace,
         ]);
+    }
+
+    /** The same path with the language prefix taken off: /en/hi-developer -> /hi-developer. */
+    private function barePath(Request $request, string $locale): string
+    {
+        return '/'.ltrim(Str::after($request->path(), $locale), '/');
     }
 
     /**
@@ -49,10 +67,8 @@ class PortfolioController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function publicMeta(?PortfolioProfile $profile, Request $request, string $title): array
+    private function publicMeta(?PortfolioProfile $profile, Request $request, string $title, string $locale, string $default): array
     {
-        $locale = $profile->default_language ?? 'en';
-
         return [
             'title' => $title,
             'description' => $this->translated($profile?->summary, $locale),
@@ -60,8 +76,36 @@ class PortfolioController extends Controller
             // The URL as asked for, so /hi-developer is canonical to itself
             // rather than pointing every route at the root.
             'url' => $request->url(),
+            // Every language this page exists in, for hreflang. Without them a
+            // crawler has no way to know /nl is the same page in Dutch rather
+            // than an unrelated one, and may treat them as duplicates.
+            'alternates' => $this->alternates($request, $locale, $default),
+            'defaultLocale' => $default,
+            // The picture a link preview shows. Null keeps the small card:
+            // the large one renders as a blank slab without an image.
+            'image' => $profile?->social_image_url,
             'schema' => $profile ? $this->personSchema($profile, $locale, $request) : null,
         ];
+    }
+
+    /**
+     * Absolute URL per language for the page being rendered.
+     *
+     * @return array<string, string>
+     */
+    private function alternates(Request $request, string $locale, string $default): array
+    {
+        // The path with no language on it, which every alternate is built from.
+        $bare = trim($locale === $default ? $request->path() : Str::after($request->path(), $locale), '/');
+
+        $alternates = [];
+
+        foreach (config('app.locales') as $code) {
+            $path = $code === $default ? $bare : trim($code.'/'.$bare, '/');
+            $alternates[$code] = url($path === '' ? '/' : $path);
+        }
+
+        return $alternates;
     }
 
     /**

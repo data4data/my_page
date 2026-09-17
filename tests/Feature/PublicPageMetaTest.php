@@ -119,4 +119,24 @@ class PublicPageMetaTest extends TestCase
             ->assertSee('<title>Digital Visit Card</title>', false)
             ->assertDontSee('application/ld+json', false);
     }
+
+    public function test_a_preview_image_is_offered_when_one_is_set(): void
+    {
+        $this->profile(['social_image_url' => 'https://cdn.example.com/card.png']);
+
+        $this->get('/')
+            ->assertSee('<meta property="og:image" content="https://cdn.example.com/card.png">', false)
+            ->assertSee('<meta name="twitter:image" content="https://cdn.example.com/card.png">', false)
+            // The big card is only worth asking for once there is a picture.
+            ->assertSee('<meta name="twitter:card" content="summary_large_image">', false);
+    }
+
+    public function test_without_an_image_the_small_card_is_asked_for(): void
+    {
+        $this->profile();
+
+        $this->get('/')
+            ->assertSee('<meta name="twitter:card" content="summary">', false)
+            ->assertDontSee('og:image', false);
+    }
 }

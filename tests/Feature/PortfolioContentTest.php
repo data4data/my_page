@@ -554,4 +554,77 @@ class PortfolioContentTest extends TestCase
 
         $this->assertSame(['Legacy on'], array_column($public, 'label'));
     }
+
+    public function test_a_contact_address_that_is_not_an_email_is_rejected(): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'profile' => ['contact_email' => 'not-an-address'],
+            ]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['profile.contact_email']);
+    }
+
+    public function test_the_contact_address_may_be_cleared(): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'profile' => ['contact_email' => null],
+            ]))
+            ->assertOk();
+
+        // The button that reads this hides itself rather than mailing nowhere.
+        $this->assertNull(PortfolioProfile::where('is_active', true)->first()->contact_email);
+    }
+
+    /**
+     * A preview image is fetched by a crawler on another host, so unlike the
+     * CTA fields it cannot be a fragment, a relative path or a mailto.
+     */
+    #[DataProvider('unusablePreviewImages')]
+    public function test_a_preview_image_that_no_crawler_could_fetch_is_rejected(string $url): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'profile' => ['social_image_url' => $url],
+            ]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['profile.social_image_url']);
+    }
+
+    public static function unusablePreviewImages(): array
+    {
+        return [
+            'fragment' => ['#work'],
+            'relative path' => ['/images/card.png'],
+            'mailto' => ['mailto:someone@example.com'],
+            'script' => ['javascript:alert(1)'],
+        ];
+    }
+
+    public function test_an_absolute_preview_image_is_accepted(): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'profile' => ['social_image_url' => 'https://cdn.example.com/card.png'],
+            ]))
+            ->assertOk();
+
+        $this->assertSame(
+            'https://cdn.example.com/card.png',
+            PortfolioProfile::where('is_active', true)->first()->social_image_url,
+        );
+    }
 }

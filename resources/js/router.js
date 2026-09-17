@@ -22,6 +22,23 @@ const routes = [
         name: 'hi-developer',
         // Same component as '/' — the connect form renders as a popup over
         // the already-fetched public page rather than being its own page.
+        meta: { connect: true },
+        component: () => import('./pages/public/PublicPage.vue'),
+    },
+    // The same two pages under an explicit language, matching the routes
+    // Laravel serves (routes/web.php). The default language keeps the bare
+    // path, so only the other locales ever reach these.
+    {
+        path: '/:locale(en|nl)',
+        name: 'public-language',
+        component: () => import('./pages/public/PublicPage.vue'),
+    },
+    {
+        path: '/:locale(en|nl)/hi-developer',
+        name: 'hi-developer-language',
+        // Both connect routes are found by this flag rather than by name, so
+        // the popup opens on either.
+        meta: { connect: true },
         component: () => import('./pages/public/PublicPage.vue'),
     },
     {

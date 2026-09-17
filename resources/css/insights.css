@@ -1,0 +1,237 @@
+/* Imported by app.css. Part of the split described there.
+
+   Insights and Settings: inquiries, the sign-in trail, two-step sign-in, and
+   the settings rows.
+
+   Everything in here draws from the workspace surface tokens in theme.css
+   (--color-sheet, --color-sunken, --color-body, ...) rather than the brand
+   palette. That is the whole dark-mode mechanism: the tokens carry both
+   values, so a rule written against them themes itself. A literal `bg-white`
+   or `border-sand` in this file is a bug — it will stay light when the rest
+   of the workspace goes dark. */
+
+@layer components {
+    /* ---------------------------------------------------------------
+       Insights: inquiries, the sign-in trail, two-step sign-in.
+       --------------------------------------------------------------- */
+
+    .inquiry-card {
+        @apply overflow-hidden rounded-[0.6875rem];
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
+    }
+
+    .inquiry-card-head {
+        @apply flex flex-wrap items-center gap-2.5 px-3.5 py-2.5;
+        border-bottom: 1px solid var(--color-hairline);
+        background: var(--color-raised);
+    }
+
+    .inquiry-card-name {
+        @apply text-[0.8125rem] font-semibold;
+        color: var(--color-body);
+    }
+
+    .inquiry-card-time {
+        @apply ml-auto text-xs tabular-nums;
+        color: var(--color-mute);
+    }
+
+    .inquiry-card-body {
+        @apply grid gap-2 px-3.5 py-3.5;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    @media (width >= theme(--breakpoint-md)) {
+        .inquiry-card-body {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            column-gap: 1.25rem;
+        }
+    }
+
+    .inquiry-field {
+        @apply flex min-w-0 gap-2 text-[0.8125rem];
+    }
+
+    .inquiry-field-label {
+        @apply flex-none;
+        color: var(--color-faint);
+    }
+
+    .inquiry-field a {
+        @apply inline-flex min-w-0 items-center gap-1.5 truncate;
+        color: var(--color-marker);
+    }
+
+    .inquiry-message {
+        @apply text-[0.8125rem] leading-relaxed;
+        grid-column: 1 / -1;
+        color: var(--color-body);
+    }
+
+    /* The table scrolls inside its own container in the template: an IPv6
+       literal is wide and the sheet must not scroll sideways. */
+    .security-table {
+        @apply w-full min-w-[34rem] border-collapse text-[0.8125rem];
+    }
+
+    .security-table th {
+        @apply px-0 py-2 text-left text-xs font-medium;
+        border-bottom: 1px solid var(--color-hairline-soft);
+        color: var(--color-faint);
+    }
+
+    .security-table td {
+        @apply px-0 py-2.5;
+        border-bottom: 1px solid var(--color-hairline-soft);
+        color: var(--color-body);
+    }
+
+    .security-table .is-numeric {
+        @apply text-right tabular-nums;
+    }
+
+    .security-row {
+        @apply grid items-center gap-3 rounded-[0.5625rem] px-3 py-2.5;
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
+        /* Outcome, address, address typed, time. */
+        grid-template-columns: minmax(9rem, auto) minmax(8rem, auto) minmax(0, 1fr) auto;
+    }
+
+    /* Colour repeats the label, never replaces it — and the dot repeats the
+       colour, so the outcome survives both a greyscale print and a reader. */
+    .security-row-outcome {
+        @apply inline-flex items-center gap-2 text-xs font-medium;
+    }
+
+    .security-row-outcome::before {
+        content: '';
+        @apply h-1.5 w-1.5 flex-none rounded-full;
+        background: currentcolor;
+    }
+
+    .security-row-login_succeeded .security-row-outcome {
+        color: var(--color-success-text);
+    }
+
+    .security-row-login_failed .security-row-outcome {
+        color: var(--color-danger-text);
+    }
+
+    .security-row-login_blocked .security-row-outcome {
+        color: var(--color-warning-text);
+    }
+
+    .two-factor {
+        @apply rounded-[0.6875rem] p-4;
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
+    }
+
+    .two-factor-setup {
+        @apply flex flex-wrap items-start gap-5;
+    }
+
+    /* Light plate whatever the theme: a dark ground drops the contrast a
+       scanner needs, and the QR itself is drawn in black. */
+    .two-factor-qr {
+        @apply shrink-0 rounded-[0.625rem] bg-white p-2;
+        box-shadow: 0 0 0 1px var(--color-ring);
+    }
+
+    .two-factor-key {
+        @apply mt-1 inline-block break-all rounded px-2 py-1 font-mono text-xs;
+        background: var(--color-field);
+        box-shadow: inset 0 0 0 1px var(--color-ring);
+        color: var(--color-body);
+    }
+
+    .two-factor-codes {
+        @apply grid gap-2;
+        grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    }
+
+    .two-factor-codes code {
+        @apply block rounded px-2 py-1 text-center font-mono text-xs;
+        background: var(--color-field);
+        box-shadow: inset 0 0 0 1px var(--color-ring);
+        color: var(--color-body);
+    }
+
+    /* ---------------------------------------------------------------
+       Settings.
+       --------------------------------------------------------------- */
+
+    /* One setting per row: name and explanation on the left, its control on
+       the right. Language, the switcher's visibility, two-step sign-in. */
+    .setting-row {
+        @apply flex flex-wrap items-center gap-4 rounded-[0.6875rem] px-4 py-3.5;
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
+    }
+
+    .setting-row-text {
+        @apply flex min-w-[12rem] flex-1 flex-col gap-1;
+    }
+
+    .setting-row-name {
+        @apply text-sm font-medium;
+        color: var(--color-body);
+    }
+
+    .setting-row-hint {
+        @apply text-xs leading-relaxed;
+        color: var(--color-faint);
+    }
+
+    /* Saved-version list. Deliberately lighter than .item-card — these rows
+       are a log to scan, not content to edit. */
+    .history-row {
+        @apply flex flex-wrap items-center gap-3.5 rounded-[0.625rem] px-3.5 py-3;
+        background: var(--color-sunken);
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
+    }
+
+    /* Leads the list and resets everything, so it reads a little heavier
+       than the saved versions below it. */
+    .history-row-defaults {
+        background: var(--color-raised);
+    }
+
+    .history-meta {
+        @apply flex min-w-0 flex-1 flex-col gap-0.5;
+    }
+
+    .history-time {
+        @apply inline-flex items-center gap-2 text-[0.8125rem] font-medium tabular-nums;
+        color: var(--color-body);
+    }
+
+    .history-author {
+        @apply text-xs;
+        color: var(--color-faint);
+    }
+
+    /* Nothing here yet, and saying so plainly rather than with a fake row. */
+    .admin-empty {
+        @apply flex flex-col items-center gap-2.5 rounded-xl px-8 py-12 text-center;
+        box-shadow: inset 0 0 0 1px var(--color-hairline);
+    }
+
+    .admin-empty-icon {
+        @apply grid h-11 w-11 place-items-center rounded-xl;
+        background: var(--color-sunken);
+        color: var(--color-faint);
+    }
+
+    .admin-empty-title {
+        @apply text-[0.9375rem] font-medium;
+        color: var(--color-body);
+    }
+
+    .admin-empty-note {
+        @apply max-w-[25rem] text-[0.8125rem] leading-relaxed;
+        color: var(--color-faint);
+    }
+}

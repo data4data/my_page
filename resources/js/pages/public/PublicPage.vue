@@ -1,15 +1,37 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ArrowRight, ChevronLeft, ChevronRight } from '@lucide/vue';
 import AppButton from '../../components/ui/AppButton.vue';
 import DeveloperConnectModal from '../../components/DeveloperConnectModal.vue';
 import { resolveIcon } from '../../shared/icons';
-import { applyLanguagePolicy, copy, lang, LANGUAGES, languageSwitcherShown, setLang, t } from '../../shared/i18n';
+import { applyLanguagePolicy, copy, lang, LANGUAGES, languageSwitcherShown, localeFromPath, pathForLocale, preferredPath, setLang, t } from '../../shared/i18n';
 import { usePortfolioSource } from '../../shared/portfolio';
 
 const route = useRoute();
-const showConnectModal = computed(() => route.name === 'hi-developer');
+// Both connect routes carry this flag — the bare one and the prefixed one.
+const showConnectModal = computed(() => route.meta.connect === true);
+
+const router = useRouter();
+
+// Keeps whatever language the current URL is in.
+const connectPath = computed(() => {
+    const prefix = localeFromPath(route.path);
+
+    return prefix ? `/${prefix}/hi-developer` : '/hi-developer';
+});
+
+// Switching language changes the address, not just a ref: each language is a
+// real page, so the one on screen has to be the one that can be linked to.
+const switchLanguage = (value) => {
+    setLang(value);
+
+    const target = pathForLocale(value, profile.value?.default_language || 'en', route.path);
+
+    if (target !== route.path) {
+        router.push(target);
+    }
+};
 
 const {
     loading,
@@ -89,6 +111,15 @@ onMounted(async () => {
     await fetchPortfolio();
     applyLanguagePolicy(profile.value);
 
+    // A remembered choice sends the visitor to that language's own URL.
+    // replace(), not push(), so Back still leaves the site rather than
+    // bouncing between the two languages.
+    const preferred = preferredPath(profile.value, route.path);
+
+    if (preferred) {
+        router.replace(preferred);
+    }
+
     updateHeaderState();
     window.addEventListener('scroll', updateHeaderState, { passive: true });
 
@@ -146,12 +177,12 @@ const scrollExpertise = (direction) => {
                             :key="language.value"
                             variant="lang"
                             :active="lang === language.value"
-                            @click="setLang(language.value)"
+                            @click="switchLanguage(language.value)"
                         >
                             {{ language.value.toUpperCase() }}
                         </AppButton>
                     </template>
-                    <AppButton variant="menu" as="router-link" :to="{ name: 'hi-developer' }">
+                    <AppButton variant="menu" as="router-link" :to="connectPath">
                         {{ copy('forDevelopers') }} <ArrowRight :size="15" />
                     </AppButton>
                 </div>
@@ -293,7 +324,7 @@ const scrollExpertise = (direction) => {
                     <h2 class="contact-headline">
                         <span v-for="line in copy('contactHeadlineLines')" :key="line">{{ line }}</span>
                     </h2>
-                    <AppButton variant="menu-gold" class="contact-cta-link" as="a" href="mailto:hello@example.com">{{ copy('getInTouch') }} <ArrowRight :size="22" /></AppButton>
+                    <AppButton v-if="profile.contact_email" variant="menu-gold" class="contact-cta-link" as="a" :href="`mailto:${profile.contact_email}`">{{ copy('getInTouch') }} <ArrowRight :size="22" /></AppButton>
                 </div>
             </div>
 

@@ -54,6 +54,13 @@ class DefaultPortfolioContent
                 'primary_cta_url' => '#work',
                 'secondary_cta_label' => ['en' => 'About me', 'nl' => 'Over mij'],
                 'secondary_cta_url' => '#about',
+
+                // Left empty on purpose. A seeded address would either be
+                // fake — the exact problem this column was added to remove —
+                // or belong to whoever wrote the seed. The contact button
+                // hides itself until the owner fills this in.
+                'contact_email' => null,
+                'social_image_url' => null,
                 'location_note' => ['en' => 'Based in Europe', 'nl' => 'Gevestigd in Europa'],
                 // Sits right of the social links in the footer. Free text —
                 // the column name is left over from when it held availability.

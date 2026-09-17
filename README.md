@@ -6,13 +6,16 @@ A Laravel + Vue app with two halves behind one login.
 
 **The private side** is a planning workspace: calendar, task timers, categories, weekly and monthly reports, and reflection notes.
 
-All the content lives in the database, so you change it in the app rather than in the code. It ships with placeholder content under the initials `AB`. Swap them in Settings and nothing is left pointing at whoever set it up.
+All the content lives in the database, so you change it in the app rather than in the code. It ships with placeholder content under the initials `AB`. Swap them under **Edit page → Shared** and nothing is left pointing at whoever set it up.
 
 ## What's in it
 
 **Public page**
 
 - EN/NL, with the starting language and whether visitors may switch both set from the workspace
+- Each language has its own address — `/` and `/nl` — so either can be linked, shared and found by a search engine
+- A contact button that mails the address you set, and hides itself until you set one
+- A link preview image, title and summary rendered server-side, so a link pasted into LinkedIn or WhatsApp shows a real card
 - Expertise, metrics, process steps and projects, each ordered and each written in both languages
 - A connect form for developers, reachable from the public page
 
@@ -108,7 +111,7 @@ Then edit the public content under **Edit page**, your categories under **My age
 
 `composer run dev` starts the server, queue worker, log tailer and Vite together.
 
-The public visit card is at `/`. Everything else lives under the path you set in `ADMIN_PATH`, starting with its login page, and the left nav takes you between the four sections from there.
+The public visit card is at `/`, and the other language at `/nl`. Everything else lives under the path you set in `ADMIN_PATH`, starting with its login page, and the left nav takes you between the four sections from there.
 
 ## Checks
 
@@ -124,7 +127,7 @@ All five run clean. Backend tests use their own database on MySQL, the same engi
 
 ## How it fits together
 
-`PortfolioProfile` is the root of the public page, with metrics, expertise, projects and process steps as ordered children. Free text is stored as `{en, nl}` JSON and edited as one field with both languages side by side.
+`PortfolioProfile` is the root of the public page, with metrics, expertise, projects and process steps as ordered children. Free text is stored as `{en, nl}` JSON and edited as one field with both languages side by side. The language a visitor gets comes from the URL, so each one is a real page rather than a setting held in their browser.
 
 The planner is separate: `Task`, `Category`, `TimeLog` and `Reflection`, all scoped to the signed-in user.
 

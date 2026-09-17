@@ -20,6 +20,8 @@ class PortfolioProfile extends Model
         'primary_cta_url',
         'secondary_cta_label',
         'secondary_cta_url',
+        'contact_email',
+        'social_image_url',
         'location_note',
         'availability_note',
         'quote',

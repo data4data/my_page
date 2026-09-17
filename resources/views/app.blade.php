@@ -31,6 +31,14 @@
             @endif
             <link rel="canonical" href="{{ $meta['url'] }}">
 
+            {{-- One entry per language, plus x-default for a visitor whose own
+                 language is neither. Without these a crawler sees / and /nl as
+                 two unrelated pages, or as duplicates of each other. --}}
+            @foreach ($meta['alternates'] as $code => $href)
+                <link rel="alternate" hreflang="{{ $code }}" href="{{ $href }}">
+            @endforeach
+            <link rel="alternate" hreflang="x-default" href="{{ $meta['alternates'][$meta['defaultLocale']] }}">
+
             <meta property="og:type" content="profile">
             <meta property="og:site_name" content="{{ $siteTitle }}">
             <meta property="og:title" content="{{ $siteTitle }}">
@@ -40,10 +48,18 @@
                 <meta property="og:description" content="{{ $meta['description'] }}">
             @endif
 
-            {{-- summary, not summary_large_image: there is no image field on
-                 the profile, and the large card renders as a blank slab
-                 without one. --}}
-            <meta name="twitter:card" content="summary">
+            @if ($meta['image'])
+                <meta property="og:image" content="{{ $meta['image'] }}">
+                <meta property="og:image:alt" content="{{ $siteTitle }}">
+            @endif
+
+            {{-- The large card is only worth asking for when there is a
+                 picture to fill it. Without one it renders as a blank slab,
+                 which reads worse than the small card. --}}
+            <meta name="twitter:card" content="{{ $meta['image'] ? 'summary_large_image' : 'summary' }}">
+            @if ($meta['image'])
+                <meta name="twitter:image" content="{{ $meta['image'] }}">
+            @endif
             <meta name="twitter:title" content="{{ $siteTitle }}">
             @if ($meta['description'])
                 <meta name="twitter:description" content="{{ $meta['description'] }}">

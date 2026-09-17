@@ -10,17 +10,10 @@ import TaskModal from './TaskModal.vue';
 import AdminSheet from '../../../components/admin/AdminSheet.vue';
 import AppButton from '../../../components/ui/AppButton.vue';
 import AppMultiSelect from '../../../components/ui/AppMultiSelect.vue';
-import {
-    usePlanning,
-    startOfWeek,
-    startOfMonth,
-    startOfDay,
-    addDays,
-    addMonths,
-    TASK_STATUSES,
-    taskStatusLabelKey,
-} from '../../../shared/planning';
-import { copy, lang } from '../../../shared/i18n';
+import { usePlanning } from '../../../shared/planning';
+import { useCalendarPeriod } from './useCalendarPeriod';
+import { useTaskFilters } from './useTaskFilters';
+import { copy } from '../../../shared/i18n';
 import { useToast } from '../../../shared/toast';
 import { useConfirm } from '../../../shared/confirm';
 
@@ -39,62 +32,33 @@ const {
 const toast = useToast();
 const { confirm } = useConfirm();
 
-// --- Filters -------------------------------------------------------------
+const {
+    selectedCategoryIds,
+    selectedStatuses,
+    categoryFilterOptions,
+    statusFilterOptions,
+    filteredTasks,
+} = useTaskFilters(tasks, categories);
 
-const selectedCategoryIds = ref([]);
-const selectedStatuses = ref([]);
+// Wrapped in an arrow rather than passed directly: load() is declared just
+// below and reads gridStart/gridEnd back out of this same call.
+const {
+    viewMode,
+    referenceDate,
+    gridStart,
+    gridEnd,
+    rangeLabel,
+    setViewMode,
+    goToPrevious,
+    goToNext,
+    goToToday,
+    selectDay,
+} = useCalendarPeriod(() => load());
 
-// Flat "Parent › Child" list (one level of nesting, same as TaskModal's own
-// category select) plus a pseudo-option for tasks with no category at all.
-const categoryFilterOptions = computed(() => {
-    const options = [{ label: copy('uncategorized'), value: null }];
-
-    for (const category of categories.value) {
-        options.push({ label: category.name, value: category.id });
-
-        for (const child of category.children ?? []) {
-            options.push({ label: `${category.name} › ${child.name}`, value: child.id });
-        }
-    }
-
-    return options;
-});
-
-const statusFilterOptions = computed(() => TASK_STATUSES.map((status) => ({ label: copy(taskStatusLabelKey[status]), value: status })));
-
-// Tasks are filed against a leaf category ("Learning › Laravel"), so picking
-// the parent alone would match nothing. Selecting a parent is taken to mean
-// "this and everything under it" — otherwise "Learning" reads as an empty
-// category even while its subcategories hold tasks.
-const activeCategoryIds = computed(() => {
-    const ids = new Set(selectedCategoryIds.value);
-
-    for (const parent of categories.value) {
-        if (ids.has(parent.id)) {
-            for (const child of parent.children ?? []) {
-                ids.add(child.id);
-            }
-        }
-    }
-
-    return ids;
-});
-
-// Empty selection = no filter on that facet; both facets AND together.
-const filteredTasks = computed(() => tasks.value.filter((task) => {
-    const matchesCategory = selectedCategoryIds.value.length === 0 || activeCategoryIds.value.has(task.category_id);
-    const matchesStatus = selectedStatuses.value.length === 0 || selectedStatuses.value.includes(task.status);
-    return matchesCategory && matchesStatus;
-}));
-
-// `referenceDate` anchors whichever view is active: a Monday for week, the
-// 1st of the month for month, the exact day for day — each mode normalizes
-// it to that shape in setViewMode()/goToToday() so switching modes never
-// leaves it in a shape another mode doesn't expect.
-const viewMode = ref('week');
+const load = () => fetchTasks(gridStart.value, gridEnd.value);
 
 // computed (not a plain array) so labels re-render when the admin switches
-// their own working language via the header EN/NL toggle.
+// their own working language via the rail's EN/NL toggle.
 const viewModeTabs = computed(() => [
     { value: 'day', label: copy('day') },
     { value: 'week', label: copy('week') },
@@ -102,56 +66,6 @@ const viewModeTabs = computed(() => [
     { value: 'categories', label: copy('categories') },
     { value: 'report', label: copy('report') },
 ]);
-const referenceDate = ref(startOfWeek(new Date()));
-
-const locale = computed(() => (lang.value === 'nl' ? 'nl-NL' : 'en-US'));
-
-// Month view renders a fixed 6x7 grid starting on the Monday on/before the
-// 1st, so leading/trailing days from neighboring months are real, clickable
-// days too — the fetch range is padded to match, or those days would show
-// as empty even when they have tasks.
-const gridStart = computed(() => (viewMode.value === 'month' ? startOfWeek(referenceDate.value) : referenceDate.value));
-const gridEnd = computed(() => {
-    if (viewMode.value === 'day') return referenceDate.value;
-    if (viewMode.value === 'month') return addDays(gridStart.value, 41);
-    return addDays(referenceDate.value, 6);
-});
-
-const capitalize = (value) => value.charAt(0).toUpperCase() + value.slice(1);
-
-// Dutch's natural date order/casing ("17 augustus", lowercase, day before
-// month) differs from English's ("August 17", capitalized, month before
-// day) — fine normally, but it made this one heading look inconsistently
-// styled between languages. Building the "Weekday, Month Day" pattern by
-// hand (translating just the weekday/month names, not their order) keeps
-// one consistent look in both languages instead of each locale's own convention.
-const rangeLabel = computed(() => {
-    if (viewMode.value === 'day') {
-        const weekday = capitalize(referenceDate.value.toLocaleDateString(locale.value, { weekday: 'long' }));
-        const month = capitalize(referenceDate.value.toLocaleDateString(locale.value, { month: 'long' }));
-        return `${weekday}, ${month} ${referenceDate.value.getDate()}`;
-    }
-
-    if (viewMode.value === 'month') {
-        return capitalize(referenceDate.value.toLocaleDateString(locale.value, { month: 'long', year: 'numeric' }));
-    }
-
-    const format = (date) => date.toLocaleDateString(locale.value, { day: 'numeric', month: 'short' });
-    return `${format(referenceDate.value)} – ${format(addDays(referenceDate.value, 6))}`;
-});
-
-const load = () => fetchTasks(gridStart.value, gridEnd.value);
-
-// Start of the period the given date falls in, for a given view mode.
-const periodStartFor = (mode, date) => {
-    if (mode === 'week') return startOfWeek(date);
-    if (mode === 'month') return startOfMonth(date);
-    return startOfDay(date);
-};
-
-// True while the view still sits on the period containing today — i.e. the
-// user hasn't navigated to another day/week/month.
-const isOnCurrentPeriod = () => referenceDate.value.getTime() === periodStartFor(viewMode.value, new Date()).getTime();
 
 // The sheet's subtitle. The three calendar modes say which period is on
 // screen; the other two say what they are, since neither has a period.
@@ -169,79 +83,6 @@ const subtitle = computed(() => {
 const runningTask = computed(() => tasks.value.find((task) => task.status === 'in_progress'));
 
 const status = computed(() => (runningTask.value ? `${copy('timerRunning')} — ${runningTask.value.title}` : ''));
-
-const setViewMode = (mode) => {
-    if (mode === viewMode.value) {
-        return;
-    }
-
-    // Report and Categories aren't calendar periods — they keep their own
-    // state and fetch on their own, so leave referenceDate untouched and
-    // switching back to a calendar tab lands where the user left it.
-    if (mode === 'report' || mode === 'categories') {
-        viewMode.value = mode;
-        return;
-    }
-
-    // Anchor on today whenever the user hasn't navigated away, so each view
-    // opens on the current day/week/month. Carrying referenceDate over
-    // unconditionally would land Day on the week's Monday rather than today.
-    // Once they have navigated elsewhere, keep them in that stretch of time.
-    const anchor = isOnCurrentPeriod() ? new Date() : referenceDate.value;
-
-    if (mode === 'week') {
-        referenceDate.value = startOfWeek(anchor);
-    } else if (mode === 'month') {
-        referenceDate.value = startOfMonth(anchor);
-    } else {
-        referenceDate.value = startOfDay(anchor);
-    }
-
-    viewMode.value = mode;
-    load();
-};
-
-const goToPrevious = () => {
-    if (viewMode.value === 'day') {
-        referenceDate.value = addDays(referenceDate.value, -1);
-    } else if (viewMode.value === 'month') {
-        referenceDate.value = addMonths(referenceDate.value, -1);
-    } else {
-        referenceDate.value = addDays(referenceDate.value, -7);
-    }
-
-    load();
-};
-
-const goToNext = () => {
-    if (viewMode.value === 'day') {
-        referenceDate.value = addDays(referenceDate.value, 1);
-    } else if (viewMode.value === 'month') {
-        referenceDate.value = addMonths(referenceDate.value, 1);
-    } else {
-        referenceDate.value = addDays(referenceDate.value, 7);
-    }
-
-    load();
-};
-
-const goToToday = () => {
-    if (viewMode.value === 'week') {
-        referenceDate.value = startOfWeek(new Date());
-    } else if (viewMode.value === 'month') {
-        referenceDate.value = startOfMonth(new Date());
-    } else {
-        referenceDate.value = startOfDay(new Date());
-    }
-
-    load();
-};
-
-const onSelectDay = (date) => {
-    referenceDate.value = startOfDay(date);
-    viewMode.value = 'day';
-    load();
-};
 
 // --- Create / edit / delete -------------------------------------------
 
@@ -400,7 +241,7 @@ fetchCategories();
             <template v-else>
                 <DayView v-if="viewMode === 'day'" :day="referenceDate" :tasks="filteredTasks" @edit-task="openEditModal" @start-timer="handleStartTimer" @stop-timer="handleStopTimer" />
                 <WeekView v-else-if="viewMode === 'week'" :week-start="referenceDate" :tasks="filteredTasks" @edit-task="openEditModal" @add-task="openCreateModalForDay" @start-timer="handleStartTimer" @stop-timer="handleStopTimer" />
-                <MonthView v-else :month-start="referenceDate" :tasks="filteredTasks" @select-day="onSelectDay" @edit-task="openEditModal" @add-task="openCreateModalForDay" />
+                <MonthView v-else :month-start="referenceDate" :tasks="filteredTasks" @select-day="selectDay" @edit-task="openEditModal" @add-task="openCreateModalForDay" />
             </template>
         </template>
 
