@@ -54,6 +54,8 @@ This file covers the other half — what the project *is*. Architecture, the agg
 
 Both planner seeders are re-runnable: `CategorySeeder` uses `updateOrCreate`; `DemoWeekSeeder` deletes its own prior rows (`source = seeder`, that user only) before recreating them pinned to the current week. Neither touches manually created tasks.
 
+**Everything seeded is deliberately generic.** This project is meant to be forked and made someone else's, so the default categories are buckets any week falls into (Work, Learning, Projects, Health, Home, Social, Other) rather than one person's situation — an earlier set shipped "Job Search", "Interview Prep" and a `Language → Dutch` child, which told a reader which country the author was job-hunting in. The sample week follows the same rule and covers all five `TaskStatus` cases, so a fresh install shows every state the board can be in. `DefaultPortfolioContent` was already placeholder content under the initials `AB`.
+
 ## Architecture
 
 ### Public page aggregate
@@ -105,6 +107,14 @@ Login is rate-limited by the named `login` limiter defined in `AppServiceProvide
 
 `bootstrap/app.php` also fixes a `shouldRenderJsonWhen()` gotcha — without the `|| $request->expectsJson()` clause, every non-`api/*` validation failure (e.g. a wrong login password) renders as an HTML redirect instead of JSON, breaking every `fetch()`-based form in `resources/js`.
 
+### What a crawler sees
+
+The public page is painted by Vue in the browser, so the HTML that comes back holds no copy. The crawlers behind link previews — LinkedIn, WhatsApp, Slack, iMessage — **do not run JavaScript**, so whatever is missing from that response is missing from the preview. `PortfolioController::publicMeta()` therefore reads the active profile and `app.blade.php` renders the title, description, canonical, Open Graph, Twitter card and a schema.org `Person` block server-side, with `<html lang>` following `default_language`. The ld+json is encoded with `JSON_HEX_*` so a field containing `</script>` cannot close the block and turn the rest of the head into page content — `PublicPageMetaTest` covers that case specifically.
+
+The workspace renders the same shell and gets the opposite treatment: `noindex, nofollow`, no description, no card. It is already behind a login and an unguessable prefix, but a prefix that ever leaks should not then be handed to an index.
+
+**This is meta only — the body is still client-rendered.** Googlebot does execute JavaScript, so the page is indexed, but on a second pass and less reliably than served markup. Fixing that properly means server-rendering this one page (Blade, Inertia, or prerendering at build time), which is a real change to how the app is served and has not been made.
+
 ## Backend API
 
 No `/api` prefix — admin JSON endpoints live under `{admin}/...` alongside the SPA shell routes.
@@ -153,6 +163,8 @@ Controllers validate, authorize, delegate, and return JSON. Rules that outlive a
 ### Two rules worth knowing before editing planner code
 
 **Only one timer runs at a time.** `TimerService::start()` calls `pauseOtherRunningTasks()`, which closes any other open log for that user and sets those tasks to `paused`. Without it the same minutes count against several tasks and every report total overstates the day. Those logs are closed **one model at a time** (`$log->update(...)`), not via a mass query update — a builder `update()` bypasses `TimeLog::booted()` and would silently skip computing `duration_minutes`. `TimerServiceTest` calls the service directly, with no HTTP involved.
+
+**That rule is a read followed by a write, so it is held by a lock.** "Is anything running?" then "insert a log" is a race: two clicks landing together both read *no* and both insert, leaving two timers running and double-counting every minute after. `start()` and `stop()` each run in a `DB::transaction()` that opens by taking `lockForUpdate()` on the **user** row. The user, not the task — the rule is per-user, so two *different* tasks started at the same instant would take two different task locks and both still open a log. The user row is the one row every timer change for that owner has in common, and it always exists: `lockForUpdate()` on a query matching nothing takes no row lock, only an index gap lock, which is a much subtler thing to rest an invariant on. `TimerServiceTest` asserts the lock is taken *before* the insert rather than trying to stage two connections.
 
 `Carbon::now()` is called directly here on purpose — `Carbon::setTestNow()` already makes it controllable, so a Clock abstraction would solve a problem the framework has solved.
 
