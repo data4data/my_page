@@ -1,6 +1,22 @@
 /* Imported by app.css. Part of the split described there. */
 
 @layer components {
+    /* ---------------------------------------------------------------
+       Fields.
+       --------------------------------------------------------------- */
+
+    /* The workspace's field label: a quiet 12px caption over the control,
+       rather than the tracked uppercase .admin-grid label it replaces. */
+    .field-label {
+        @apply flex flex-col gap-1.5 text-xs;
+        color: var(--color-mute);
+    }
+
+    /* Groups fields inside a language card — Hero, Buttons, Footer. */
+    .field-section-heading {
+        @apply text-[0.6875rem] font-semibold;
+        color: var(--color-faint);
+    }
     .admin-note-label {
         @apply mr-1 text-xs font-semibold uppercase text-mute;
         letter-spacing: 0.08em;

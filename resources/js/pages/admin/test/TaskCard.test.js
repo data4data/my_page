@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import TaskCard from './TaskCard.vue';
+import TaskCard from '../agenda/TaskCard.vue';
 import { TASK_STATUSES } from '../../../shared/planning';
 
 const task = {
@@ -87,10 +87,10 @@ describe('TaskCard status', () => {
     // flex-none, so without a wrap the time and the badge overflowed and the
     // badge rendered outside the card.
     it('lets the time and badge row wrap', () => {
-        const css = readFileSync(join(process.cwd(), 'resources/css/admin.css'), 'utf8');
+        const css = readFileSync(join(process.cwd(), 'resources/css/agenda.css'), 'utf8');
         const rule = css.match(/\.task-card-meta\s*\{[^}]*\}/);
 
-        expect(rule, '.task-card-meta should be declared in admin.css').not.toBeNull();
+        expect(rule, '.task-card-meta should be declared in agenda.css').not.toBeNull();
         expect(rule[0]).toMatch(/flex-wrap/);
     });
 });
