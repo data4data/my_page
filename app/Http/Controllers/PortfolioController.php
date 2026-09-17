@@ -19,6 +19,7 @@ class PortfolioController extends Controller
         // Not activeProfile(), which throws: every page must still render on
         // a fresh install before anything is seeded.
         $profile = PortfolioProfile::query()->where('is_active', true)->first();
+        $inWorkspace = $this->insideWorkspace($request);
 
         $role = $profile ? ($profile->role['en'] ?? $profile->role['nl'] ?? '') : '';
         $title = $profile ? trim($profile->initials.($role ? " | {$role}" : '')) : 'Digital Visit Card';
@@ -29,8 +30,69 @@ class PortfolioController extends Controller
             // always would put the private URL in the public page's source.
             // Only requests already inside the workspace get it — reaching
             // one of those URLs means you already knew the prefix.
-            'adminPath' => $this->insideWorkspace($request) ? config('admin.path') : null,
+            'adminPath' => $inWorkspace ? config('admin.path') : null,
+            // Null inside the workspace: those pages are private, so they get
+            // the noindex below instead of a description to share.
+            'meta' => $inWorkspace ? null : $this->publicMeta($profile, $request, $title),
+            'noindex' => $inWorkspace,
         ]);
+    }
+
+    /**
+     * What a crawler is told about the public visit card.
+     *
+     * The page body is rendered by Vue in the browser, and the crawlers behind
+     * link previews — LinkedIn, WhatsApp, Slack, iMessage — do not run
+     * JavaScript. Whatever is not in this response does not exist to them, so
+     * the title and summary are read out of the database here rather than left
+     * to the bundle that paints them a moment later.
+     *
+     * @return array<string, mixed>
+     */
+    private function publicMeta(?PortfolioProfile $profile, Request $request, string $title): array
+    {
+        $locale = $profile->default_language ?? 'en';
+
+        return [
+            'title' => $title,
+            'description' => $this->translated($profile?->summary, $locale),
+            'locale' => $locale,
+            // The URL as asked for, so /hi-developer is canonical to itself
+            // rather than pointing every route at the root.
+            'url' => $request->url(),
+            'schema' => $profile ? $this->personSchema($profile, $locale, $request) : null,
+        ];
+    }
+
+    /**
+     * schema.org Person, the structured half of the same facts.
+     *
+     * `name` is the initials because that is the only name the profile holds —
+     * it is what the page itself shows, so claiming anything richer here would
+     * be describing a page that does not exist.
+     *
+     * @return array<string, string>
+     */
+    private function personSchema(PortfolioProfile $profile, string $locale, Request $request): array
+    {
+        return array_filter([
+            '@context' => 'https://schema.org',
+            '@type' => 'Person',
+            'name' => (string) $profile->initials,
+            'jobTitle' => $this->translated($profile->role, $locale),
+            'description' => $this->translated($profile->summary, $locale),
+            'url' => $request->url(),
+        ]);
+    }
+
+    /** One half of an {en, nl} column, falling back to whichever half exists. */
+    private function translated(mixed $value, string $locale): string
+    {
+        if (! is_array($value)) {
+            return is_string($value) ? $value : '';
+        }
+
+        return $value[$locale] ?? $value['en'] ?? $value['nl'] ?? '';
     }
 
     private function insideWorkspace(Request $request): bool
