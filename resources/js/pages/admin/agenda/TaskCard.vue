@@ -51,7 +51,7 @@ const onTimerClick = () => {
         role="button"
         tabindex="0"
         class="task-card"
-        :class="[`task-card-${task.status}`, `task-card-${layout}`]"
+        :class="[`status-${task.status}`, `task-card-${layout}`]"
         :style="{ '--task-color': categoryColor }"
         @click="emit('edit', task)"
         @keydown.enter="emit('edit', task)"
@@ -75,7 +75,7 @@ const onTimerClick = () => {
         <template v-else>
             <span class="task-card-title">{{ task.title }}</span>
 
-            <span class="flex items-center gap-2">
+            <span class="task-card-meta">
                 <span class="task-card-time">{{ timeRange }}</span>
                 <span class="task-card-status ml-auto">{{ statusLabel }}</span>
             </span>

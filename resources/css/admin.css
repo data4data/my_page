@@ -487,17 +487,12 @@
         box-shadow: inset 0 0 0 1px var(--color-ring);
     }
 
-    .task-card-done {
-        @apply opacity-70;
-    }
-
-    .task-card-skipped {
-        @apply opacity-50;
-    }
-
-    .task-card-skipped .task-card-title,
-    .task-card-done .task-card-title {
+    /* Settled states read as finished at a glance, before the pill is read.
+       Kept off the whole card so the status pill itself stays full strength. */
+    .status-done .task-card-title,
+    .status-skipped .task-card-title {
         @apply line-through;
+        color: var(--color-faint);
     }
 
     .task-card-time {
@@ -519,10 +514,54 @@
         color: var(--color-faint);
     }
 
+    /* Time and status on one line under the title. Wraps, because a week
+       column is a seventh of the sheet: both children are flex-none (a
+       truncated clock time or a half-shown "In progress" is worse than a
+       second line), so without this the pair overflowed and the badge sat
+       outside the card. */
+    .task-card-meta {
+        @apply flex flex-wrap items-center gap-x-2 gap-y-1;
+    }
+
+    /* One pill rule for all five statuses; each status sets the trio below.
+       The trio lives on a `status-*` class rather than a card-specific one, so
+       the report's "12 done / 3 skipped" chips read the same colours from the
+       same place instead of growing a second palette that drifts.
+       Colour repeats the label, it never replaces it — the pill always says
+       "Paused" as well as looking paused, so the state survives greyscale,
+       a colour-blind reader and a screen reader alike. */
     .task-card-status {
         @apply flex-none rounded-full px-2.5 py-0.5 text-xs font-medium;
-        box-shadow: inset 0 0 0 1px var(--color-ring);
-        color: var(--color-faint);
+        background: var(--status-bg, transparent);
+        box-shadow: inset 0 0 0 1px var(--status-ring, var(--color-ring));
+        color: var(--status-text, var(--color-faint));
+    }
+
+    /* Planned keeps the neutral outline on purpose: it is the resting state,
+       and colouring it too would leave nothing for the states that mean
+       something is happening. */
+    .status-in_progress {
+        --status-bg: var(--color-info-bg);
+        --status-ring: var(--color-info);
+        --status-text: var(--color-info-text);
+    }
+
+    .status-paused {
+        --status-bg: var(--color-warning-bg);
+        --status-ring: var(--color-warning);
+        --status-text: var(--color-warning-text);
+    }
+
+    .status-done {
+        --status-bg: var(--color-success-bg);
+        --status-ring: var(--color-success);
+        --status-text: var(--color-success-text);
+    }
+
+    .status-skipped {
+        --status-bg: var(--color-danger-bg);
+        --status-ring: var(--color-danger);
+        --status-text: var(--color-danger-text);
     }
 
     /* Idle: outline pill, click to start. Running: solid, click to stop — the
@@ -662,10 +701,13 @@
         background: var(--color-danger);
     }
 
+    /* Same trio as the task pill; a chip with no status class (the sign-in
+       trail's outcome totals) falls back to the neutral outline. */
     .report-status-chip {
         @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs;
-        box-shadow: inset 0 0 0 1px var(--color-ring);
-        color: var(--color-mute);
+        background: var(--status-bg, transparent);
+        box-shadow: inset 0 0 0 1px var(--status-ring, var(--color-ring));
+        color: var(--status-text, var(--color-mute));
     }
 
     /* ---------------------------------------------------------------

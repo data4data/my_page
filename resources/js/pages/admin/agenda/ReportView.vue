@@ -248,7 +248,7 @@ const periodOptions = computed(() => [
             <section v-if="statusRows.length" class="mt-6">
                 <h3 class="report-section-title">{{ copy('reportByStatus') }}</h3>
                 <ul class="mt-3 flex flex-wrap gap-2">
-                    <li v-for="row in statusRows" :key="row.status" class="report-status-chip">
+                    <li v-for="row in statusRows" :key="row.status" class="report-status-chip" :class="`status-${row.status}`">
                         {{ row.label }}
                         <strong class="tabular-nums">{{ row.count }}</strong>
                     </li>
