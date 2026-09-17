@@ -14,7 +14,9 @@ import AdminPage from './admin/AdminPage.vue';
 const routeName = { current: 'admin-edit' };
 
 vi.mock('vue-router', () => ({
-    useRoute: () => ({ get name() { return routeName.current; }, path: '/', params: {}, query: {} }),
+    // `meta` is always present on a real route; PublicPage reads meta.connect
+    // to decide whether the connect popup is open.
+    useRoute: () => ({ get name() { return routeName.current; }, path: '/', params: {}, query: {}, meta: {} }),
     useRouter: () => ({ push: vi.fn() }),
 }));
 

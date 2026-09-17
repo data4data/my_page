@@ -2,14 +2,14 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const apiFetch = vi.fn();
-vi.mock('../../shared/api', () => ({ apiFetch: (...args) => apiFetch(...args) }));
+vi.mock('../../../shared/api', () => ({ apiFetch: (...args) => apiFetch(...args) }));
 
 // admin-path.js reads the tag once at module load, so the shell has to be in
 // place before LoginPage imports it.
 document.head.innerHTML = '<meta name="admin-path" content="test-workspace">'
     + '<meta name="csrf-token" content="test-token">';
 
-const LoginPage = (await import('./LoginPage.vue')).default;
+const LoginPage = (await import('../LoginPage.vue')).default;
 
 // jsdom does not navigate, so an assigned href would silently stay as it was.
 const realLocation = window.location;
