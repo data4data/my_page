@@ -10,12 +10,29 @@ use App\Http\Controllers\SecurityEventController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TimeLogController;
 use App\Http\Controllers\TwoFactorController;
+use App\Http\Middleware\SetPublicLocale;
 use Illuminate\Support\Facades\Route;
 
 // Every path below renders the same Vue SPA shell (resources/views/app.blade.php);
 // vue-router (resources/js/router.js) decides which page component to show.
 Route::get('/', [PortfolioController::class, 'app']);
 Route::get('/hi-developer', [PortfolioController::class, 'app']);
+
+// The same two pages under an explicit language. Constrained to the configured
+// locales, so this cannot swallow any other path. The default language keeps
+// the unprefixed URL and app() redirects /{default} back to it, so no page is
+// reachable at two addresses.
+$locales = implode('|', config('app.locales'));
+
+// SetPublicLocale puts the request into that language, so Laravel's own
+// validation messages come back in the language the visitor is reading.
+Route::middleware(SetPublicLocale::class)->group(function () use ($locales) {
+    Route::get('/{locale}', [PortfolioController::class, 'app'])->where('locale', $locales);
+    Route::get('/{locale}/hi-developer', [PortfolioController::class, 'app'])->where('locale', $locales);
+    Route::post('/{locale}/hi-developer', [DeveloperInquiryController::class, 'store'])
+        ->where('locale', $locales)
+        ->middleware('throttle:10,1');
+});
 
 Route::get('/portfolio', [PortfolioController::class, 'show']);
 Route::post('/hi-developer', [DeveloperInquiryController::class, 'store'])->middleware('throttle:10,1');

@@ -80,6 +80,14 @@ return [
 
     'locale' => env('APP_LOCALE', 'en'),
 
+    /*
+    | The languages the public visit card is published in. The default one
+    | (PortfolioProfile.default_language) lives at the unprefixed path and the
+    | others get a prefix — "/" and "/nl" — so each language is a real URL that
+    | can be shared and indexed. Mirrored by LANGUAGES in shared/i18n.js.
+    */
+    'locales' => ['en', 'nl'],
+
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),

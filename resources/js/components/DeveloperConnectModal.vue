@@ -1,14 +1,16 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import AppModal from './ui/AppModal.vue';
 import AppInput from './ui/AppInput.vue';
 import AppTextarea from './ui/AppTextarea.vue';
 import AppButton from './ui/AppButton.vue';
 import { copy } from '../shared/i18n';
 import { apiFetch } from '../shared/api';
+import { barePath, localeFromPath } from '../shared/i18n';
 
 const router = useRouter();
+const route = useRoute();
 
 const form = ref({
     name: '',
@@ -36,7 +38,10 @@ const emailInvalid = computed(() => attemptedSubmit.value && !isValidEmail(form.
 const messageInvalid = computed(() => attemptedSubmit.value && !form.value.message.trim());
 const hasClientErrors = computed(() => nameInvalid.value || emailInvalid.value || messageInvalid.value);
 
-const close = () => router.push({ name: 'public' });
+// Back to the page behind the popup, in the language it was opened in.
+const close = () => router.push(barePath(route.path) === '/hi-developer' && localeFromPath(route.path)
+    ? `/${localeFromPath(route.path)}`
+    : '/');
 
 const submit = async () => {
     attemptedSubmit.value = true;
@@ -50,7 +55,9 @@ const submit = async () => {
     submitting.value = true;
 
     try {
-        await apiFetch('/hi-developer', {
+        // Posted to the localised URL so the server's own validation messages come
+    // back in the language the visitor is reading.
+    await apiFetch(localeFromPath(route.path) ? `/${localeFromPath(route.path)}/hi-developer` : '/hi-developer', {
             method: 'POST',
             body: form.value,
             message: copy('connectError'),
