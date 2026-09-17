@@ -1,16 +1,20 @@
 <script setup>
 import { Plus } from '@lucide/vue';
 import AppInput from '../../components/ui/AppInput.vue';
+import AppTextarea from '../../components/ui/AppTextarea.vue';
 import AppIconSelect from '../../components/ui/AppIconSelect.vue';
-import AppTranslatedField from '../../components/ui/AppTranslatedField.vue';
-import AppCheckbox from '../../components/ui/AppCheckbox.vue';
 import AppButton from '../../components/ui/AppButton.vue';
+import AppLanguageCards from '../../components/ui/AppLanguageCards.vue';
 import EditableCard from '../../components/EditableCard.vue';
-import { copy } from '../../shared/i18n';
+import { copy, t } from '../../shared/i18n';
 
 defineProps({
     expertise: {
         type: Array,
+        required: true,
+    },
+    profile: {
+        type: Object,
         required: true,
     },
     addItem: {
@@ -29,18 +33,41 @@ defineProps({
 </script>
 
 <template>
-    <div class="space-y-4">
-        <div class="admin-note">
-            These items fill the public Expertise carousel. Change order, text, icon, and visibility here.
-        </div>
+    <div class="flex flex-col gap-3">
         <p v-if="expertise.length === 0" class="admin-note">{{ copy('empty') }}</p>
-        <EditableCard v-for="(item, index) in expertise" :key="index" title="Expertise" :index="index" collection="expertise_items" @move="moveItem" @remove="removeItem">
-            <div class="admin-full"><AppTranslatedField label="Title" v-model="item.title" /></div>
-            <label>Icon<AppIconSelect v-model="item.icon" /></label>
-            <label>Category<AppInput v-model="item.category" /></label>
-            <div class="admin-full"><AppTranslatedField label="Description" v-model="item.description" multiline rows="2" /></div>
-            <AppCheckbox v-model="item.is_visible">Visible</AppCheckbox>
+
+        <EditableCard
+            v-for="(item, index) in expertise"
+            :key="index"
+            :title="t(item.title) || copy('untitled')"
+            :index="index"
+            :total="expertise.length"
+            collection="expertise_items"
+            :visible="item.is_visible !== false"
+            @move="moveItem"
+            @remove="removeItem"
+            @update:visible="item.is_visible = $event"
+        >
+            <div class="lang-grid">
+                <label class="field-label">{{ copy('fieldIcon') }}<AppIconSelect v-model="item.icon" /></label>
+                <label class="field-label">{{ copy('fieldCategory') }}<AppInput v-model="item.category" /></label>
+            </div>
+
+            <AppLanguageCards :default-language="profile.default_language">
+                <template #default="{ locale }">
+                    <label class="field-label">{{ copy('fieldTitle') }}<AppInput v-model="item.title[locale]" /></label>
+                    <label class="field-label">{{ copy('fieldDescription') }}<AppTextarea v-model="item.description[locale]" rows="2" /></label>
+                </template>
+            </AppLanguageCards>
         </EditableCard>
-        <AppButton variant="accent" size="sm" class="fab-add" @click="addItem('expertise_items', { title: { en: 'New expertise', nl: 'Nieuwe expertise' }, description: { en: 'Describe the result and capability.', nl: 'Beschrijf het resultaat en de expertise.' }, icon: 'sparkles', category: 'general' })"><Plus :size="16" /> Add expertise</AppButton>
+
+        <AppButton
+            variant="solid"
+            class="self-start"
+            @click="addItem('expertise_items', { title: { en: 'New expertise', nl: 'Nieuwe expertise' }, description: { en: 'Describe the result and capability.', nl: 'Beschrijf het resultaat en de expertise.' }, icon: 'sparkles', category: 'general' })"
+        >
+            <Plus :size="14" aria-hidden="true" />
+            {{ copy('addExpertise') }}
+        </AppButton>
     </div>
 </template>

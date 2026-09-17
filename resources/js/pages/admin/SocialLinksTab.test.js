@@ -19,7 +19,7 @@ const stubs = {
 
 const mountTab = (profile) => mount(SocialLinksTab, { props: { profile }, global: { stubs } });
 
-const cards = (wrapper) => wrapper.findAll('.editable-card');
+const cards = (wrapper) => wrapper.findAll('.item-card');
 const addButton = (wrapper) => wrapper.findAll('button').at(-1);
 
 describe('SocialLinksTab', () => {

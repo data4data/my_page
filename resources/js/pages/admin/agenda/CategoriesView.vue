@@ -109,8 +109,8 @@ load();
 <template>
     <div>
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <p class="text-xs leading-5 text-taupe">{{ copy('categoriesHint') }}</p>
-            <AppButton variant="accent" size="sm" @click="openCreate()">
+            <p class="admin-note flex-1">{{ copy('categoriesHint') }}</p>
+            <AppButton variant="solid" @click="openCreate()">
                 <Plus :size="14" /> {{ copy('categoryAdd') }}
             </AppButton>
         </div>
@@ -124,11 +124,11 @@ load();
              Below lg the grid collapses to one column and they simply stack. -->
         <div v-else class="mt-4 grid items-start gap-2 lg:grid-cols-2">
             <ul v-for="(column, index) in columns" :key="index" class="flex flex-col gap-2">
-            <li v-for="category in column" :key="category.id" class="category-row-group">
+            <li v-for="category in column" :key="category.id" class="category-group">
                 <div class="category-row">
                     <span class="category-swatch" :style="{ background: category.color }"></span>
-                    <component :is="iconMap[category.icon]" v-if="iconMap[category.icon]" :size="15" class="shrink-0 text-graphite" />
-                    <span class="flex-1 truncate text-sm text-ink">{{ category.name }}</span>
+                    <component :is="iconMap[category.icon]" v-if="iconMap[category.icon]" :size="15" class="shrink-0" style="color: var(--color-faint)" />
+                    <span class="category-name">{{ category.name }}</span>
 
                     <AppButton variant="icon" :aria-label="copy('categoryAddChild')" @click="openCreate(category.id)">
                         <Plus :size="14" />
@@ -143,8 +143,8 @@ load();
 
                 <div v-for="child in category.children ?? []" :key="child.id" class="category-row category-row-child">
                     <span class="category-swatch" :style="{ background: child.color }"></span>
-                    <component :is="iconMap[child.icon]" v-if="iconMap[child.icon]" :size="15" class="shrink-0 text-graphite" />
-                    <span class="flex-1 truncate text-sm text-ink">{{ child.name }}</span>
+                    <component :is="iconMap[child.icon]" v-if="iconMap[child.icon]" :size="15" class="shrink-0" style="color: var(--color-faint)" />
+                    <span class="category-name">{{ child.name }}</span>
 
                     <AppButton variant="icon" :aria-label="copy('categoryEdit')" @click="openEdit(child)">
                         <Pencil :size="14" />

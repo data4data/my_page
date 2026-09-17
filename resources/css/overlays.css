@@ -27,4 +27,25 @@
     .connect-close {
         @apply absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full border border-sand bg-white transition hover:bg-ink hover:text-white;
     }
+
+    /* forms.css is shared: the workspace's fields and the public connect
+       modal's fields are the same rules on the same surface tokens. The
+       workspace wants the neutral greys the redesign specifies; the visit card
+       wants its own sand-and-ink palette, which it had before those tokens
+       existed.
+
+       Keyed to the absence of data-theme — written onto <html> only while
+       AdminLayout is mounted (shared/theme.js) — so this remaps the tokens for
+       the one modal the public page opens, and leaves TaskModal and
+       CategoryModal, which share .connect-modal, on the workspace palette. */
+    :root:not([data-theme]) .connect-modal {
+        --color-field: #ffffff;
+        --color-ring: var(--color-sand);
+        --color-raised: var(--color-cream);
+        --color-body: var(--color-ink);
+        --color-mute: var(--color-graphite);
+        --color-marker: var(--color-accent);
+        --color-solid: var(--color-ink);
+        --color-solid-text: #ffffff;
+    }
 }

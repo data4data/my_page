@@ -7,7 +7,7 @@ import MonthView from './MonthView.vue';
 import ReportView from './ReportView.vue';
 import CategoriesView from './CategoriesView.vue';
 import TaskModal from './TaskModal.vue';
-import SectionTabs from '../../../components/admin/SectionTabs.vue';
+import AdminSheet from '../../../components/admin/AdminSheet.vue';
 import AppButton from '../../../components/ui/AppButton.vue';
 import AppMultiSelect from '../../../components/ui/AppMultiSelect.vue';
 import {
@@ -99,7 +99,7 @@ const viewModeTabs = computed(() => [
     { value: 'day', label: copy('day') },
     { value: 'week', label: copy('week') },
     { value: 'month', label: copy('month') },
-    { value: 'categories', label: copy('categories'), right: true },
+    { value: 'categories', label: copy('categories') },
     { value: 'report', label: copy('report') },
 ]);
 const referenceDate = ref(startOfWeek(new Date()));
@@ -152,6 +152,23 @@ const periodStartFor = (mode, date) => {
 // True while the view still sits on the period containing today — i.e. the
 // user hasn't navigated to another day/week/month.
 const isOnCurrentPeriod = () => referenceDate.value.getTime() === periodStartFor(viewMode.value, new Date()).getTime();
+
+// The sheet's subtitle. The three calendar modes say which period is on
+// screen; the other two say what they are, since neither has a period.
+const subtitle = computed(() => {
+    if (viewMode.value === 'categories') {
+        return copy('subtitleAgendaCategories');
+    }
+
+    return viewMode.value === 'report' ? '' : rangeLabel.value;
+});
+
+// Read off the task list rather than tracked separately: only one timer runs
+// at a time (TimerService.pauseOtherRunningTasks), so the in-progress task is
+// the running one by definition and the two cannot disagree.
+const runningTask = computed(() => tasks.value.find((task) => task.status === 'in_progress'));
+
+const status = computed(() => (runningTask.value ? `${copy('timerRunning')} — ${runningTask.value.title}` : ''));
 
 const setViewMode = (mode) => {
     if (mode === viewMode.value) {
@@ -344,65 +361,73 @@ fetchCategories();
 </script>
 
 <template>
-    <!-- Passes the layout's flex column through to SectionTabs' panel, which
-         grows to fill the page height — without this wrapper joining the
-         chain, the agenda's panel would stop at its content. -->
-    <div class="flex flex-1 flex-col">
-        <SectionTabs :model-value="viewMode" :tabs="viewModeTabs" @update:model-value="setViewMode">
-            <!-- Report brings its own period selector and navigation, so none
-                 of the calendar chrome below applies to it. -->
-            <ReportView v-if="viewMode === 'report'" />
+    <AdminSheet
+        :model-value="viewMode"
+        :tabs="viewModeTabs"
+        :title="copy('agenda')"
+        :subtitle="subtitle"
+        @update:model-value="setViewMode"
+    >
+        <!-- Report brings its own period selector and navigation, so none of
+             the calendar chrome below applies to it. -->
+        <ReportView v-if="viewMode === 'report'" />
 
-            <!-- Categories manage themselves and reload the shared list, so
-                 the calendar picks up new colours/names on the next fetch. -->
-            <CategoriesView v-else-if="viewMode === 'categories'" @changed="onCategoriesChanged" />
+        <!-- Categories manage themselves and reload the shared list, so the
+             calendar picks up new colours/names on the next fetch. -->
+        <CategoriesView v-else-if="viewMode === 'categories'" @changed="onCategoriesChanged" />
 
-            <template v-else>
-            <!-- One control row for all three calendar views: a single line on
-                 md+ (period switcher left, filters right), stacked when
-                 narrower. Day additionally gets the add-task button, last on
-                 the right — week and month put theirs on each day cell. -->
-            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div class="flex items-center gap-2">
-                    <AppButton variant="icon" :aria-label="copy('previousPeriod')" @click="goToPrevious">
-                        <ChevronLeft :size="16" />
-                    </AppButton>
-                    <button type="button" class="min-w-64 rounded-md px-1 text-center font-serif text-xl leading-tight text-ink transition hover:text-accent" @click="goToToday">
-                        {{ rangeLabel }}
+        <template v-else>
+            <!-- One control row for all three calendar views: period stepper
+                 left, filters right, wrapping when there is no room. -->
+            <div class="admin-toolbar">
+                <div class="period-nav">
+                    <button type="button" class="period-nav-button" :aria-label="copy('previousPeriod')" @click="goToPrevious">
+                        <ChevronLeft :size="15" aria-hidden="true" />
                     </button>
-                    <AppButton variant="icon" :aria-label="copy('nextPeriod')" @click="goToNext">
-                        <ChevronRight :size="16" />
-                    </AppButton>
+                    <button type="button" class="period-nav-label" @click="goToToday">{{ rangeLabel }}</button>
+                    <button type="button" class="period-nav-button" :aria-label="copy('nextPeriod')" @click="goToNext">
+                        <ChevronRight :size="15" aria-hidden="true" />
+                    </button>
                 </div>
-                <div class="flex flex-wrap items-center gap-2">
+
+                <div class="admin-toolbar-end">
                     <AppMultiSelect v-model="selectedCategoryIds" class="w-52" :options="categoryFilterOptions" :placeholder="copy('filterByCategory')" />
                     <AppMultiSelect v-model="selectedStatuses" class="w-52" :options="statusFilterOptions" :placeholder="copy('filterByStatus')" />
-                    <AppButton v-if="viewMode === 'day'" variant="icon" :aria-label="copy('addTask')" @click="openCreateModalForDay(referenceDate)">
-                        <Plus :size="14" />
-                    </AppButton>
                 </div>
             </div>
 
-            <p v-if="loading" class="admin-note mt-4">{{ copy('loading') }}</p>
+            <p v-if="loading" class="admin-note">{{ copy('loading') }}</p>
             <template v-else>
-                <DayView v-if="viewMode === 'day'" class="mt-4" :day="referenceDate" :tasks="filteredTasks" @edit-task="openEditModal" @start-timer="handleStartTimer" @stop-timer="handleStopTimer" />
-                <WeekView v-else-if="viewMode === 'week'" class="mt-4" :week-start="referenceDate" :tasks="filteredTasks" @edit-task="openEditModal" @add-task="openCreateModalForDay" @start-timer="handleStartTimer" @stop-timer="handleStopTimer" />
-                <MonthView v-else class="mt-4" :month-start="referenceDate" :tasks="filteredTasks" @select-day="onSelectDay" @edit-task="openEditModal" @add-task="openCreateModalForDay" />
+                <DayView v-if="viewMode === 'day'" :day="referenceDate" :tasks="filteredTasks" @edit-task="openEditModal" @start-timer="handleStartTimer" @stop-timer="handleStopTimer" />
+                <WeekView v-else-if="viewMode === 'week'" :week-start="referenceDate" :tasks="filteredTasks" @edit-task="openEditModal" @add-task="openCreateModalForDay" @start-timer="handleStartTimer" @stop-timer="handleStopTimer" />
+                <MonthView v-else :month-start="referenceDate" :tasks="filteredTasks" @select-day="onSelectDay" @edit-task="openEditModal" @add-task="openCreateModalForDay" />
             </template>
-            </template>
-        </SectionTabs>
+        </template>
 
-        <TaskModal
-            v-if="showModal"
-            :task="editingTask"
-            :categories="categories"
-            :initial-start="newTaskStart"
-            :saving="savingTask"
-            @close="closeModal"
-            @save="handleSave"
-            @delete="handleDelete"
-            @start-timer="handleStartTimer"
-            @stop-timer="handleStopTimer"
-        />
-    </div>
+        <template v-if="status" #status>{{ status }}</template>
+
+        <!-- Week and month put an add button on each day cell; day view has no
+             cell to hang one off, so its button lives here. -->
+        <template v-if="viewMode === 'day'" #actions>
+            <AppButton variant="solid" @click="openCreateModalForDay(referenceDate)">
+                <Plus :size="14" aria-hidden="true" />
+                {{ copy('addTask') }}
+            </AppButton>
+        </template>
+    </AdminSheet>
+
+    <!-- Sibling of the sheet, not inside it: the modal is the page's overlay
+         and must not inherit the sheet's overflow or stacking. -->
+    <TaskModal
+        v-if="showModal"
+        :task="editingTask"
+        :categories="categories"
+        :initial-start="newTaskStart"
+        :saving="savingTask"
+        @close="closeModal"
+        @save="handleSave"
+        @delete="handleDelete"
+        @start-timer="handleStartTimer"
+        @stop-timer="handleStopTimer"
+    />
 </template>

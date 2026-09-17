@@ -34,18 +34,18 @@
     --color-steel: #9b9b9b;
 
     /* Status colors — border/bg/text triplets for toasts, form errors, admin notes. */
-    --color-danger: #c0503f;
-    --color-danger-bg: #fdecea;
-    --color-danger-text: #8a2f22;
-    --color-success: #8fb89a;
-    --color-success-bg: #eaf5ee;
-    --color-success-text: #2c5c3a;
-    --color-warning: #b99a62;
-    --color-warning-bg: #fff8ea;
-    --color-warning-text: #805d23;
-    --color-info: #bcd3e3;
-    --color-info-bg: #eef4f8;
-    --color-info-text: #294a5f;
+    --color-danger: light-dark(#c0503f, #cf6d5b);
+    --color-danger-bg: light-dark(#fdecea, #3a1f1b);
+    --color-danger-text: light-dark(#8a2f22, #f0a99b);
+    --color-success: light-dark(#8fb89a, #6f9c7e);
+    --color-success-bg: light-dark(#eaf5ee, #24352a);
+    --color-success-text: light-dark(#2c5c3a, #9ec9ab);
+    --color-warning: light-dark(#b99a62, #b3913f);
+    --color-warning-bg: light-dark(#fff8ea, #352c18);
+    --color-warning-text: light-dark(#805d23, #d9b877);
+    --color-info: light-dark(#bcd3e3, #4a7590);
+    --color-info-bg: light-dark(#eef4f8, #1b2a35);
+    --color-info-text: light-dark(#294a5f, #9fc4db);
 
     /* Illustration colors — the hero gradient wash and the project-card
        gradient tiles. */
@@ -57,4 +57,96 @@
     --color-visual-sand: #eee3d5;
     --color-visual-mist: #edf3f5;
     --color-visual-blush: #f5eee5;
+
+    /* ---------------------------------------------------------------
+       Workspace surfaces — the semantic layer the private workspace is
+       built from, and the only tokens that differ between light and dark.
+
+       Named for the job, not the colour, because the value flips: `sheet`
+       is white in light and near-black in dark, so any rule written as
+       `bg-white` instead of `bg-sheet` silently stays white in dark mode.
+
+       Each token carries both values in one `light-dark()` rather than being
+       restated in a `[data-theme='dark']` block — two lists of the same 20
+       colours is two lists that drift. Which half applies is decided by
+       `color-scheme`, set on :root by the two rules below this block.
+
+       The public visit card deliberately uses none of these: it draws from
+       the brand palette above, so it cannot be pulled into dark mode by a
+       token it never opted into.
+       --------------------------------------------------------------- */
+
+    /* Grounds, back to front. */
+    --color-ground: light-dark(#faf9f8, #141417); /* the page behind the sheet */
+    --color-sheet: light-dark(#ffffff, #1c1c20); /* the content card */
+    --color-sunken: light-dark(#faf9f8, #232329); /* muted cards on the sheet */
+    --color-raised: light-dark(#f4f3f1, #26262b); /* card heads, control tracks */
+    --color-field: light-dark(#ffffff, #17171a); /* input interiors */
+    --color-bar: light-dark(#fdfdfc, #191919); /* the sheet's action bar */
+
+    /* Lines. `hairline-soft` separates content from content, `hairline`
+       bounds a card, `ring` outlines a control. */
+    --color-hairline-soft: light-dark(#f1f0ee, #2b2b31);
+    --color-hairline: light-dark(#eceae6, #2f2f36);
+    --color-ring: light-dark(#e7e5e1, #33333a);
+
+    /* Type, strongest to faintest. */
+    --color-body: light-dark(#18181b, #f4f4f5);
+    --color-strong: light-dark(#3f3f46, #e4e4e7);
+    --color-mute: light-dark(#52525b, #d4d4d8);
+    --color-faint: light-dark(#71717a, #b6b6bf);
+
+    /* The active-tab underline. The dark half is lighter because #2f75a8
+       cannot hold 4.5:1 against the #1c1c20 sheet. */
+    --color-marker: light-dark(#2f75a8, #5fa3d4);
+
+    /* The lit half of a segmented control sitting on the sheet — white on
+       paper, a step *up* from the track in dark, where white would shout. */
+    --color-chip: light-dark(#ffffff, #35353c);
+    --color-chip-text: light-dark(#18181b, #ffffff);
+
+    /* Primary button and any other solid fill — inverted in both themes. */
+    --color-solid: light-dark(#18181b, #ffffff);
+    --color-solid-text: light-dark(#ffffff, #141417);
+
+    /* The action bar's status dot, and destructive icon buttons. */
+    --color-signal: light-dark(#c08a2e, #d3a44a);
+    --color-alert: light-dark(#a03c2c, #e79080);
+
+    /* The rail. Light keeps it on the page ground so the chrome reads as one
+       surface; dark carries the studio blue — the palette's own
+       --color-accent-hover, one step darker than --color-accent, which is the
+       step that lets 12-14px labels clear 4.5:1 on it. */
+    --color-rail: light-dark(#faf9f8, #255f8a);
+    --color-rail-text: light-dark(#52525b, #ffffff);
+    --color-rail-text-strong: light-dark(#18181b, #ffffff);
+    --color-rail-faint: light-dark(#71717a, #dcecf6);
+    --color-rail-hover: light-dark(#f1f0ee, rgba(255, 255, 255, 0.14));
+    --color-rail-divider: light-dark(#e7e5e1, rgba(255, 255, 255, 0.22));
+    --color-rail-track: light-dark(#eceae6, rgba(0, 0, 0, 0.18));
+    --color-rail-active: light-dark(#ffffff, #ffffff);
+    --color-rail-active-text: light-dark(#18181b, #14425f);
+    --color-rail-brand: light-dark(#18181b, #ffffff); /* the initials badge */
+    --color-rail-brand-text: light-dark(#ffffff, #14425f);
+}
+
+/* Which half of every light-dark() above applies.
+
+   Deliberately keyed to an attribute rather than to prefers-color-scheme:
+   `data-theme` is written onto <html> by AdminLayout and removed when it
+   unmounts (resources/js/shared/theme.js), so the switch is live only inside
+   the workspace. With no attribute — the public page, and the first paint
+   before the script runs — color-scheme stays at its initial `normal`, which
+   resolves every light-dark() to its light half. That is what keeps the visit
+   card, and the connect modal's fields that share forms.css, out of dark mode
+   on an owner who picked dark in here or an OS set to dark.
+
+   Setting color-scheme also hands the browser the native half of the theme:
+   form controls, scrollbars and the canvas behind the page. */
+:root[data-theme='light'] {
+    color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+    color-scheme: dark;
 }

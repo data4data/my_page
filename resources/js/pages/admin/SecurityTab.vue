@@ -88,7 +88,7 @@ const formatDate = (value) => new Date(value).toLocaleString(undefined, {
                                 <td class="text-right tabular-nums">{{ row.attempts }}</td>
                                 <td class="text-right tabular-nums">{{ row.failed }}</td>
                                 <td class="text-right tabular-nums">{{ row.blocked }}</td>
-                                <td class="whitespace-nowrap text-xs text-taupe">{{ formatDate(row.last_seen) }}</td>
+                                <td class="whitespace-nowrap text-xs text-faint">{{ formatDate(row.last_seen) }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -104,8 +104,8 @@ const formatDate = (value) => new Date(value).toLocaleString(undefined, {
                     <li v-for="event in recent" :key="event.id" class="security-row" :class="`security-row-${event.type}`">
                         <span class="security-row-outcome">{{ copy(outcomeLabel[event.type]) }}</span>
                         <span class="font-mono text-xs">{{ event.ip_address ?? copy('securityUnknownAddress') }}</span>
-                        <span class="truncate text-xs text-taupe">{{ event.email }}</span>
-                        <span class="whitespace-nowrap text-xs text-taupe">{{ formatDate(event.created_at) }}</span>
+                        <span class="truncate text-xs text-faint">{{ event.email }}</span>
+                        <span class="whitespace-nowrap text-xs text-faint">{{ formatDate(event.created_at) }}</span>
                     </li>
                 </ul>
             </section>

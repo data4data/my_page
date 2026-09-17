@@ -1,9 +1,11 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import ProfileTab from './ProfileTab.vue';
+import SharedTab from './SharedTab.vue';
+import { copy } from '../../shared/i18n';
 
-// Stored as one flat [{text, tone}] list, edited as two comma-separated
-// fields. A save writes whatever this produces straight to the profile.
+// The accent word lists moved here with the rest of the untranslated
+// profile values. Stored as one flat [{text, tone}] list, edited as two
+// comma-separated fields; a save writes whatever this produces to the profile.
 const stubs = {
     AppInput: {
         name: 'AppInput',
@@ -11,22 +13,22 @@ const stubs = {
         emits: ['update:modelValue'],
         template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
     },
-    AppTranslatedField: { template: '<div />' },
 };
 
-const mountTab = (profile) => mount(ProfileTab, { props: { profile }, global: { stubs } });
+const mountTab = (profile) => mount(SharedTab, { props: { profile }, global: { stubs } });
 
 // By label, not position, so reordering the tab does not point these at the
-// CTA URL fields.
+// CTA URL fields — and by the same string the template renders, so renaming
+// one in i18n.js fails here rather than silently selecting a different field.
 const highlightInputs = (wrapper) => {
     const byLabel = (text) => wrapper.findAll('label')
         .find((label) => label.text().startsWith(text))
         .findComponent({ name: 'AppInput' });
 
-    return { blue: byLabel('Accented blue'), gold: byLabel('Accented gold') };
+    return { blue: byLabel(copy('fieldAccentBlue')), gold: byLabel(copy('fieldAccentGold')) };
 };
 
-describe('ProfileTab headline highlights', () => {
+describe('SharedTab headline highlights', () => {
     it('shows each tone as its own comma-separated list', () => {
         const wrapper = mountTab({
             headline_highlights: [

@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import TaskCard from './TaskCard.vue';
+import { TASK_STATUSES } from '../../../shared/planning';
 
 const task = {
     id: 1,
@@ -60,5 +63,34 @@ describe('TaskCard', () => {
 
         expect(wrapper.emitted('stop-timer')).toHaveLength(1);
         expect(wrapper.emitted('start-timer')).toBeUndefined();
+    });
+});
+
+describe('TaskCard status', () => {
+    // The pill is painted by a --status-* trio hung off this class, and the
+    // report's status chips read the same one. A card that stopped emitting it
+    // would silently fall back to the neutral outline for every status.
+    it('carries the status class the palette hangs off', () => {
+        for (const status of TASK_STATUSES) {
+            expect(mountCard({ status }).find('.task-card').classes()).toContain(`status-${status}`);
+        }
+    });
+
+    // Colour repeats the label; it never replaces it.
+    it('still names the status in text', () => {
+        const wrapper = mountCard({ status: 'done' });
+
+        expect(wrapper.find('.task-card-status').text()).not.toBe('');
+    });
+
+    // A week column is a seventh of the sheet. Both children of this row are
+    // flex-none, so without a wrap the time and the badge overflowed and the
+    // badge rendered outside the card.
+    it('lets the time and badge row wrap', () => {
+        const css = readFileSync(join(process.cwd(), 'resources/css/admin.css'), 'utf8');
+        const rule = css.match(/\.task-card-meta\s*\{[^}]*\}/);
+
+        expect(rule, '.task-card-meta should be declared in admin.css').not.toBeNull();
+        expect(rule[0]).toMatch(/flex-wrap/);
     });
 });

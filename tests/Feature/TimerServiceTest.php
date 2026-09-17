@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\TimerService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -133,5 +134,62 @@ class TimerServiceTest extends TestCase
         $result = $this->timer->stop($task);
 
         $this->assertCount(0, $result->timeLogs);
+    }
+
+    /**
+     * The one-timer rule is a read ("is anything running?") followed by a
+     * write. Two clicks landing together both read "no" and both insert, so
+     * the check is only worth anything if the write is already guarded when it
+     * runs. PHPUnit cannot stage two real connections here, so this asserts
+     * the guard itself is in place and in the right order rather than trying
+     * to provoke the race.
+     */
+    public function test_starting_holds_a_row_lock_before_it_opens_a_log(): void
+    {
+        $task = $this->task(User::factory()->create());
+
+        $statements = [];
+        DB::listen(function ($query) use (&$statements) {
+            $statements[] = strtolower($query->sql);
+        });
+
+        $this->timer->start($task);
+
+        $lock = $this->firstMatching($statements, fn (string $sql) => str_contains($sql, 'for update'));
+        $insert = $this->firstMatching($statements, fn (string $sql) => str_starts_with($sql, 'insert into `time_logs`'));
+
+        $this->assertNotNull($lock, 'start() should take a row lock');
+        $this->assertNotNull($insert, 'start() should open a log');
+        $this->assertLessThan($insert, $lock, 'the lock has to be held before the log is inserted');
+    }
+
+    public function test_stopping_holds_the_same_lock(): void
+    {
+        $task = $this->task(User::factory()->create());
+        $this->timer->start($task);
+
+        $statements = [];
+        DB::listen(function ($query) use (&$statements) {
+            $statements[] = strtolower($query->sql);
+        });
+
+        $this->timer->stop($task->fresh());
+
+        $this->assertNotNull(
+            $this->firstMatching($statements, fn (string $sql) => str_contains($sql, 'for update')),
+            'stop() closes a log by id it read a moment earlier, so it serialises on the same row',
+        );
+    }
+
+    /** Index of the first statement matching $matches, or null. */
+    private function firstMatching(array $statements, callable $matches): ?int
+    {
+        foreach ($statements as $index => $sql) {
+            if ($matches($sql)) {
+                return $index;
+            }
+        }
+
+        return null;
     }
 }

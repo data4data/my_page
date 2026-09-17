@@ -109,7 +109,7 @@ const submit = () => {
             </label>
 
             <div class="admin-full">
-                <span class="block text-xs font-semibold uppercase tracking-[0.08em] text-graphite">{{ copy('categoryColor') }}</span>
+                <span class="block text-xs font-semibold uppercase tracking-[0.08em] text-mute">{{ copy('categoryColor') }}</span>
                 <div class="mt-2 flex flex-wrap items-center gap-2">
                     <button
                         v-for="preset in presetColors"
@@ -124,7 +124,7 @@ const submit = () => {
 
                     <!-- Escape hatch for anything outside the presets. -->
                     <input v-model="form.color" type="color" class="color-swatch-input" :aria-label="copy('categoryColor')">
-                    <span class="text-xs tabular-nums text-taupe">{{ form.color }}</span>
+                    <span class="text-xs tabular-nums text-faint">{{ form.color }}</span>
                 </div>
             </div>
 
