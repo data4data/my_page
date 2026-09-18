@@ -105,10 +105,17 @@ The create migrations are being rewritten anyway and nothing is deployed, so
 this is the cheapest these will ever be. Doing them later means an alter
 migration each, and the squash was about not having those.
 
-Three of the items below move a rule the application currently holds in PHP
-into the database, where it cannot be bypassed by a bug, a console command or
-a future second caller. All three were tried against this project's MySQL
-(8.4) before being written down.
+Two of the items below move a rule the application holds in PHP into the
+database, where it cannot be bypassed by a bug, a console command or a retried
+request. Both were tried against this project's MySQL (8.4) before being
+written down.
+
+**A constraint is worth adding when it defends against *concurrency*, and not
+when it defends against a state nothing can create.** One admin does not mean
+one request at a time — a double click, a retry or a second tab all race — so
+the timer rule below still needs holding. A second portfolio profile is the
+other kind: nothing in the app can make one, so there is nothing to defend.
+See item 18.
 
 15. **Make `social_links` a child table.**
     It is a JSON array of `{label, url, icon, in_rail, in_footer}` on the
@@ -160,12 +167,30 @@ a future second caller. All three were tried against this project's MySQL
 
     Still stored, so report totals stay one `SUM()`.
 
-18. **Let the database hold "one active profile".**
-    `activate()` keeps exactly one `is_active` row by hand because MySQL has
-    no partial unique index. It has something just as good: a stored generated
-    column `only_active AS (IF(is_active, 1, NULL))` with a UNIQUE index on
-    it. Verified — one active row plus any number of inactive ones is fine,
-    and a second active row is refused.
+18. **Decide whether more than one profile is a feature. It currently is not.**
+    The obvious move is a UNIQUE index on a generated `only_active` column, to
+    replace the by-hand work in `activate()`. It does work on MySQL 8.4 — but
+    it should not be added, because it defends a state nothing can reach.
+
+    The only code that creates a profile is
+    `DefaultPortfolioContent::seed()`, and it is `updateOrCreate(['slug' =>
+    'oa'])` — the same row every time. There is no endpoint to create another,
+    and nothing ever sets `is_active` to false. Two profiles exist only inside
+    tests that build them by hand, and a UNIQUE index would make the setup of
+    `test_only_one_profile_stays_active` throw before it could assert
+    anything.
+
+    So the real question is the column, not the constraint. If one profile is
+    the whole story, then `is_active`, `activate()`, that test, and the
+    `where('is_active', true)` in three query paths are all machinery for a
+    feature that does not exist — `activeProfile()` becomes `firstOrFail()`
+    and `app()` becomes `first()`.
+
+    Take the column out with the squash, or keep it and leave `activate()` as
+    the guard. Do not add the index: it defends nothing, and it costs a test
+    that currently documents real behaviour. If multi-profile is ever built,
+    the column and the index come back together, and that is the moment for
+    both.
 
 19. **`portfolio_profiles.type` is dead.**
     Seeded `'person'`, never read. `personSchema()` hardcodes `Person`
