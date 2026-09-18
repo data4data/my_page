@@ -50,7 +50,8 @@ What is left to do, worst first. How to do the work is in
 Four programmes of work, not single fixes. They are ordered by what has to
 happen first, which is not the order they were asked for.
 
-**A** costs nothing and gets cheaper the sooner it happens. **B** decides the
+**A** costs nothing and gets cheaper the sooner it happens — it is also the
+only moment the schema itself is free to change. **B** decides the
 shape of the backend. **C** is the big one and needs that shape settled, since
 it multiplies the number of callers every service has — and it needs item 6
 done first, for a reason C explains. **D** is a decision to take before B,
@@ -58,10 +59,12 @@ because it changes what B is worth.
 
 Each item says what to do and what it breaks. Nothing here is started.
 
-## A. One migration per entity
+## A. One migration per entity, and the schema fixes that ride with it
 
 Nothing is deployed, so the history in `database/migrations` is 24 files
-recording a private development log. Squash to one `create_*` per table.
+recording a private development log. Squash to one `create_*` per table — and
+since every create migration is being rewritten in that pass, make the schema
+changes at the same time rather than as an alter each.
 
 11. **Fold the four profile alters into the create.**
     `add_quote_author`, `add_language_settings`, `add_headline_highlights` and
@@ -93,12 +96,141 @@ recording a private development log. Squash to one `create_*` per table.
     repo to one server version and hides the schema from review. One readable
     `create_` per table is the point.
 
+### The schema changes that ride with the squash
+
+The create migrations are being rewritten anyway and nothing is deployed, so
+this is the cheapest these will ever be. Doing them later means an alter
+migration each, and the squash was about not having those.
+
+Three of the items below move a rule the application currently holds in PHP
+into the database, where it cannot be bypassed by a bug, a console command or
+a future second caller. All three were tried against this project's MySQL
+(8.4) before being written down.
+
+15. **Make `social_links` a child table.**
+    It is a JSON array of `{label, url, icon, in_rail, in_footer}` on the
+    profile — a repeating group with its own fields, its own ordering and its
+    own visibility. Every other repeating group on the page is already a
+    table; this one is a table in a JSON costume.
+
+    Making it `portfolio_social_links` with `sort_order`, `in_rail` and
+    `in_footer` as real columns:
+
+    - removes `withVisibleSocialLinks()` and the clone it works on, because
+      the `is_visible` filtering `payload()` already applies to the child
+      collections would reach it like everything else;
+    - lets `UpdatePortfolioRequest` validate a row as a row;
+    - lets a link be ordered without rewriting the whole column.
+
+    The `showsIn()` pair in PHP and JS stays either way — the fallback for a
+    link saved before the two placements existed is about old data, not about
+    where it is stored.
+
+16. **Let the database hold "one timer at a time".**
+    `TimerService` prevents two running timers with a lock on the user row,
+    and that is the only thing standing between a race and every report total
+    being wrong. MySQL can guarantee it outright:
+
+    - add `user_id` to `time_logs` (it reaches the user through `task_id`
+      today, so this is a denormalisation, and it is what makes the rest
+      possible);
+    - add a stored generated column `running_user_id AS (IF(ended_at IS NULL,
+      user_id, NULL))`;
+    - put a UNIQUE index on it.
+
+    A second open log for the same user is then rejected by the database.
+    Closed logs hold NULL, and a unique index does not compare NULLs, so any
+    number of finished logs coexist. Verified: the second insert is refused,
+    another user's is accepted, and a new one is accepted once the first is
+    closed.
+
+    **Keep the lock.** It turns a constraint violation into an orderly pause
+    of the other task, which is the behaviour the app wants. The constraint is
+    what catches the path that forgets to take the lock.
+
+17. **Make `duration_minutes` a generated column.**
+    `TIMESTAMPDIFF(MINUTE, started_at, ended_at)` STORED. It is computed in
+    `TimeLog::booted()`'s saving hook today, which is why a builder `update()`
+    silently skips it — a trap `CLAUDE.md` has to warn about. As a generated
+    column it cannot disagree with the timestamps it is derived from, by any
+    path at all, and the hook goes away.
+
+    Still stored, so report totals stay one `SUM()`.
+
+18. **Let the database hold "one active profile".**
+    `activate()` keeps exactly one `is_active` row by hand because MySQL has
+    no partial unique index. It has something just as good: a stored generated
+    column `only_active AS (IF(is_active, 1, NULL))` with a UNIQUE index on
+    it. Verified — one active row plus any number of inactive ones is fine,
+    and a second active row is refused.
+
+19. **`portfolio_profiles.type` is dead.**
+    Seeded `'person'`, never read. `personSchema()` hardcodes `Person`
+    instead. Either wire it up — it is the obvious switch for a schema.org
+    `Organization` — or drop the column.
+
+20. **The seeded slug still carries the author's initials.**
+    `DefaultPortfolioContent::seed()` matches on `['slug' => 'oa']`. The
+    `initials` default was neutralised to `AB`; the slug it is looked up by
+    was not. It is the one identifier in a fresh install that still names a
+    particular person, in a project whose seed rules say the opposite.
+
+    Change it with the squash. While in there, decide what `slug` is *for* —
+    nothing reads it, `is_active` is what finds the live profile, and being
+    the seeder's idempotency key is the only job it has.
+
+21. **`reflections.period_end` can disagree with itself.**
+    It is derivable from `period_type` plus `period_start` — a week's end is
+    its start plus six days. Two columns that encode one fact can drift.
+    Either make it generated, or drop it and derive it in
+    `scopeForPeriod()`. Note the unique index uses it, so a generated column
+    is the smaller change.
+
+22. **Write down what `categories.user_id = NULL` means.**
+    Null means "shared by everyone", which makes one column carry two kinds
+    of row, and it is why `CategoryPolicy` needs its special rule that a
+    global category is editable by anyone but deletable only when nobody
+    else's subcategory hangs off it.
+
+    It is idiomatic Laravel and probably worth keeping. What is missing is the
+    same for depth: one level of nesting is enforced only in PHP, so a
+    subcategory of a subcategory is representable in the table. A CHECK cannot
+    see another row, so this stays application-side — but it should be said
+    out loud in the migration, next to the self-referencing key.
+
+### What to leave alone, and why
+
+Normalising these would make the schema worse, not better. Recorded so the
+question is not reopened every six months.
+
+- **The `{en, nl}` JSON columns.** The relational alternative is a
+  translations table keyed by model, id, field and locale. For two languages
+  and a page that is always read whole, that turns every read into a join and
+  a pivot and gives up column types for nothing. Revisit only if a translated
+  value ever has to be filtered or sorted in SQL, or if the two languages need
+  to be published separately.
+- **`portfolio_projects.tags`.** A tags table and a pivot would be more
+  normalised, but these are free text typed into one field, never shared
+  between projects and never queried. Revisit when something wants "every
+  project tagged Laravel".
+- **`headline_highlights`.** A short list tied to one string, with no ordering
+  that matters and no life of its own.
+- **`portfolio_revisions.payload`.** A deliberate snapshot. Storing it whole is
+  exactly what makes `restore()` the same code path as `save()`.
+- **The four child tables staying four tables.** Folding metrics, expertise,
+  projects and process steps into one table with a `type` and a JSON blob
+  would be *less* relational, not more — four sets of real columns replaced by
+  one bag.
+- **`tasks.status` and `tasks.source` as strings.** Already the right call:
+  adding a case to a DB enum needs an `ALTER TABLE`, and the enum classes plus
+  validation already constrain them.
+
 ## B. Interfaces, actions and events
 
 The aim is to be able to swap an implementation without editing its callers.
 Worth being blunt about what does and does not get us there.
 
-15. **Add interfaces only where a second implementation is named.**
+23. **Add interfaces only where a second implementation is named.**
     An interface per service is a file and an indirection that buys nothing
     while there is one class behind it — which is why
     `AppServiceProvider::register()` is empty today. Three candidates that
@@ -116,7 +248,7 @@ Worth being blunt about what does and does not get us there.
     Everything infrastructural — cache, filesystem, mail, queue — already has
     a Laravel contract. Use those rather than writing ours over the top.
 
-16. **Split `PortfolioContentService` instead of wrapping it.**
+24. **Split `PortfolioContentService` instead of wrapping it.**
     273 lines with five reasons to change: shaping a read (`payload`),
     writing (`save`, `replaceOrdered`), history (`recordRevision`,
     `pruneRevisions`), choosing the live profile (`activate`), and seeding
@@ -125,7 +257,7 @@ Worth being blunt about what does and does not get us there.
     transaction and one write path must survive the split — that property is
     why the class exists.
 
-17. **Put the one-off jobs in `app/Actions/`.**
+25. **Put the one-off jobs in `app/Actions/`.**
     Laravel has no first-party Action class, but Fortify and Jetstream both
     use plain invokable classes in `app/Actions/`, so that is the convention
     with precedent. Prefer it to `lorisleiva/laravel-actions`, which is one
@@ -133,7 +265,7 @@ Worth being blunt about what does and does not get us there.
     First candidates: restoring a revision, resetting to defaults, enrolling
     a second factor, starting and stopping a timer.
 
-18. **Raise events for the things another consumer will care about.**
+26. **Raise events for the things another consumer will care about.**
     Laravel 13 discovers listeners automatically, so this costs a class and
     no registration. `PortfolioSaved` and `PortfolioRestored` are the ones
     that pay: once the public frontend is deployed separately (C) they are
@@ -145,7 +277,7 @@ Worth being blunt about what does and does not get us there.
     `AppServiceProvider::boot()`. Move them to `app/Listeners/` as soon as a
     third one appears.
 
-19. **Reverse the "no bindings" note in `CLAUDE.md`** once 15 lands, with the
+27. **Reverse the "no bindings" note in `CLAUDE.md`** once 23 lands, with the
     reasoning, rather than leaving the file arguing against the code.
 
 ## C. Two servers, one codebase, data pushed one way
@@ -255,7 +387,7 @@ items below are how that stays answered.
 
 ---
 
-20. **One repository, two deployments.**
+28. **One repository, two deployments.**
     The same repository deployed twice with a different role in `.env` —
     `APP_ROLE=workspace` and `APP_ROLE=public` — and the route files
     registered to match.
@@ -270,22 +402,22 @@ items below are how that stays answered.
     is the thing that actually rots.
 
     So: one repository, and make the deployment boundary real and tested
-    instead (item 26).
+    instead (item 34).
 
-21. **Render the public page on the server.**
+29. **Render the public page on the server.**
     Item 6, promoted to a prerequisite. Box B renders Blade from the copy it
     holds, so a visitor's browser never talks to Box A at all. `publicMeta()`,
     the `hreflang` alternates and the schema.org block move across unchanged —
     they already read a payload rather than the models.
 
-22. **Give the backend a real API surface.**
+30. **Give the backend a real API surface.**
     `bootstrap/app.php` registers no `api` routes today. Add `routes/api.php`
     under `/api/v1`. Version it from the first commit — a second consumer
     cannot pin to an unversioned URL.
 
-23. **Send the page across when it is saved — the public payload, and only
+31. **Send the page across when it is saved — the public payload, and only
     that.**
-    `PortfolioSaved` and `PortfolioRestored` (item 18) queue a job that POSTs
+    `PortfolioSaved` and `PortfolioRestored` (item 26) queue a job that POSTs
     to Box B. Queued, so a failed send retries instead of losing the edit;
     Laravel gives the retries for nothing.
 
@@ -299,7 +431,7 @@ items below are how that stays answered.
     `.env` files, and B rejects anything without it. Otherwise whoever finds
     that endpoint can replace your portfolio with their own text.
 
-24. **Pass the connect form back the same way.**
+32. **Pass the connect form back the same way.**
     A visitor posts to Box B. B saves it locally, then queues a send to A.
     If A is off, it waits and retries rather than losing the message.
 
@@ -313,7 +445,7 @@ items below are how that stays answered.
     it is sitting on the public machine while it waits. B is a queue for it,
     not an archive; the archive is on A, where Insights reads it.
 
-25. **Split the stylesheets, do not copy them.**
+33. **Split the stylesheets, do not copy them.**
     `packages/shared` holds the tokens and the pieces both halves use:
     `theme.css`, `base.css`, `layout.css`, `buttons.css`, `forms.css`, the
     `ui/` components, `i18n`, `api.js`, `vue-plugin.js`. `public.css` builds
@@ -326,7 +458,7 @@ items below are how that stays answered.
     **Copying any of it is the failure mode.** Two copies of `theme.css` is
     two palettes, and they will not stay the same colour.
 
-26. **Each deployment must ship only its own half, and prove it.**
+34. **Each deployment must ship only its own half, and prove it.**
     This is the whole security boundary, and it is the half of the split that
     lives outside the code. A build or deploy script that copies everything to
     both machines undoes it silently, without failing a single test.
@@ -340,7 +472,7 @@ items below are how that stays answered.
     - B's token scoped to creating an inquiry and nothing else, and different
       from anything A uses elsewhere.
 
-27. **Give B a database with two things in it.**
+35. **Give B a database with two things in it.**
     The published payload, and the inquiries still waiting to be sent. Running
     the full migration set on B would create an empty `tasks`, `users` and
     `security_events` on a public machine — tables nothing fills today, and
@@ -351,12 +483,12 @@ items below are how that stays answered.
     credentials, and none of A's — no admin seeder password, no mail
     credentials it has no use for.
 
-28. **Write the contract down.**
+36. **Write the contract down.**
     Two halves against one payload shape drift unless something holds them
     together. Generate an OpenAPI document from the routes and Resources, and
     add a test that fails when a route exists the document does not describe.
 
-29. **Give the planner endpoints Resources too.**
+37. **Give the planner endpoints Resources too.**
     `TaskController` and `CategoryController` still return models. That was
     fine while the only reader was the owner's own browser behind a session.
     A token-authenticated API is a different promise — the same argument that
@@ -364,7 +496,7 @@ items below are how that stays answered.
 
 ## D. Decide before B
 
-30. **Is a mobile app real, or is it a maybe?**
+38. **Is a mobile app real, or is it a maybe?**
     One thing about it is hard to undo later. A phone connects from whatever
     network it happens to be on — home, office, a cafe — and its address is
     different every time. So there is no list of allowed addresses that would
@@ -373,7 +505,7 @@ items below are how that stays answered.
 
     That is a real weakening of the shape above, and worth deciding on purpose
     rather than discovering. Everything else a phone touches — versioning
-    (22), Resources on the planner (29), the OpenAPI document (28) — is cheap
+    (30), Resources on the planner (37), the OpenAPI document (36) — is cheap
     if the answer is yes and speculative if it is no.
 
     The split itself stands on its own and is worth doing either way.
