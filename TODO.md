@@ -56,6 +56,31 @@ done first, for a reason C explains.
 
 Each item says what to do and what it breaks. Nothing here is started.
 
+### The whole plan on one screen
+
+**A — squash the migrations and fix the schema in the same pass** (11-23)
+One `create_` per table. `social_links` becomes a table. MySQL enforces one
+running timer per user, `duration_minutes` becomes a generated column, and
+`(user_id, source, external_ref)` becomes unique so a calendar cannot import
+the same event twice. Drop the dead `type` column, fix the seeded `oa` slug,
+and decide whether `is_active` is a feature at all.
+
+**B — settle the shape of the backend** (24-32)
+An `app:install` command creates the admin user and the profile; roles stay
+seeded; placeholder content stays a local-only sample. `CalendarProvider` plus
+a `CalendarEvent` DTO is the one interface that earns its place — mail
+providers need none, and `Task` stays a plain model with its rules on the
+`TaskSource` enum. Split `PortfolioContentService`. Move one-off jobs into
+`app/Actions/` and raise `PortfolioSaved`, `InquiryReceived`,
+`TimerStarted`/`TimerStopped`.
+
+**C — two servers, one repository** (33-39)
+Box A is private: the database and the workspace, on one origin, so the login
+is untouched. Box B is public: the visit card and nothing else. Saving on A
+sends the page to B; the connect form on B emails you. Nothing ever calls back
+into A, so B holds no key to it. Needs item 6 — the public page rendered
+server-side — done first.
+
 **Settled, so not planned for:** there will be no mobile app. That removes the
 versioned API, token authentication, an OpenAPI document and Resources on the
 planner endpoints — all of which existed only to serve a third-party consumer.
