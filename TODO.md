@@ -148,101 +148,126 @@ Worth being blunt about what does and does not get us there.
 19. **Reverse the "no bindings" note in `CLAUDE.md`** once 15 lands, with the
     reasoning, rather than leaving the file arguing against the code.
 
-## C. Two boxes, one API
+## C. Two servers, one codebase, data pushed one way
 
-The workspace and the backend ship together — one repo, one server, one
-origin — and talk over `/api/v1` like any other client. The public visit card
-is its own deployment on its own server, and gets everything it draws by
-calling that API.
+### The picture
 
-**Why this is the right way round.** Keeping the admin frontend on the same
-origin as the API means the browser never makes a cross-origin request, so
-there is no CORS to configure, no Sanctum SPA cookie mode to set up, and
-`session.same_site` stays `strict` — three current decisions that a split onto
-separate hostnames would have forced us to undo for nothing. The security win
-is unchanged: the public host serves only public code, and `AdminPage`'s
-chunks and `manifest.json` stop being readable by anyone who asks the public
-origin for them, which is how every endpoint and field name is discoverable
-today.
+- **Box A, private.** The database, the API, and the workspace screens. Only
+  you can reach it.
+- **Box B, public.** The visit card, and nothing else. Anyone can reach it.
+- **When you press Save on A**, A sends the new page content to B. B keeps its
+  own copy and serves that.
+- **When a visitor sends the connect form on B**, B keeps it and passes it on
+  to A.
 
-**The condition the whole shape rests on.** The public page must fetch
-**server to server**. If the visitor's browser calls the workspace API, then
-the workspace has to be reachable from every network on earth and the lockdown
-is gone before it starts. So this makes item 6 — render the page server-side —
-a prerequisite rather than an improvement. That is a fair trade: it was wanted
-anyway, for the crawlers.
+Data moves because something was *saved*, never because someone *visited*.
+That single rule is what makes the rest of this simple.
 
-20. **Render the public page from data the public server fetched.**
-    Item 6, promoted. The public box asks the workspace for the payload,
-    caches it, and renders Blade from it. `publicMeta()`, the `hreflang`
-    alternates and the schema.org block move across as they are — they already
-    read a payload rather than the models.
+### Why push, and not let B ask A
 
-    **Cache it hard and serve stale on failure.** Otherwise the workspace
-    being off takes the visit card down with it, and a portfolio page that
-    404s because a private admin box is rebooting is a bad trade for anyone.
+The obvious design is for B to ask A for the text each time someone visits.
+It has two problems, and both are avoided by sending the data instead.
 
-21. **Give the backend a real API surface.**
-    `bootstrap/app.php` registers no `api` routes at all today. Add
-    `routes/api.php` under `/api/v1`, split into a group the public server may
-    read and a group only the owner may touch. Version it from the first
-    commit — a second consumer cannot pin to an unversioned URL.
+**A would have to be switched on for the page to work.** If A is rebooting,
+being updated, or broken, every visitor to the portfolio gets an error. A
+public page that goes down because a private machine is restarting is a bad
+trade.
 
-22. **Two kinds of caller, two kinds of auth.**
-    - **The admin frontend** keeps the session cookie it has. Same origin,
-      `HttpOnly`, `same_site: strict`, CSRF as today. Nothing changes.
-    - **The public server** gets a `laravel/sanctum` token with read scope,
-      sent server to server. No cookies, no CSRF, no CORS, and the token lives
-      in the public box's `.env` rather than in anyone's browser.
+**A would have to accept connections from B.** That means opening a door in
+A's firewall. With push, A only ever makes *outgoing* calls to B, so A can
+refuse every incoming connection except yours. Nothing on the public internet
+can knock on A's door at all.
 
-23. **Lock down by path, not by host.**
-    One origin means the edge rules go on paths: allow `/api/v1/*` from the
-    public server's address (and the owner's, for a phone later), and allow
-    `{ADMIN_PATH}/*` only from where the owner actually works — IP allowlist,
-    VPN or Cloudflare Access. That is worth more than the unguessable prefix
-    ever was, and the prefix keeps its job on top.
+The cost is that B needs somewhere to keep its copy — a small database, or one
+JSON file. That is the cheaper half of the trade.
 
-    The moment the admin frontend moves to its own hostname, CORS and Sanctum
-    SPA mode come back. Do not, unless something forces it.
+### Why the workspace screens stay on the same address as the API
 
-24. **The connect form is the exception, and the trap.**
-    It is a write from an anonymous visitor, so the public box has to accept
-    the POST and forward it — a second token scope, `inquiries:create` and
-    nothing else.
+A browser is only allowed to call the address it was loaded from. Ask it to
+call a different address and the browser blocks it unless the server adds
+permission headers (this is called CORS), and the login cookie stops being
+sent unless it is loosened too.
 
-    **The visitor's address has to travel with it.** `throttle:10,1` and the
-    honeypot both key on the caller, and after forwarding the caller is the
-    public server. Left alone, ten submissions lock out every visitor at once
-    and the inquiry rows all record one address. Either rate-limit on the
-    public box before forwarding, or forward the address and configure trusted
-    proxies to believe it. Decide which; do not do half of each.
+So keeping the workspace screens and the API on **one address** on Box A means
+the login keeps working exactly as it does today — same cookie, same CSRF
+protection, `session.same_site` stays `strict`. Giving the screens their own
+address would mean undoing all three for no gain.
 
-25. **Consider pushing instead of pulling.**
-    The alternative to 20: on `PortfolioSaved` / `PortfolioRestored` (item 18)
-    the workspace *sends* the payload to the public box, which then reads only
-    local data and has no API client at all. The workspace can be fully
-    offline and the visit card does not notice.
+### Then how is the private part actually protected?
 
-    Worth real thought, because this content changes about monthly. The cost
-    is a delivery mechanism and a shared secret; the gain is that the public
-    page stops depending on a private box being up.
+By blocking at the front door, on Box A, and by *path* rather than by address:
 
-26. **One repo, two deploy targets.**
-    Two repos for one person is two repos that drift, and the payload shape is
-    the one thing both halves must agree on. Keep `apps/api`,
-    `apps/admin-web` and `apps/public-web` in this repo with npm workspaces,
-    and put the shared frontend pieces — `api.js`, `i18n`, `ui/`,
-    `vue-plugin.js` — in `packages/shared` so neither app forks them.
+- `{ADMIN_PATH}/*` — the workspace screens. Reachable only from where you
+  work: an IP allowlist, a VPN, or Cloudflare Access.
+- `/api/v1/*` — reachable from Box B's address, and from yours.
 
-    **The deploy for each host must ship only its own app.** That discipline
-    is the whole security boundary; a build script that copies everything
-    undoes the split without failing anything.
+You cannot block Box A as a whole, because the API on it is the thing B needs.
+Hence: per path, not per machine.
+
+And the win that started this: the workspace's JavaScript stops being served
+from the public address. Today anyone can download `AdminPage`'s files and
+`manifest.json` from the public site and read every endpoint and field name
+out of them. After the split those files do not exist there.
+
+---
+
+20. **One codebase, two deployments.**
+    Not two projects. The same repository deployed twice with a different
+    role in `.env` — `APP_ROLE=workspace` and `APP_ROLE=public` — and the
+    route files registered to match. Two projects for one person is two
+    projects that drift.
+
+21. **Render the public page on the server.**
+    Item 6, promoted to a prerequisite. Box B renders Blade from the copy it
+    holds, so a visitor's browser never talks to Box A at all. `publicMeta()`,
+    the `hreflang` alternates and the schema.org block move across unchanged —
+    they already read a payload rather than the models.
+
+22. **Give the backend a real API surface.**
+    `bootstrap/app.php` registers no `api` routes today. Add `routes/api.php`
+    under `/api/v1`. Version it from the first commit — a second consumer
+    cannot pin to an unversioned URL.
+
+23. **Send the page across when it is saved.**
+    `PortfolioSaved` and `PortfolioRestored` (item 18) queue a job that POSTs
+    the payload to Box B. Queued, so a failed send retries instead of losing
+    the edit; Laravel gives the retries for nothing.
+
+    Both ends hold a shared token in `.env` and B rejects anything that does
+    not carry it. B stores what arrives and serves it until the next one.
+
+24. **Pass the connect form back the same way.**
+    A visitor posts to Box B. B saves it locally, then queues a send to A.
+    If A is off, it waits and retries rather than losing the message.
+
+    **Rate limiting has to happen on B**, before the send. `throttle:10,1` and
+    the honeypot both key on whoever is calling. After forwarding, the caller
+    is Box B — so left alone, ten submissions would lock out every visitor at
+    once and every inquiry row would record the same address.
+
+25. **Split the stylesheets, do not copy them.**
+    `packages/shared` holds the tokens and the pieces both halves use:
+    `theme.css`, `base.css`, `layout.css`, `buttons.css`, `forms.css`, the
+    `ui/` components, `i18n`, `api.js`, `vue-plugin.js`. `public.css` builds
+    only into B; `admin.css`, `agenda.css` and `insights.css` only into A.
+    Both bundles get smaller as a side effect.
+
+    `overlays.css` already separates cleanly — `.public-modal` to B,
+    `.admin-modal` to A.
+
+    **Copying any of it is the failure mode.** Two copies of `theme.css` is
+    two palettes, and they will not stay the same colour.
+
+26. **Each deployment must ship only its own half.**
+    This is the whole security boundary. A build or deploy script that copies
+    everything to both machines undoes the split silently, without failing a
+    single test. Whatever runs the deploy needs a check that Box B carries no
+    admin bundle.
 
 27. **Write the contract down.**
-    Two consumers against one API drift unless something holds them together —
-    three if a phone arrives. Generate an OpenAPI document from the routes and
-    Resources, and add a test that fails when a route exists the document does
-    not describe.
+    Two halves against one payload shape drift unless something holds them
+    together. Generate an OpenAPI document from the routes and Resources, and
+    add a test that fails when a route exists the document does not describe.
 
 28. **Give the planner endpoints Resources too.**
     `TaskController` and `CategoryController` still return models. That was
@@ -253,12 +278,15 @@ anyway, for the crawlers.
 ## D. Decide before B
 
 29. **Is a mobile app real, or is it a maybe?**
-    It changes one thing that is hard to undo later: a phone dials in from
-    whatever network it is on, so `/api/v1` has to stay open to the internet
-    and cannot sit behind the allowlist in item 23. Everything else it touches
-    — versioning (21), Resources on the planner (28), the OpenAPI document
-    (27) — is cheap if the answer is yes and speculative if it is no.
+    One thing about it is hard to undo later. A phone connects from whatever
+    network it happens to be on — home, office, a cafe — and its address is
+    different every time. So there is no list of allowed addresses that would
+    let the phone in and keep everyone else out, and `/api/v1` on Box A would
+    have to stay open to the whole internet, protected by its token alone.
 
-    The split itself stands on its own security argument and is worth doing
-    either way. Answer this before B, so the rest is not built for a consumer
-    that never arrives.
+    That is a real weakening of the shape above, and worth deciding on purpose
+    rather than discovering. Everything else a phone touches — versioning
+    (22), Resources on the planner (28), the OpenAPI document (27) — is cheap
+    if the answer is yes and speculative if it is no.
+
+    The split itself stands on its own and is worth doing either way.
