@@ -335,7 +335,38 @@ blunt about what gets us there and what does not.
     a deletion on their side means here, and what happens when both sides
     changed the same event. Sketch that first; it is the whole difficulty.
 
-27. **The other two interfaces worth having.**
+27. **Two kinds of task, one table, no subclasses.**
+    Child classes — `ManualTask` and `SyncedTask` extending `Task` — are
+    possible. Eloquent has no single-table inheritance of its own, so it means
+    overriding `newFromBuilder()` or adding `tighten/parental`, and then every
+    query and every relation has to be taught which class to hand back.
+    `$timeLog->task` returns the base class otherwise, and nothing tells you.
+
+    The cost is not worth it, because the differences are rules, not kinds:
+
+    - a synced task's title and times are owned by the remote calendar, so
+      editing them here is pointless until sync is two-way;
+    - deleting one locally should probably unlink it, not delete it there;
+    - it cannot be created by hand.
+
+    All three are guard rules, and this project already has places for those —
+    `TaskPolicy` for what may be done, `UpdateTaskRequest` for which fields
+    may change.
+
+    **Put the differences on `TaskSource` instead.** It is already the
+    discriminator, it is already an enum, and PHP enums take methods:
+    `ownsSchedule()`, `canBeEditedHere()`, `deletesRemotely()`. One `match`
+    per rule, in one file, instead of `if ($task->source === ...)` scattered
+    through the controllers. That is the polymorphism the subclasses were
+    being asked for, without the part Eloquent fights.
+
+    **The trigger to revisit is columns, not behaviour.** If synced tasks need
+    fields manual ones have no use for — a recurrence rule, attendees, a
+    meeting link, the remote calendar's id — that is a one-to-one companion
+    table (`task_calendar_details`), not a subclass and not nullable columns
+    on `tasks` that are empty for most rows.
+
+28. **The other two interfaces worth having.**
     - `TwoFactorService` → a `TwoFactorProvider` contract. TOTP now, passkeys
       later.
     - `DefaultPortfolioContent` → a contract for where the seeded page comes
@@ -345,7 +376,7 @@ blunt about what gets us there and what does not.
     indirection, which is why `AppServiceProvider::register()` is empty today.
     Cache, filesystem, mail and queue already have Laravel contracts.
 
-28. **Split `PortfolioContentService` instead of wrapping it.**
+29. **Split `PortfolioContentService` instead of wrapping it.**
     273 lines with five reasons to change: shaping a read (`payload`),
     writing (`save`, `replaceOrdered`), history (`recordRevision`,
     `pruneRevisions`), choosing the live profile (`activate`), and seeding
@@ -354,7 +385,7 @@ blunt about what gets us there and what does not.
     transaction and one write path must survive the split — that property is
     why the class exists.
 
-29. **Put the one-off jobs in `app/Actions/`.**
+30. **Put the one-off jobs in `app/Actions/`.**
     Laravel has no first-party Action class, but Fortify and Jetstream both
     use plain invokable classes in `app/Actions/`, so that is the convention
     with precedent. Prefer it to `lorisleiva/laravel-actions`, which is one
@@ -362,13 +393,13 @@ blunt about what gets us there and what does not.
     First candidates: restoring a revision, resetting to defaults, enrolling
     a second factor, starting and stopping a timer.
 
-30. **Raise events for the things something else reacts to.**
+31. **Raise events for the things something else reacts to.**
     Laravel 13 discovers listeners automatically, so this costs a class and no
     registration. Three that pay for themselves:
 
     - `PortfolioSaved` / `PortfolioRestored` — what sends the page to the
       public server (C).
-    - `InquiryReceived` — what emails you (item 35).
+    - `InquiryReceived` — what emails you (item 36).
     - `TimerStarted` / `TimerStopped` — so calendar sync can react later
       without `TimerService` growing a branch for it.
 
@@ -376,7 +407,7 @@ blunt about what gets us there and what does not.
     `AppServiceProvider::boot()`. Move them to `app/Listeners/` when a third
     one appears.
 
-31. **Update the "no bindings" note in `CLAUDE.md`** once 26 and 27 land, with
+32. **Update the "no bindings" note in `CLAUDE.md`** once 26 and 28 land, with
     the reasoning, rather than leaving the file arguing against the code.
 
 ## C. Two servers, one codebase, data pushed one way
@@ -457,7 +488,7 @@ After the split those files are not there.
 
 ---
 
-32. **One repository, two deployments.**
+33. **One repository, two deployments.**
     The same repository deployed twice with a different role in `.env` —
     `APP_ROLE=workspace` and `APP_ROLE=public` — and the route files
     registered to match.
@@ -471,17 +502,17 @@ After the split those files are not there.
     doubling that for one person is what actually rots.
 
     So: one repository, and make the deployment boundary real and tested
-    instead (item 36).
+    instead (item 37).
 
-33. **Render the public page on the server.**
+34. **Render the public page on the server.**
     Item 6, promoted to a prerequisite — a visitor's browser must never need
     to talk to Box A. B renders Blade from the copy it holds. `publicMeta()`,
     the `hreflang` alternates and the schema.org block move across unchanged;
     they already read a payload rather than the models.
 
-34. **Send the page across when it is saved — the public payload, and only
+35. **Send the page across when it is saved — the public payload, and only
     that.**
-    `PortfolioSaved` and `PortfolioRestored` (item 30) queue a job that POSTs
+    `PortfolioSaved` and `PortfolioRestored` (item 31) queue a job that POSTs
     to B. Queued, so a failed send retries instead of losing the edit.
 
     **It must be `payload($profile, publicOnly: true)`.** The admin payload
@@ -494,7 +525,7 @@ After the split those files are not there.
     `.env` files. Otherwise whoever finds that endpoint can replace your
     portfolio with their own text.
 
-35. **The connect form emails you, and stores nothing on B.**
+36. **The connect form emails you, and stores nothing on B.**
     This is how you find out somebody wants to reach you, and it is what keeps
     B from holding any key to A.
 
@@ -513,7 +544,7 @@ After the split those files are not there.
     you open the page, so the one-way trust still holds. Decide whether the
     archive is worth that; a mailbox is an archive too.
 
-36. **Each deployment must ship only its own half, and prove it.**
+37. **Each deployment must ship only its own half, and prove it.**
     This is the whole security boundary, and the half that lives outside the
     code. A deploy script that copies everything to both machines undoes it
     silently, without failing a test.
@@ -524,7 +555,7 @@ After the split those files are not there.
       is fine; same host is not.
     - B behind a CDN.
 
-37. **Give B a database with one thing in it.**
+38. **Give B a database with one thing in it.**
     The published payload. Running the full migration set on B would create an
     empty `users`, `tasks` and `security_events` on a public machine — tables
     nothing fills, that a later bug or a careless seeder could. Give the
@@ -533,7 +564,7 @@ After the split those files are not there.
     B needs its own `.env` too: a different `APP_KEY`, its own database
     credentials, its mail credentials, and none of A's.
 
-38. **Tidy the routes; do not invent an API.**
+39. **Tidy the routes; do not invent an API.**
     The workspace frontend already talks to the backend over JSON —
     `apiFetch` and the `{admin}/...` endpoints are an API, just not spelled
     `/api/`. With no third-party consumer there is nothing to version and no
@@ -541,5 +572,5 @@ After the split those files are not there.
 
     Worth doing: split `routes/web.php` so the SPA shell routes and the JSON
     endpoints are in separate files, and register the public role's routes
-    separately from the workspace role's. That is what item 32 needs. The rest
+    separately from the workspace role's. That is what item 33 needs. The rest
     is renaming.
