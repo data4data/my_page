@@ -234,6 +234,25 @@ inquiries table and no way at all into the planner, the editor, or the login.
 Had B been *asking* A for the page, it would also hold a read token and A
 would have a hole in its firewall for B to come through.
 
+### What B holds is the page, not the database
+
+B keeps a copy of the *published page* — the same words a visitor reads. There
+is nothing in it that was private a moment earlier: `PROFILE_KEYS` is the
+headline, the summary, the metrics, the projects, the social links and the
+contact address, and the collections are already filtered to
+`is_visible = true`. Copying text that is on the public page onto the public
+server adds no exposure.
+
+None of the private data goes anywhere near B: not the planner (tasks,
+categories, time logs, reflections), not the users table with its password
+hash and two-factor secret, not the sign-in trail, not the saved revisions, not
+`ADMIN_PATH`.
+
+This is also not a cost of pushing. Any design that serves the page quickly
+holds a copy somewhere — pulling would put the same words in a cache on B. The
+question is never "copy or no copy", it is "a copy of *what*", and the four
+items below are how that stays answered.
+
 ---
 
 20. **One repository, two deployments.**
@@ -264,13 +283,21 @@ would have a hole in its firewall for B to come through.
     under `/api/v1`. Version it from the first commit — a second consumer
     cannot pin to an unversioned URL.
 
-23. **Send the page across when it is saved.**
+23. **Send the page across when it is saved — the public payload, and only
+    that.**
     `PortfolioSaved` and `PortfolioRestored` (item 18) queue a job that POSTs
-    the payload to Box B. Queued, so a failed send retries instead of losing
-    the edit; Laravel gives the retries for nothing.
+    to Box B. Queued, so a failed send retries instead of losing the edit;
+    Laravel gives the retries for nothing.
 
-    Both ends hold a shared token in `.env` and B rejects anything that does
-    not carry it. B stores what arrives and serves it until the next one.
+    **It must be `payload($profile, publicOnly: true)`.** The admin payload
+    carries the rows with `is_visible = false` — content deliberately kept off
+    the page — and sending it would put your drafts on a public server. The
+    two differ by one argument, which is exactly how this gets got wrong.
+    A test that pushes a hidden row and asserts it is not in what B received.
+
+    **B must check the push really came from A.** A shared token in both
+    `.env` files, and B rejects anything without it. Otherwise whoever finds
+    that endpoint can replace your portfolio with their own text.
 
 24. **Pass the connect form back the same way.**
     A visitor posts to Box B. B saves it locally, then queues a send to A.
@@ -280,6 +307,11 @@ would have a hole in its firewall for B to come through.
     the honeypot both key on whoever is calling. After forwarding, the caller
     is Box B — so left alone, ten submissions would lock out every visitor at
     once and every inquiry row would record the same address.
+
+    **Delete it from B once A confirms.** This is the one thing on B that is
+    somebody else's personal data — a name, an email address, a message — and
+    it is sitting on the public machine while it waits. B is a queue for it,
+    not an archive; the archive is on A, where Insights reads it.
 
 25. **Split the stylesheets, do not copy them.**
     `packages/shared` holds the tokens and the pieces both halves use:
@@ -308,12 +340,23 @@ would have a hole in its firewall for B to come through.
     - B's token scoped to creating an inquiry and nothing else, and different
       from anything A uses elsewhere.
 
-27. **Write the contract down.**
+27. **Give B a database with two things in it.**
+    The published payload, and the inquiries still waiting to be sent. Running
+    the full migration set on B would create an empty `tasks`, `users` and
+    `security_events` on a public machine — tables nothing fills today, and
+    that a later bug or a careless seeder could. Give the public role its own
+    short migration path.
+
+    B also needs its own `.env`: a different `APP_KEY`, its own database
+    credentials, and none of A's — no admin seeder password, no mail
+    credentials it has no use for.
+
+28. **Write the contract down.**
     Two halves against one payload shape drift unless something holds them
     together. Generate an OpenAPI document from the routes and Resources, and
     add a test that fails when a route exists the document does not describe.
 
-28. **Give the planner endpoints Resources too.**
+29. **Give the planner endpoints Resources too.**
     `TaskController` and `CategoryController` still return models. That was
     fine while the only reader was the owner's own browser behind a session.
     A token-authenticated API is a different promise — the same argument that
@@ -321,7 +364,7 @@ would have a hole in its firewall for B to come through.
 
 ## D. Decide before B
 
-29. **Is a mobile app real, or is it a maybe?**
+30. **Is a mobile app real, or is it a maybe?**
     One thing about it is hard to undo later. A phone connects from whatever
     network it happens to be on — home, office, a cafe — and its address is
     different every time. So there is no list of allowed addresses that would
@@ -330,7 +373,7 @@ would have a hole in its firewall for B to come through.
 
     That is a real weakening of the shape above, and worth deciding on purpose
     rather than discovering. Everything else a phone touches — versioning
-    (22), Resources on the planner (28), the OpenAPI document (27) — is cheap
+    (22), Resources on the planner (29), the OpenAPI document (28) — is cheap
     if the answer is yes and speculative if it is no.
 
     The split itself stands on its own and is worth doing either way.
