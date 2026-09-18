@@ -92,7 +92,7 @@ Enums in `app/Enums/`: `TaskStatus` (planned, in_progress, paused, done, skipped
 
 - `routes/web.php` registers two `Route::prefix(config('admin.path'))` groups: one carrying `['auth', 'role:admin']` for the SPA shell routes and JSON endpoints, and one without it for `login` and `logout`, which cannot require a session you do not have yet. **There is no `/login`** — it 404s, so the commodity scanners that probe for a login form find nothing, and the workspace being unguessable is not undone by the door to it sitting at the web's most predictable URL.
 - `AuthController` falls back to `'/'.config('admin.path')` for the post-login redirect.
-- `resources/views/app.blade.php` emits `<meta name="admin-path">` **only for a request already inside the workspace prefix**, login page included — every route renders this one shell, so emitting it unconditionally put the private URL in the public page's source. The login page is told the prefix because it must build its own form action and router path, and reaching that URL already required knowing it. `AdminAccessTest` covers both directions; `resources/js/shared/admin-path.js` reads it once and exports `adminBase` / `adminUrl(suffix)`. `router.js` builds its admin route paths from `adminUrl()`, and `planning.js` + `AdminPage.vue` build every fetch URL from it. Components navigate by route **name**, so none of them know the prefix.
+- `resources/views/app.blade.php` emits `<meta name="admin-path">` **only for a request already inside the workspace prefix**, login page included — every route renders this one shell, so emitting it unconditionally put the private URL in the public page's source. The login page is told the prefix because it must build its own form action and router path, and reaching that URL already required knowing it. `AdminAccessTest` covers both directions; `resources/js/shared/admin-path.js` reads it once and exports `adminBase` / `adminUrl(suffix)`. `router-admin.js` builds its route paths from `adminUrl()`, and `planning.js` + `AdminPage.vue` build every fetch URL from it. Components navigate by route **name**, so none of them know the prefix.
 - `phpunit.xml` sets `ADMIN_PATH=test-workspace` — deliberately *not* the shipped default — and tests build URLs via `Tests\TestCase::adminUrl()`. Anything that reintroduces a literal prefix fails the suite rather than passing by coincidence.
 
 Changing `ADMIN_PATH` requires `php artisan route:clear` (a cached route table holds the old prefix).
@@ -106,6 +106,8 @@ Login is rate-limited by the named `login` limiter defined in `AppServiceProvide
 **Two-factor is opt-in.** The workspace works with a password alone until the owner turns it on from Insights → Security, so a fresh install or a fork never depends on having an authenticator to hand. `TwoFactorService` (TOTP via `pragmarx/google2fa`, QR via `bacon/bacon-qr-code`) owns the whole lifecycle; `users.two_factor_secret` and `two_factor_recovery_codes` are `encrypted` casts and are in the model's `#[Hidden]` list, so they never serialize. Enrolment is two steps on purpose: a secret alone is never enforced, and `two_factor_confirmed_at` is set only once a real code has been checked, so a mis-scanned QR is a retry rather than a lockout. `AuthController::store()` uses `Auth::validate()` rather than `Auth::attempt()` — it checks the password without starting a session, so an account with two-factor on is never briefly signed in, and the `Login` event the trail records as "signed in" fires only once the second factor has passed too. Recovery codes are single-use, and `php artisan two-factor:disable {email}` is the way back in when the phone and the codes are both gone.
 
 **Every sign-in attempt is recorded.** `SecurityEvent` holds one row per attempt with its outcome (`SecurityEventType`), address and the email that was typed. `AppServiceProvider::boot()` listens for Laravel's `Login` and `Failed` events, and the limiter's own `response()` callback records the blocked ones — those never reach a controller, so without that hook the trail would go quiet exactly when an attack got loud. Rows carry IP addresses and pile up fastest when something is wrong, so they expire: `MassPrunable` plus a daily `model:prune` scheduled in `routes/console.php`, keeping `SecurityEvent::RETENTION_DAYS`.
+
+`config/filesystems.php` sets `'serve' => false` on the `local` disk, against Laravel's default. `true` registers `GET` and `PUT` at `/storage/{path}` with no middleware; both are gated by a signed URL so neither is a hole, but nothing here uses `Storage` at all. `RouteProtectionTest` reads the route table and fails on any route carrying neither `auth` nor `guest` that is not on its short list of deliberately public ones — which is how those two were found.
 
 `bootstrap/app.php` also fixes a `shouldRenderJsonWhen()` gotcha — without the `|| $request->expectsJson()` clause, every non-`api/*` validation failure (e.g. a wrong login password) renders as an HTML redirect instead of JSON, breaking every `fetch()`-based form in `resources/js`.
 
@@ -133,7 +135,7 @@ The workspace renders the same shell and gets the opposite treatment: `noindex, 
 
 No `/api` prefix — admin JSON endpoints live under `{admin}/...` alongside the SPA shell routes.
 
-**SPA shell** (all render the same Blade view; `resources/js/router.js` picks the page): `/`, `/hi-developer`, `{admin}/login`, `{admin}`, `{admin}/mijn-agenda`, `{admin}/insights`, `{admin}/edit-content`, `{admin}/settings`.
+**SPA shell** (all render the same Blade view; the bundle's router picks the page — see *Two bundles* below): `/`, `/hi-developer`, `{admin}/login`, `{admin}`, `{admin}/mijn-agenda`, `{admin}/insights`, `{admin}/edit-content`, `{admin}/settings`.
 
 **Portfolio** (`PortfolioController`):
 - `GET /portfolio` → public payload, `is_visible = true` only. No login, so the shape is deliberate — see *One payload shape* below.
@@ -205,7 +207,15 @@ Controllers validate, authorize, delegate, and return JSON. Rules that outlive a
 
 So a `<!-- -->` next to the markup it explains costs nothing, and that is where such a note belongs. What does not belong there is anything the markup already says: a comment earns its place by recording a decision or a trap, not by narrating the next line.
 
-`resources/js/router.js` maps paths to lazily-loaded pages: `public/PublicPage.vue` (also renders `DeveloperConnectModal` on `/hi-developer`), `admin/LoginPage.vue`, and `admin/AdminPage.vue` for every admin route — `AdminPage` derives its active section from the route name, so each section is a real bookmarkable/refreshable URL.
+**Two bundles, not one.** `vite.config.js` builds `app-public.js` and `app-admin.js`, and `app.blade.php` loads one or the other from `$inWorkspace` — the login page counts as inside, since it is the door. One bundle used to serve both halves, so anyone could fetch `AdminPage`'s chunk from the public site and read the private API's endpoint names out of it. It never leaked `ADMIN_PATH`, which is in a meta tag and in no built asset, so what leaked was the shape of the API rather than its location.
+
+`$inWorkspace` is passed separately from `$adminPath` rather than derived from it: they share a condition today, and a change to what the meta tag is for should not silently change which JavaScript is served.
+
+Each entry has its own router — `router-public.js` and `router-admin.js` — and they share `create-app.js`, which holds the PrimeVue options both need. The split is only worth what enforces it, so two tests do: `bundle-split.test.js` walks the real import graph from each entry and fails if the public one can reach anything under `pages/admin/`, `components/admin/` or `shared/planning.js`; `AdminAccessTest` checks the Blade shell serves the right one to each half.
+
+`router-public.js` maps `/`, `/hi-developer` and their language-prefixed twins to `public/PublicPage.vue` (which also renders `DeveloperConnectModal` on the connect routes). `router-admin.js` maps `admin/LoginPage.vue` and `admin/AdminPage.vue` for every workspace route — `AdminPage` derives its active section from the route name, so each section is a real bookmarkable/refreshable URL.
+
+The CSS is still one entry (`app.css`) for both. Splitting it would save bytes, not secrets: Tailwind generates its utilities by scanning the same sources either way, so the saving is the hand-written partials only.
 
 **The four workspace sections**, and the split between them:
 

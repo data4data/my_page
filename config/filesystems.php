@@ -33,7 +33,13 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Laravel's default is true, which registers GET and PUT routes
+            // at /storage/{path} with no middleware on them. Both are gated by
+            // a signed URL, so neither is a hole — but nothing in this app
+            // uses Storage at all, so they are a public read route and a
+            // file-upload endpoint in exchange for a feature that is not used.
+            // Turn this back on together with whatever starts using the disk.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

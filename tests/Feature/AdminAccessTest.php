@@ -95,6 +95,46 @@ class AdminAccessTest extends TestCase
         }
     }
 
+    /**
+     * The public page and the workspace are two bundles (vite.config.js), and
+     * this is the line between them. Before the split, one bundle served both
+     * halves, so anyone could fetch AdminPage's chunk from the public site and
+     * read the private API's endpoint names out of it.
+     *
+     * resources/js/bundle-split.test.js guards the other half — that the
+     * public entry point cannot reach the workspace's code in the first place.
+     */
+    public function test_the_public_page_is_served_the_public_bundle_only(): void
+    {
+        foreach (['/', '/hi-developer'] as $path) {
+            $this->get($path)
+                ->assertOk()
+                ->assertSee('app-public', false)
+                ->assertDontSee('app-admin', false);
+        }
+    }
+
+    public function test_the_workspace_is_served_the_workspace_bundle(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $user = User::factory()->create();
+        $user->assignRole('admin');
+
+        $this->actingAs($user)
+            ->get($this->adminUrl())
+            ->assertOk()
+            ->assertSee('app-admin', false)
+            ->assertDontSee('app-public', false);
+    }
+
+    /** The login page is the door to the workspace, so it needs its bundle. */
+    public function test_the_login_page_is_served_the_workspace_bundle(): void
+    {
+        $this->get($this->adminUrl('/login'))
+            ->assertOk()
+            ->assertSee('app-admin', false);
+    }
+
     public function test_a_signed_in_non_admin_is_not_told_the_workspace_prefix(): void
     {
         $user = User::factory()->create();

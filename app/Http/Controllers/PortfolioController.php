@@ -43,6 +43,11 @@ class PortfolioController extends Controller
             // Only requests already inside the workspace get it — reaching
             // one of those URLs means you already knew the prefix.
             'adminPath' => $inWorkspace ? config('admin.path') : null,
+            // Which of the two bundles the shell loads. Separate from
+            // adminPath rather than derived from it: they happen to share a
+            // condition today, and a change to what the meta tag is for
+            // should not silently change which JavaScript is served.
+            'inWorkspace' => $inWorkspace,
             // Null inside the workspace: those pages are private, so they get
             // the noindex below instead of a description to share.
             'meta' => $inWorkspace ? null : $this->publicMeta($profile, $request, $title, $active, $default),

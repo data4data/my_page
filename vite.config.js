@@ -7,7 +7,15 @@ import { vuePlugin } from './vue-plugin';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            // Two bundles, not one. The workspace's JavaScript is never
+            // served to the public page, so nobody can read the shape of the
+            // private API out of a chunk fetched from the public site.
+            // app.blade.php picks which pair to load.
+            input: [
+                'resources/css/app.css',
+                'resources/js/app-public.js',
+                'resources/js/app-admin.js',
+            ],
             refresh: true,
             fonts: [
                 bunny('Instrument Sans', {
