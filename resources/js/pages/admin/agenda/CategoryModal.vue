@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import AppModal from '../../../components/ui/AppModal.vue';
+import AdminModal from '../../../components/ui/AdminModal.vue';
 import AppInput from '../../../components/ui/AppInput.vue';
 import AppSelect from '../../../components/ui/AppSelect.vue';
 import AppIconSelect from '../../../components/ui/AppIconSelect.vue';
@@ -86,13 +86,12 @@ const submit = () => {
 </script>
 
 <template>
-    <AppModal :label="isEditing ? copy('categoryEdit') : copy('categoryAdd')" @close="$emit('close')">
-        <p class="eyebrow">{{ copy('categories') }}</p>
-        <h2 class="mt-3 font-serif text-2xl leading-tight">
-            {{ isEditing ? copy('categoryEdit') : copy('categoryAdd') }}
-        </h2>
-
-        <form class="admin-grid mt-6" novalidate @submit.prevent="submit">
+    <AdminModal
+        :eyebrow="copy('categories')"
+        :title="isEditing ? copy('categoryEdit') : copy('categoryAdd')"
+        @close="$emit('close')"
+    >
+        <form id="category-form" class="admin-grid" novalidate @submit.prevent="submit">
             <label class="admin-full">
                 {{ copy('categoryName') }}
                 <AppInput v-model="form.name" required />
@@ -109,8 +108,8 @@ const submit = () => {
             </label>
 
             <div class="admin-full">
-                <span class="block text-xs font-semibold uppercase tracking-[0.08em] text-mute">{{ copy('categoryColor') }}</span>
-                <div class="mt-2 flex flex-wrap items-center gap-2">
+                <span class="block text-xs text-mute">{{ copy('categoryColor') }}</span>
+                <div class="mt-1.5 flex flex-wrap items-center gap-2">
                     <button
                         v-for="preset in presetColors"
                         :key="preset"
@@ -127,13 +126,17 @@ const submit = () => {
                     <span class="text-xs tabular-nums text-faint">{{ form.color }}</span>
                 </div>
             </div>
+        </form>
 
-            <div class="admin-full mt-2 flex items-center justify-end gap-2">
-                <AppButton type="button" variant="secondary" size="sm" @click="$emit('close')">{{ copy('taskCancel') }}</AppButton>
-                <AppButton type="submit" variant="accent" size="sm" :disabled="saving">
+        <!-- The bar sits outside the scrolling body, so the submit button
+             reaches its form by id rather than by being inside it. -->
+        <template #footer>
+            <div class="admin-modal-actions">
+                <AppButton type="button" variant="outline" @click="$emit('close')">{{ copy('taskCancel') }}</AppButton>
+                <AppButton type="submit" form="category-form" variant="solid" :disabled="saving">
                     {{ saving ? copy('saving') : copy('categorySave') }}
                 </AppButton>
             </div>
-        </form>
-    </AppModal>
+        </template>
+    </AdminModal>
 </template>

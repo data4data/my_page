@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { Play, Square, Trash2 } from '@lucide/vue';
-import AppModal from '../../../components/ui/AppModal.vue';
+import AdminModal from '../../../components/ui/AdminModal.vue';
 import AppInput from '../../../components/ui/AppInput.vue';
 import AppDatePicker from '../../../components/ui/AppDatePicker.vue';
 import AppTextarea from '../../../components/ui/AppTextarea.vue';
@@ -164,13 +164,15 @@ const submit = () => {
 </script>
 
 <template>
-    <AppModal size="wide" :label="isEditing ? copy('editTask') : copy('addTask')" @close="$emit('close')">
-        <p class="eyebrow">{{ copy('agenda') }}</p>
-        <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <h2 class="font-serif text-2xl leading-tight">{{ isEditing ? copy('editTask') : copy('addTask') }}</h2>
-            <!-- Only for saved tasks: a timer needs a task id to attach to. -->
+    <AdminModal
+        size="wide"
+        :eyebrow="copy('agenda')"
+        :title="isEditing ? copy('editTask') : copy('addTask')"
+        @close="$emit('close')"
+    >
+        <!-- Only for saved tasks: a timer needs a task id to attach to. -->
+        <template v-if="isEditing" #head-aside>
             <button
-                v-if="isEditing"
                 type="button"
                 class="timer-button"
                 :class="{ 'timer-button-running': runningLog }"
@@ -180,9 +182,9 @@ const submit = () => {
                 <component :is="runningLog ? Square : Play" :size="11" />
                 <span>{{ elapsedLabel ?? copy('startTimer') }}</span>
             </button>
-        </div>
+        </template>
 
-        <form class="admin-grid mt-6" novalidate @submit.prevent="submit">
+        <form id="task-form" class="admin-grid" novalidate @submit.prevent="submit">
             <label>
                 {{ copy('taskCategory') }}
                 <AppSelect v-model="form.category_id" :options="categoryOptions" />
@@ -223,20 +225,21 @@ const submit = () => {
                 {{ copy('taskResultNotes') }}
                 <AppTextarea v-model="form.result_notes" rows="3" />
             </label>
-
-            <div class="admin-full mt-2 flex items-center justify-between gap-3">
-                <AppButton v-if="isEditing" type="button" variant="icon-danger" :aria-label="copy('taskDelete')" :disabled="saving" @click="$emit('delete')">
-                    <Trash2 :size="16" />
-                </AppButton>
-                <span v-else></span>
-
-                <div class="flex items-center gap-2">
-                    <AppButton type="button" variant="secondary" size="sm" @click="$emit('close')">{{ copy('taskCancel') }}</AppButton>
-                    <AppButton type="submit" variant="accent" size="sm" :disabled="saving">
-                        {{ saving ? copy('saving') : copy('taskSave') }}
-                    </AppButton>
-                </div>
-            </div>
         </form>
-    </AppModal>
+
+        <!-- The bar sits outside the scrolling body, so the submit button
+             reaches its form by id rather than by being inside it. -->
+        <template #footer>
+            <AppButton v-if="isEditing" type="button" variant="icon-danger" :aria-label="copy('taskDelete')" :disabled="saving" @click="$emit('delete')">
+                <Trash2 :size="16" />
+            </AppButton>
+
+            <div class="admin-modal-actions">
+                <AppButton type="button" variant="outline" @click="$emit('close')">{{ copy('taskCancel') }}</AppButton>
+                <AppButton type="submit" form="task-form" variant="solid" :disabled="saving">
+                    {{ saving ? copy('saving') : copy('taskSave') }}
+                </AppButton>
+            </div>
+        </template>
+    </AdminModal>
 </template>

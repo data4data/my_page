@@ -45,7 +45,7 @@ describe('ConfirmDialog', () => {
         const wrapper = mount(ConfirmDialog, { global: { stubs } });
         await wrapper.vm.$nextTick();
 
-        await wrapper.find('.connect-overlay').trigger('click');
+        await wrapper.find('.modal-overlay').trigger('click');
 
         await expect(answer).resolves.toBe(false);
         wrapper.unmount();

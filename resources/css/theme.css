@@ -83,6 +83,11 @@
     --color-raised: light-dark(#f4f3f1, #26262b); /* card heads, control tracks */
     --color-field: light-dark(#ffffff, #17171a); /* input interiors */
     --color-bar: light-dark(#fdfdfc, #191919); /* the sheet's action bar */
+    --color-scrim: light-dark(rgba(7, 21, 35, 0.45), rgba(0, 0, 0, 0.7)); /* behind a workspace modal */
+
+    /* A modal floats over the sheet, so it needs a shadow that reads on both
+       grounds — a light-mode shadow over the near-black sheet is invisible. */
+    --shadow-modal: light-dark(0 24px 60px rgba(7, 21, 35, 0.18), 0 24px 60px rgba(0, 0, 0, 0.6));
 
     /* Lines. `hairline-soft` separates content from content, `hairline`
        bounds a card, `ring` outlines a control. */
