@@ -21,10 +21,7 @@ class AppServiceProvider extends ServiceProvider
      * container resolves by reflection. Add a binding only when a second
      * implementation exists.
      */
-    public function register(): void
-    {
-        //
-    }
+    public function register(): void {}
 
     public function boot(): void
     {

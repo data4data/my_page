@@ -56,7 +56,6 @@ const onTimerClick = () => {
         @click="emit('edit', task)"
         @keydown.enter="emit('edit', task)"
     >
-        <!-- Row: time, then title over category, then status, then the timer. -->
         <template v-if="layout === 'row'">
             <span class="task-card-time w-24">{{ timeRange }}</span>
 
@@ -71,7 +70,6 @@ const onTimerClick = () => {
             <span class="task-card-status">{{ statusLabel }}</span>
         </template>
 
-        <!-- Stack: the same parts down a narrow column. -->
         <template v-else>
             <span class="task-card-title">{{ task.title }}</span>
 

@@ -68,7 +68,6 @@ class SecurityEventController extends Controller
                 'blocked' => $this->countOf($group, SecurityEventType::LoginBlocked),
                 'last_seen' => $group->max('last_seen'),
             ])
-            // Noisiest first.
             ->sortByDesc('attempts')
             ->values()
             ->all();

@@ -201,6 +201,10 @@ Controllers validate, authorize, delegate, and return JSON. Rules that outlive a
 
 `resources/js/pages/` is split by audience: `public/` holds what an anonymous visitor sees, `admin/` everything behind the login (including `LoginPage.vue`, which is the door to it).
 
+**Template comments are compiled away.** A comment in a `<template>` is markup, so Vue turns it into a real DOM node — readable in the inspector and served in the page. `vue-plugin.js` at the repo root sets `compilerOptions.comments: false` and **both** `vite.config.js` and `vitest.config.js` build their Vue plugin from it, so the app and the tests compile a component the same way. The production build already dropped them; this drops them in development too, which is where they were showing. Vue's own `<!--v-if-->` anchors are a different thing — they mark the place an absent branch would go — and they stay. `template-comments.test.js` covers both halves.
+
+So a `<!-- -->` next to the markup it explains costs nothing, and that is where such a note belongs. What does not belong there is anything the markup already says: a comment earns its place by recording a decision or a trap, not by narrating the next line.
+
 `resources/js/router.js` maps paths to lazily-loaded pages: `public/PublicPage.vue` (also renders `DeveloperConnectModal` on `/hi-developer`), `admin/LoginPage.vue`, and `admin/AdminPage.vue` for every admin route — `AdminPage` derives its active section from the route name, so each section is a real bookmarkable/refreshable URL.
 
 **The four workspace sections**, and the split between them:

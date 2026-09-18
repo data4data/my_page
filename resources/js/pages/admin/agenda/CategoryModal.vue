@@ -128,8 +128,7 @@ const submit = () => {
             </div>
         </form>
 
-        <!-- The bar sits outside the scrolling body, so the submit button
-             reaches its form by id rather than by being inside it. -->
+        <!-- The bar is outside the form, so the submit button names it by id. -->
         <template #footer>
             <div class="admin-modal-actions">
                 <AppButton type="button" variant="outline" @click="$emit('close')">{{ copy('taskCancel') }}</AppButton>

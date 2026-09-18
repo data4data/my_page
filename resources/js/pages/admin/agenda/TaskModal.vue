@@ -227,8 +227,7 @@ const submit = () => {
             </label>
         </form>
 
-        <!-- The bar sits outside the scrolling body, so the submit button
-             reaches its form by id rather than by being inside it. -->
+        <!-- The bar is outside the form, so the submit button names it by id. -->
         <template #footer>
             <AppButton v-if="isEditing" type="button" variant="icon-danger" :aria-label="copy('taskDelete')" :disabled="saving" @click="$emit('delete')">
                 <Trash2 :size="16" />

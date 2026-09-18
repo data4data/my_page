@@ -113,7 +113,6 @@ const savedPayload = ref('');
 const dirty = computed(() => Boolean(savedPayload.value) && savedPayload.value !== JSON.stringify(data.value));
 const saveStatus = computed(() => (dirty.value ? copy('unsavedChanges') : copy('allSaved')));
 
-// One subtitle per tab, under the page title.
 const EDIT_SUBTITLES = {
     profile: 'subtitleEditProfile',
     metrics: 'subtitleEditMetrics',
@@ -142,7 +141,6 @@ const fetchInquiries = async (page = 1) => {
         const body = await apiFetch(`${adminUrl('/inquiries')}?page=${page}`);
         const rows = body.inquiries ?? [];
 
-        // Page one replaces, later pages append.
         inquiries.value = page === 1 ? rows : [...inquiries.value, ...rows];
         inquiriesHasMore.value = body.has_more ?? false;
         inquiriesPage.value = body.page ?? page;

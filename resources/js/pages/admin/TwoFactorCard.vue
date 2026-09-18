@@ -100,7 +100,6 @@ const newRecoveryCodes = async () => {
 
             <p v-if="error" class="mt-3 rounded-md border border-danger/40 bg-danger-bg px-4 py-3 text-sm text-danger-text">{{ error }}</p>
 
-            <!-- Off, and not yet started. -->
             <AppButton v-if="!state.enabled && !state.pending" variant="primary" size="sm" class="mt-4" :disabled="busy" @click="begin">
                 {{ copy('twoFactorEnable') }}
             </AppButton>
@@ -127,7 +126,6 @@ const newRecoveryCodes = async () => {
                 </AppButton>
             </form>
 
-            <!-- Recovery codes, shown at enrolment and whenever regenerated. -->
             <div v-if="setup?.recovery_codes" class="mt-5">
                 <p class="text-xs uppercase tracking-[0.08em] text-mute">{{ copy('twoFactorRecovery') }}</p>
                 <p class="mt-1 text-sm leading-6 text-mute">{{ copy('twoFactorRecoveryHint') }}</p>
