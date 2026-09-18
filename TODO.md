@@ -230,12 +230,27 @@ the public address. Today anyone can download `AdminPage`'s chunks and
     true)` — the admin payload carries `is_visible = false` rows, and the two
     differ by one argument. Test that a hidden row never reaches B. B checks a
     shared token, or whoever finds the endpoint can replace your portfolio.
-36. **The connect form emails you and stores nothing on B.** Keep the form: it
-    already has the throttle, the honeypot and the rules, and `contact_email`
-    already offers a plain button beside it. A `mailto:` hands your address to
-    scrapers; a LinkedIn redirect leaves no record. Rate limiting stays on B,
-    where the visitor is. If the Insights archive must keep working, *A* asks
-    *B* — so the one-way trust holds.
+36. **B validates and stores the connect form; A collects it later.** Keep the
+    form — it already has the throttle, the honeypot and the rules, and
+    `contact_email` offers a plain button beside it. A `mailto:` hands your
+    address to scrapers; a LinkedIn redirect leaves no record.
+
+    `DeveloperInquiryController` and its validation move to B unchanged, and
+    rate limiting stays there, where the visitor actually is.
+
+    **A asks B, never the reverse.** A presents a token that B checks. The
+    one-way trust still holds: owning B reveals a value B *verifies*, not a
+    credential that opens A. Pull on the scheduler and when Insights is
+    opened.
+
+    **Give each inquiry a UUID and make it unique on both sides**, so a
+    repeated pull or a failed acknowledgement cannot duplicate it — the same
+    pattern as item 19. Add the column with the squash (A).
+
+    **Delete from B once A has it.** Somebody else's name, email and message
+    should not sit on the public machine after they have been collected. Email
+    on arrival too (item 31) — that is how you find out without opening
+    Insights.
 37. **Each deployment ships only its own half, and proves it.** A deploy check
     that B carries no admin bundle and no admin route file, failing the deploy.
     Two genuinely separate machines. B behind a CDN, because a flood is
@@ -265,3 +280,32 @@ the public address. Today anyone can download `AdminPage`'s chunks and
     `shouldRenderJsonWhen()` in `bootstrap/app.php` stays either way — it
     exists because the session-authenticated JSON endpoints sit outside
     `api/*`, and they still will.
+
+40. **One branch, two deploy jobs — not two branches.** Long-lived
+    `main-public` / `main-admin` branches mean merging twice, cherry-picking
+    every shared fix, and a permanent "which branch is on which box" question.
+    Keep `main`, and let one pipeline deploy both boxes.
+
+    **The gate has to move into CI.** Pint, PHPStan, `composer test`, `npm
+    test` and `npm run build` are run by hand today. Once `main` deploys
+    anything, they have to block the merge instead — plus the check from item
+    37 that B's artifact carries no admin bundle.
+
+    **Deploy B before A**, and make B ignore payload keys it does not know and
+    default the ones it misses. Then a version skew between the two boxes
+    renders an older page rather than an error, and the ordering stops being
+    load-bearing.
+
+    **Let the boxes pull; do not open a door for the pipeline.** CI should not
+    hold an SSH key into A — that is a credential with the run of the private
+    machine, sitting in a third party. Either the box fetches and deploys
+    itself, or A is deployed by hand over the VPN. For one person, a manual
+    deploy of the private box is a defensible answer, not a gap.
+
+    **Back up before every migrate.** `mysqldump` first, `migrate --force`
+    second, keep the last few. Deploy into a releases directory behind a
+    symlink so a rollback is switching the link, not a restore.
+
+    **No emergency path around the gate.** A hotfix is still branch → gate →
+    `main`. Skipping it is a thing people do when they are stressed, which is
+    exactly when the gate is worth most.
