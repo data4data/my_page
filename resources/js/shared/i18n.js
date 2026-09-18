@@ -19,6 +19,9 @@ const sharedUi = {
         sharedInfo: 'These values are the same in both languages, so they are edited once here rather than twice on every other tab.',
         sharedHighlightsHint: 'Words from the headline to accent, comma separated. Put both languages\u2019 spellings in one list — only the words in the headline currently on screen can match.',
         preview: 'Preview',
+        themeSwitch: 'Theme',
+        themeLight: 'Light',
+        themeDark: 'Dark',
     },
 
     nl: {
@@ -29,6 +32,9 @@ const sharedUi = {
         sharedInfo: 'Deze waarden zijn in beide talen hetzelfde en worden daarom hier \u00e9\u00e9n keer ingesteld in plaats van op elk ander tabblad twee keer.',
         sharedHighlightsHint: 'Woorden uit de kop die een accentkleur krijgen, gescheiden door komma\u2019s. Zet de spelling van beide talen in \u00e9\u00e9n lijst — alleen woorden uit de kop die nu op het scherm staat kunnen matchen.',
         preview: 'Voorbeeld',
+        themeSwitch: 'Thema',
+        themeLight: 'Licht',
+        themeDark: 'Donker',
     },
 };
 

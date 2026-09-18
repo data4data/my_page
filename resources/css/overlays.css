@@ -100,13 +100,13 @@
        no dark mode, and this is the one card that could drag it into one.
        --------------------------------------------------------------- */
     .public-modal-overlay {
-        --modal-scrim: rgba(7, 21, 35, 0.6);
+        --modal-scrim: light-dark(rgba(7, 21, 35, 0.6), rgba(0, 0, 0, 0.72));
     }
 
     .public-modal {
         @apply relative flex w-full max-w-md flex-col rounded-lg border border-sand bg-cream text-ink;
         max-height: calc(100dvh - 3rem);
-        box-shadow: 0 30px 90px rgba(7, 21, 35, 0.35);
+        box-shadow: light-dark(0 30px 90px rgba(7, 21, 35, 0.35), 0 30px 90px rgba(0, 0, 0, 0.6));
 
         /* forms.css is shared: the workspace's fields and this card's fields
            are the same rules on the same surface tokens. The workspace wants
@@ -118,14 +118,14 @@
            shell, so the remap does not need a condition to tell it apart from
            TaskModal and CategoryModal any more — those are a different
            component now. */
-        --color-field: #ffffff;
+        --color-field: var(--color-paper);
         --color-ring: var(--color-sand);
         --color-raised: var(--color-cream);
         --color-body: var(--color-ink);
         --color-mute: var(--color-graphite);
         --color-marker: var(--color-accent);
         --color-solid: var(--color-ink);
-        --color-solid-text: #ffffff;
+        --color-solid-text: var(--color-ink-text);
     }
 
     /* One band, not three: the connect form supplies its own heading and
@@ -135,6 +135,12 @@
     }
 
     .public-modal-close {
-        @apply absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full border border-sand bg-white transition hover:bg-ink hover:text-white;
+        @apply absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full border border-sand transition;
+        background: var(--color-paper);
+    }
+
+    .public-modal-close:hover {
+        background: var(--color-ink);
+        color: var(--color-ink-text);
     }
 }

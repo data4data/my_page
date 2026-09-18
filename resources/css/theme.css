@@ -10,28 +10,44 @@
     --breakpoint-xl: 90rem;
     --breakpoint-2xl: 112.5rem;
 
-    /* Core palette — the site's recurring brand colors. */
-    --color-ink: #071523;
-    --color-ink-hover: #10283f;
-    --color-accent: #2f75a8;
-    --color-accent-hover: #255f8a;
-    --color-accent-soft: #eaf1f7;
-    --color-sand: #d8cbbb;
-    --color-sand-light: #cfbfaa;
-    --color-tan: #e2d7c8;
-    --color-graphite: #516070;
-    --color-charcoal: #263746;
-    --color-taupe: #7b6d5f;
-    --color-muted: #8f8478;
-    --color-cream: #f4efe7;
-    --color-parchment: #f8f4ed;
-    --color-ivory: #fbf8f2;
-    --color-brass: #a5773e;
-    --color-gold: #c5a064;
-    --color-gold-dark: #ad8650;
-    --color-bronze: #b89054;
-    --color-bronze-text: #8c6b3d;
-    --color-steel: #9b9b9b;
+    /* Core palette — the site's recurring brand colors.
+
+       Both halves, like the workspace surfaces below. The dark half keeps the
+       warmth: this is a cream-and-ink design, so its night version is a warm
+       near-black rather than the neutral greys the workspace uses, and the
+       browns and golds stay brown and gold instead of turning grey.
+
+       `ink` and `cream` swap roles — ink is near-black text on cream in light
+       and warm off-white text on near-black in dark. Anything painted
+       `bg-ink` therefore needs `--color-ink-text` on top of it rather than a
+       literal white, which would vanish in dark. */
+    --color-ink: light-dark(#071523, #f2ede5);
+    --color-ink-hover: light-dark(#10283f, #e3dcd1);
+    --color-ink-text: light-dark(#ffffff, #14120f); /* what sits on bg-ink */
+    --color-accent: light-dark(#2f75a8, #5fa3d4);
+    /* The dark half of accent is light, so white on it would not carry. */
+    --color-accent-text: light-dark(#ffffff, #0d1b24);
+    --color-accent-hover: light-dark(#255f8a, #7db8e2);
+    --color-accent-soft: light-dark(#eaf1f7, #1b2a35);
+    --color-sand: light-dark(#d8cbbb, #3a332b);
+    --color-sand-light: light-dark(#cfbfaa, #463d33);
+    --color-tan: light-dark(#e2d7c8, #2e2822);
+    --color-graphite: light-dark(#516070, #b9b2a6);
+    --color-charcoal: light-dark(#263746, #d6cfc4);
+    --color-taupe: light-dark(#7b6d5f, #a89a8b);
+    --color-muted: light-dark(#8f8478, #9c9184);
+    --color-cream: light-dark(#f4efe7, #14120f);
+    --color-parchment: light-dark(#f8f4ed, #1b1815);
+    --color-ivory: light-dark(#fbf8f2, #201c18);
+    /* A card lifted off the page — white in light, one step up from the
+       ground in dark. The public half's answer to --color-sheet. */
+    --color-paper: light-dark(#ffffff, #1e1a16);
+    --color-brass: light-dark(#a5773e, #cba065);
+    --color-gold: light-dark(#c5a064, #d8b87f);
+    --color-gold-dark: light-dark(#ad8650, #c29a63);
+    --color-bronze: light-dark(#b89054, #c7a066);
+    --color-bronze-text: light-dark(#8c6b3d, #d2ab73);
+    --color-steel: light-dark(#9b9b9b, #8a8a8a);
 
     /* Status colors — border/bg/text triplets for toasts, form errors, admin notes. */
     --color-danger: light-dark(#c0503f, #cf6d5b);
@@ -47,16 +63,29 @@
     --color-info-bg: light-dark(#eef4f8, #1b2a35);
     --color-info-text: light-dark(#294a5f, #9fc4db);
 
+    /* Cards lifted off the public page. Translucent white over cream in
+       light; a faint white lift over near-black in dark, because a card
+       above a dark ground is lighter than it, not more opaque. Each is one
+       of the `bg-white/NN` values the visit card used to hardcode — those
+       could not flip, which is why they are tokens now. */
+    --color-surface-card: light-dark(rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.055));
+    --color-surface-card-hover: light-dark(rgba(255, 255, 255, 0.90), rgba(255, 255, 255, 0.085));
+    --color-surface-panel: light-dark(rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.038));
+    --color-surface-panel-soft: light-dark(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.030));
+    --color-surface-chip: light-dark(rgba(255, 255, 255, 0.70), rgba(255, 255, 255, 0.060));
+    --color-surface-note: light-dark(rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.050));
+
     /* Illustration colors — the hero gradient wash and the project-card
-       gradient tiles. */
-    --color-hero-glow-1: #f7f1e8;
-    --color-hero-glow-2: #e9e1d6;
-    --color-hero-glow-3: #aebbc1;
-    --color-visual-base: #efe8dd;
-    --color-visual-blue: #dce8ed;
-    --color-visual-sand: #eee3d5;
-    --color-visual-mist: #edf3f5;
-    --color-visual-blush: #f5eee5;
+       gradient tiles. Dark halves are the same hues at a fraction of the
+       lightness, so the tiles stay tinted rather than becoming flat grey. */
+    --color-hero-glow-1: light-dark(#f7f1e8, #1c1915);
+    --color-hero-glow-2: light-dark(#e9e1d6, #232019);
+    --color-hero-glow-3: light-dark(#aebbc1, #2b3338);
+    --color-visual-base: light-dark(#efe8dd, #221e19);
+    --color-visual-blue: light-dark(#dce8ed, #1d2a30);
+    --color-visual-sand: light-dark(#eee3d5, #262019);
+    --color-visual-mist: light-dark(#edf3f5, #1e282c);
+    --color-visual-blush: light-dark(#f5eee5, #241f19);
 
     /* ---------------------------------------------------------------
        Workspace surfaces — the semantic layer the private workspace is

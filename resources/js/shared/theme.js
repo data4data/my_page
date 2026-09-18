@@ -8,10 +8,14 @@ export const THEMES = [
     { value: 'dark', label: 'Dark' },
 ];
 
+// One preference for the whole site, not one per half. It is the same
+// browser and the same pair of eyes: a site that flips theme as you cross
+// from the visit card into the workspace reads as broken.
+//
 // Named like `site-language` in i18n.js, and for the same reason: nothing in
 // this app is tied to one owner, so a key naming a particular person would
 // outlive a fork that changed everything else.
-const STORAGE_KEY = 'workspace-theme';
+const STORAGE_KEY = 'site-theme';
 
 const storedTheme = () => {
     const value = localStorage.getItem(STORAGE_KEY);
@@ -25,10 +29,10 @@ const systemPrefersDark = () => window.matchMedia?.('(prefers-color-scheme: dark
 // reads `data-theme` are both looking at this one ref.
 export const theme = ref(storedTheme() ?? (systemPrefersDark()?.matches ? 'dark' : 'light'));
 
-// Until the owner picks a side, the workspace keeps following the OS — so a
-// machine that flips to dark at sunset carries the workspace with it. The
-// first explicit choice stops that for good, which is what `stored` tests:
-// once something is in storage this listener stops assigning.
+// Until someone picks a side, the site keeps following the OS — so a machine
+// that flips to dark at sunset carries the page with it. The first explicit
+// choice stops that for good, which is what `storedTheme` tests: once
+// something is in storage this listener stops assigning.
 systemPrefersDark()?.addEventListener?.('change', (event) => {
     if (!storedTheme()) {
         theme.value = event.matches ? 'dark' : 'light';
@@ -61,9 +65,16 @@ watch(theme, () => {
 });
 
 // `data-theme` is what picks the half of every `light-dark()` in theme.css,
-// so holding it is the same as being in dark mode. Only the workspace holds
-// it: the public visit card shares forms.css and overlays that append to
-// <body>, and both have to stay light whatever the owner chose in here.
+// so holding it is the same as being in dark mode.
+//
+// Both halves hold it now — AdminLayout for the workspace, PublicPage for the
+// visit card. It used to be the workspace alone, because the brand palette
+// had one value per colour and the public page could only ever have looked
+// wrong in dark. It has both halves now, so it can hold the attribute too.
+//
+// Still held rather than set once: with no holder the attribute comes off and
+// color-scheme returns to `normal`, which is what the login page and the
+// first paint before the script runs get.
 export const holdTheme = () => {
     holders += 1;
     applyTheme();

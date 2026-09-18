@@ -183,9 +183,6 @@ export const adminUi = {
         insightsLinkedin: 'LinkedIn',
         // Workspace chrome. The rail carries the switchers now that there is
         // no header, so both pills need a group label a screen reader can read.
-        themeSwitch: 'Theme',
-        themeLight: 'Light',
-        themeDark: 'Dark',
         languageSwitch: 'Language',
         navExpand: 'Expand navigation',
         navCollapse: 'Collapse navigation',
@@ -441,9 +438,6 @@ export const adminUi = {
         insightsCompany: 'Bedrijf',
         insightsPortfolio: 'Portfolio',
         insightsLinkedin: 'LinkedIn',
-        themeSwitch: 'Thema',
-        themeLight: 'Licht',
-        themeDark: 'Donker',
         languageSwitch: 'Taal',
         navExpand: 'Navigatie uitklappen',
         navCollapse: 'Navigatie inklappen',
