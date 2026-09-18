@@ -192,12 +192,25 @@ See item 18.
     the column and the index come back together, and that is the moment for
     both.
 
-19. **`portfolio_profiles.type` is dead.**
+19. **One remote event, one task.**
+    Pulling from a calendar means the same event arriving twice — two syncs
+    overlapping, a retry, a provider resending. A UNIQUE index on
+    `(user_id, source, external_ref)` makes a duplicate impossible instead of
+    something the sync code has to remember.
+
+    This is the concurrency kind of constraint, so it is worth having. Manual
+    tasks are unaffected: their `external_ref` is NULL, and a unique index
+    does not compare NULLs, so there can be any number of them.
+
+    The columns already exist — `source` and `external_ref` were put on
+    `tasks` for exactly this.
+
+20. **`portfolio_profiles.type` is dead.**
     Seeded `'person'`, never read. `personSchema()` hardcodes `Person`
     instead. Either wire it up — it is the obvious switch for a schema.org
     `Organization` — or drop the column.
 
-20. **The seeded slug still carries the author's initials.**
+21. **The seeded slug still carries the author's initials.**
     `DefaultPortfolioContent::seed()` matches on `['slug' => 'oa']`. The
     `initials` default was neutralised to `AB`; the slug it is looked up by
     was not. It is the one identifier in a fresh install that still names a
@@ -207,14 +220,14 @@ See item 18.
     nothing reads it, `is_active` is what finds the live profile, and being
     the seeder's idempotency key is the only job it has.
 
-21. **`reflections.period_end` can disagree with itself.**
+22. **`reflections.period_end` can disagree with itself.**
     It is derivable from `period_type` plus `period_start` — a week's end is
     its start plus six days. Two columns that encode one fact can drift.
     Either make it generated, or drop it and derive it in
     `scopeForPeriod()`. Note the unique index uses it, so a generated column
     is the smaller change.
 
-22. **Write down what `categories.user_id = NULL` means.**
+23. **Write down what `categories.user_id = NULL` means.**
     Null means "shared by everyone", which makes one column carry two kinds
     of row, and it is why `CategoryPolicy` needs its special rule that a
     global category is editable by anyone but deletable only when nobody
@@ -253,18 +266,48 @@ question is not reopened every six months.
   adding a case to a DB enum needs an `ALTER TABLE`, and the enum classes plus
   validation already constrain them.
 
-## B. Interfaces, actions and events
+## B. Interfaces, actions, and who creates what
 
 The aim is to swap an implementation without editing its callers. Worth being
 blunt about what gets us there and what does not.
 
-23. **Mail providers need no work at all.**
+24. **Three kinds of row, three different owners.**
+    The mistake is treating them alike. They are not.
+
+    - **Roles are code.** `admin` is a name the `role:admin` middleware refers
+      to; it is a constant that happens to live in a table. It stays seeded,
+      idempotent, never prompted for. `Role::findOrCreate('admin', 'web')` is
+      already right where it is.
+    - **The admin user and the profile are this install's identity.** They
+      belong in a command — `php artisan app:install` — that asks for the
+      email, the password and the initials. Not in a seeder, not in
+      `.env.example`, not in git.
+    - **Placeholder content and the demo week are samples.** Seeder, local
+      only, exactly as today.
+
+    Making the identity a command pays for itself twice. `AdminUserSeeder`
+    carries sixty lines refusing weak passwords and warning about
+    `config:cache` — all of it compensating for being a seeder that reads
+    `.env`. A command can simply ask, with a hidden prompt, and most of that
+    class goes. And the profile stops being created by
+    `updateOrCreate(['slug' => 'oa'])`, which is what put one person's
+    initials in every fresh install (item 21).
+
+    **Keep `DefaultPortfolioContent` as content.** Creating the row and
+    choosing what is in it are two jobs; the reset button in Content versions
+    needs the second one whether or not the first is a command.
+
+    **Then handle "not set up yet".** `activeProfile()` is `firstOrFail()`, so
+    an install where the command has not run would throw rather than say so.
+    `PortfolioController::app()` already copes; the workspace does not.
+
+25. **Mail providers need no work at all.**
     Laravel already abstracts them. `config/mail.php` lists the mailers and
     `MAIL_MAILER` picks one — SMTP, SES, Postmark, Resend. Switching provider
     is an `.env` change. Writing our own mail interface over the top of
     Laravel's would add a layer and buy nothing.
 
-24. **Calendar sync is the one that genuinely needs an interface.**
+26. **Calendar sync is the one that genuinely needs an interface.**
     Google Calendar, Microsoft 365 and CalDAV are three real implementations
     of one idea, so `CalendarProvider` earns its keep — `pull()` and `push()`,
     one class per service, bound in `AppServiceProvider::register()`.
@@ -273,12 +316,26 @@ blunt about what gets us there and what does not.
     `tasks.external_ref` exist for exactly this, and `TaskSource` gains a
     `calendar` case beside `manual` and `seeder`.
 
+    **`Task` stays a plain model — do not make it an interface.** A task is a
+    title, a time range and a status whoever created it; what varies is where
+    it came from and how it syncs, and `source` plus `external_ref` already
+    say that. An interface over your own table is an abstraction with one
+    implementation, and Eloquent will not play along with it — relations,
+    scopes and `withSum` all want the concrete model.
+
+    The abstraction actually wanted sits on the provider side: a plain
+    readonly `CalendarEvent` holding an event as that service described it.
+    Providers speak `CalendarEvent`, the app speaks `Task`, and one mapper
+    sits between them. Adding a provider is then one class, and nothing that
+    reads tasks changes.
+
     What is missing and needs designing before any code: where the OAuth
     tokens live (a table per user per provider), whether sync is one way or
-    two, and what happens when both sides changed the same event. Sketch that
-    first; it is the whole difficulty.
+    two, how a change is detected without rewriting everything each run, what
+    a deletion on their side means here, and what happens when both sides
+    changed the same event. Sketch that first; it is the whole difficulty.
 
-25. **The other two interfaces worth having.**
+27. **The other two interfaces worth having.**
     - `TwoFactorService` → a `TwoFactorProvider` contract. TOTP now, passkeys
       later.
     - `DefaultPortfolioContent` → a contract for where the seeded page comes
@@ -288,7 +345,7 @@ blunt about what gets us there and what does not.
     indirection, which is why `AppServiceProvider::register()` is empty today.
     Cache, filesystem, mail and queue already have Laravel contracts.
 
-26. **Split `PortfolioContentService` instead of wrapping it.**
+28. **Split `PortfolioContentService` instead of wrapping it.**
     273 lines with five reasons to change: shaping a read (`payload`),
     writing (`save`, `replaceOrdered`), history (`recordRevision`,
     `pruneRevisions`), choosing the live profile (`activate`), and seeding
@@ -297,7 +354,7 @@ blunt about what gets us there and what does not.
     transaction and one write path must survive the split — that property is
     why the class exists.
 
-27. **Put the one-off jobs in `app/Actions/`.**
+29. **Put the one-off jobs in `app/Actions/`.**
     Laravel has no first-party Action class, but Fortify and Jetstream both
     use plain invokable classes in `app/Actions/`, so that is the convention
     with precedent. Prefer it to `lorisleiva/laravel-actions`, which is one
@@ -305,13 +362,13 @@ blunt about what gets us there and what does not.
     First candidates: restoring a revision, resetting to defaults, enrolling
     a second factor, starting and stopping a timer.
 
-28. **Raise events for the things something else reacts to.**
+30. **Raise events for the things something else reacts to.**
     Laravel 13 discovers listeners automatically, so this costs a class and no
     registration. Three that pay for themselves:
 
     - `PortfolioSaved` / `PortfolioRestored` — what sends the page to the
       public server (C).
-    - `InquiryReceived` — what emails you (item 33).
+    - `InquiryReceived` — what emails you (item 35).
     - `TimerStarted` / `TimerStopped` — so calendar sync can react later
       without `TimerService` growing a branch for it.
 
@@ -319,7 +376,7 @@ blunt about what gets us there and what does not.
     `AppServiceProvider::boot()`. Move them to `app/Listeners/` when a third
     one appears.
 
-29. **Update the "no bindings" note in `CLAUDE.md`** once 24 and 25 land, with
+31. **Update the "no bindings" note in `CLAUDE.md`** once 26 and 27 land, with
     the reasoning, rather than leaving the file arguing against the code.
 
 ## C. Two servers, one codebase, data pushed one way
@@ -400,7 +457,7 @@ After the split those files are not there.
 
 ---
 
-30. **One repository, two deployments.**
+32. **One repository, two deployments.**
     The same repository deployed twice with a different role in `.env` —
     `APP_ROLE=workspace` and `APP_ROLE=public` — and the route files
     registered to match.
@@ -414,17 +471,17 @@ After the split those files are not there.
     doubling that for one person is what actually rots.
 
     So: one repository, and make the deployment boundary real and tested
-    instead (item 34).
+    instead (item 36).
 
-31. **Render the public page on the server.**
+33. **Render the public page on the server.**
     Item 6, promoted to a prerequisite — a visitor's browser must never need
     to talk to Box A. B renders Blade from the copy it holds. `publicMeta()`,
     the `hreflang` alternates and the schema.org block move across unchanged;
     they already read a payload rather than the models.
 
-32. **Send the page across when it is saved — the public payload, and only
+34. **Send the page across when it is saved — the public payload, and only
     that.**
-    `PortfolioSaved` and `PortfolioRestored` (item 28) queue a job that POSTs
+    `PortfolioSaved` and `PortfolioRestored` (item 30) queue a job that POSTs
     to B. Queued, so a failed send retries instead of losing the edit.
 
     **It must be `payload($profile, publicOnly: true)`.** The admin payload
@@ -437,7 +494,7 @@ After the split those files are not there.
     `.env` files. Otherwise whoever finds that endpoint can replace your
     portfolio with their own text.
 
-33. **The connect form emails you, and stores nothing on B.**
+35. **The connect form emails you, and stores nothing on B.**
     This is how you find out somebody wants to reach you, and it is what keeps
     B from holding any key to A.
 
@@ -456,7 +513,7 @@ After the split those files are not there.
     you open the page, so the one-way trust still holds. Decide whether the
     archive is worth that; a mailbox is an archive too.
 
-34. **Each deployment must ship only its own half, and prove it.**
+36. **Each deployment must ship only its own half, and prove it.**
     This is the whole security boundary, and the half that lives outside the
     code. A deploy script that copies everything to both machines undoes it
     silently, without failing a test.
@@ -467,7 +524,7 @@ After the split those files are not there.
       is fine; same host is not.
     - B behind a CDN.
 
-35. **Give B a database with one thing in it.**
+37. **Give B a database with one thing in it.**
     The published payload. Running the full migration set on B would create an
     empty `users`, `tasks` and `security_events` on a public machine — tables
     nothing fills, that a later bug or a careless seeder could. Give the
@@ -476,7 +533,7 @@ After the split those files are not there.
     B needs its own `.env` too: a different `APP_KEY`, its own database
     credentials, its mail credentials, and none of A's.
 
-36. **Tidy the routes; do not invent an API.**
+38. **Tidy the routes; do not invent an API.**
     The workspace frontend already talks to the backend over JSON —
     `apiFetch` and the `{admin}/...` endpoints are an API, just not spelled
     `/api/`. With no third-party consumer there is nothing to version and no
@@ -484,5 +541,5 @@ After the split those files are not there.
 
     Worth doing: split `routes/web.php` so the SPA shell routes and the JSON
     endpoints are in separate files, and register the public role's routes
-    separately from the workspace role's. That is what item 30 needs. The rest
+    separately from the workspace role's. That is what item 32 needs. The rest
     is renaming.
