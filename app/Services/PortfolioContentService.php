@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Http\Resources\PortfolioItemResource;
+use App\Http\Resources\PortfolioProfileResource;
 use App\Models\PortfolioProfile;
 use App\Models\PortfolioRevision;
 use App\Models\User;
@@ -19,7 +21,14 @@ class PortfolioContentService
     // Every save writes a row, so the table needs a cap.
     private const KEEP_REVISIONS = 20;
 
-    private const PROFILE_KEYS = [
+    /**
+     * What a profile is made of, and the only thing any endpoint publishes —
+     * PortfolioProfileResource is built from this list. Public because the
+     * resource reads it; still the single source save() writes by.
+     *
+     * @var list<string>
+     */
+    public const PROFILE_KEYS = [
         'initials',
         'role',
         'headline',
@@ -40,7 +49,12 @@ class PortfolioContentService
         'show_language_toggle',
     ];
 
-    private const CHILD_KEYS = [
+    /**
+     * The same, per child relation. PortfolioItemResource reads it.
+     *
+     * @var array<string, list<string>>
+     */
+    public const CHILD_KEYS = [
         'metrics' => ['value', 'label', 'is_visible'],
         'expertiseItems' => ['title', 'description', 'icon', 'category', 'is_visible'],
         'projects' => ['title', 'summary', 'result', 'tags', 'visual_style', 'is_visible'],
@@ -70,17 +84,31 @@ class PortfolioContentService
             ->firstOrFail();
     }
 
+    /**
+     * The shape every read of the page returns — the public endpoint, the
+     * admin endpoint and the revision snapshot alike.
+     *
+     * It is assembled by the two resources rather than by handing the models
+     * out, so the keys it carries are exactly PROFILE_KEYS and CHILD_KEYS and
+     * nothing that happens to sit in the same table.
+     *
+     * @return array<string, mixed>
+     */
     public function payload(PortfolioProfile $profile, bool $publicOnly): array
     {
         $visible = fn ($items) => $publicOnly ? $items->where('is_visible', true)->values() : $items->values();
 
-        return [
-            'profile' => $publicOnly ? $this->withVisibleSocialLinks($profile) : $profile,
-            'metrics' => $visible($profile->metrics),
-            'expertise_items' => $visible($profile->expertiseItems),
-            'projects' => $visible($profile->projects),
-            'process_steps' => $visible($profile->processSteps),
+        $payload = [
+            'profile' => PortfolioProfileResource::make(
+                $publicOnly ? $this->withVisibleSocialLinks($profile) : $profile
+            )->resolve(),
         ];
+
+        foreach (self::PAYLOAD_TO_RELATION as $payloadKey => $relation) {
+            $payload[$payloadKey] = PortfolioItemResource::forRelation($visible($profile->{$relation}), $relation);
+        }
+
+        return $payload;
     }
 
     /**

@@ -46,14 +46,14 @@ const asTranslation = (value) => {
 
 // Fills in missing collections and translation shapes, so templates can rely
 // on .en/.nl and on the collections always being arrays.
+//
+// It used to also read the collections back off payload.profile: the endpoint
+// handed out the profile model with its relations loaded, so every row arrived
+// twice, once nested and once at the top level. The payload is built by
+// PortfolioProfileResource now and carries the profile's own fields only, so
+// there is one place to read each collection from.
 export function normalizePortfolio(payload) {
     ['metrics', 'expertise_items', 'projects', 'process_steps'].forEach((collection) => {
-        const profileItems = payload.profile?.[collection];
-
-        if ((!Array.isArray(payload[collection]) || payload[collection].length === 0) && Array.isArray(profileItems) && profileItems.length > 0) {
-            payload[collection] = profileItems;
-        }
-
         if (!Array.isArray(payload[collection])) {
             payload[collection] = [];
         }

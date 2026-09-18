@@ -168,8 +168,11 @@ class PortfolioContentTest extends TestCase
         $metrics = $response->json('metrics');
         $this->assertCount(1, $metrics);
         $this->assertSame('12', $metrics[0]['value']);
-        $this->assertSame(1, $metrics[0]['sort_order']);
         $this->assertDatabaseMissing('portfolio_metrics', ['value' => '5+']);
+        // sort_order is no longer published — the payload carries position as
+        // the order of the array — so the renumbering is checked where it is
+        // stored.
+        $this->assertDatabaseHas('portfolio_metrics', ['value' => '12', 'sort_order' => 1]);
     }
 
     public function test_sort_order_follows_the_submitted_position(): void
@@ -185,8 +188,13 @@ class PortfolioContentTest extends TestCase
         ]));
 
         $response->assertOk();
-        $this->assertSame([1, 2, 3], array_column($response->json('metrics'), 'sort_order'));
+        // The order of the array is what the page reads; the column behind it
+        // is what a reload reads.
         $this->assertSame(['first', 'second', 'third'], array_column($response->json('metrics'), 'value'));
+
+        foreach (['first' => 1, 'second' => 2, 'third' => 3] as $value => $position) {
+            $this->assertDatabaseHas('portfolio_metrics', ['value' => $value, 'sort_order' => $position]);
+        }
     }
 
     public function test_an_unknown_default_language_is_rejected(): void

@@ -159,7 +159,8 @@ class PortfolioHistoryTest extends TestCase
 
         $response->assertOk();
         $this->assertSame(['a', 'b'], array_column($response->json('metrics'), 'value'));
-        $this->assertSame([1, 2], array_column($response->json('metrics'), 'sort_order'));
+        $this->assertDatabaseHas('portfolio_metrics', ['value' => 'a', 'sort_order' => 1]);
+        $this->assertDatabaseHas('portfolio_metrics', ['value' => 'b', 'sort_order' => 2]);
     }
 
     /** Every save writes a row, so the table has to be capped. */

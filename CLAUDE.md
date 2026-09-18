@@ -136,7 +136,7 @@ No `/api` prefix — admin JSON endpoints live under `{admin}/...` alongside the
 **SPA shell** (all render the same Blade view; `resources/js/router.js` picks the page): `/`, `/hi-developer`, `{admin}/login`, `{admin}`, `{admin}/mijn-agenda`, `{admin}/insights`, `{admin}/edit-content`, `{admin}/settings`.
 
 **Portfolio** (`PortfolioController`):
-- `GET /portfolio` → public payload, `is_visible = true` only.
+- `GET /portfolio` → public payload, `is_visible = true` only. No login, so the shape is deliberate — see *One payload shape* below.
 - `GET|PUT {admin}/portfolio` → unfiltered payload / full replace-on-save.
 - `POST {admin}/portfolio/seed-defaults` → reset to `DefaultPortfolioContent`.
 - `GET {admin}/portfolio/revisions` → saved-version list (`id`, `created_at`, `author`). Deliberately **excludes** `payload`, which runs to tens of KB per row.
@@ -145,6 +145,18 @@ No `/api` prefix — admin JSON endpoints live under `{admin}/...` alongside the
 All four writes go through `PortfolioContentService` — `save()`, `seedDefaults()` and `restore()` share one transaction and one write path, so a restored version can never be built differently from a saved one, and all three record history without any of them remembering to. `save()` applies profile scalars via `Arr::only(...)`, then `replaceOrdered()` per child collection, which **deletes all rows for that relation and recreates them from the submitted array**, assigning `sort_order` by position. There is no per-row PATCH — the admin always submits complete collection state. `restore()` is literally `save($revision->payload)`, which is why it has no logic of its own.
 
 *Adding a profile/child field:* migration → model `$fillable`/`$casts` → the matching key-list constant in `PortfolioContentService` (`PROFILE_KEYS` or `CHILD_KEYS`) → a rule in `UpdatePortfolioRequest` → `DefaultPortfolioContent::content()` if it should ship seeded.
+
+#### One payload shape
+
+`payload()` is the only shape any read of the page returns — the public endpoint, the admin endpoint, and the JSON a `PortfolioRevision` stores. It is assembled by `PortfolioProfileResource` and `PortfolioItemResource` in `app/Http/Resources/`, which emit **exactly** `PROFILE_KEYS` and `CHILD_KEYS[$relation]`.
+
+**It used to hand out the models.** `GET /portfolio` needs no login, so `id`, `slug`, `type`, `is_active` and the timestamps were public — and because `activeProfile()` eager-loads the four relations, the profile serialized them too, so every child row was sent once nested under `profile` and once at the top level. The cost of the metadata was small; the cost of the *default* was not, since any column added later joined the public response with no code change and no decision.
+
+The resources are built from the same constants `save()` writes by, on purpose: **a field is published because it was made editable, and nothing else ever is.** That is also why adding a field is still the five steps above — the resource follows the constant.
+
+What they drop per child row is `id`, `portfolio_profile_id`, the timestamps and **`sort_order`**: position is the order of the array, which is the only thing the page reads. `PortfolioContentTest` and `PortfolioHistoryTest` therefore check resequencing against the column in the database rather than against the response.
+
+`PortfolioPayloadShapeTest` guards both halves — the key sets, derived from the constants so adding a field needs no test edit, and a hardcoded list of metadata keys that must not appear, which is the claim itself and stays put.
 
 `UpdatePortfolioRequest` validates **types and lengths, not presence**: the editor lets fields be cleared, so `required` on free text would reject payloads the UI legitimately produces. Presence is demanded only where the column is NOT NULL (`metrics.*.value`), because Laravel's `ConvertEmptyStringsToNull` middleware turns a cleared field into `null` and the insert would otherwise 500 instead of returning a readable 422. Two tests in `PortfolioContentTest` guard this by fetching the admin payload and PUTting it straight back — the same round trip pressing Save performs.
 
@@ -168,6 +180,7 @@ Ownership lives in `app/Policies/` (`TaskPolicy`, `CategoryPolicy`), found by na
 Controllers validate, authorize, delegate, and return JSON. Rules that outlive a request live elsewhere:
 
 - **`app/Services/`** — `PortfolioContentService` (the single write path for the public page, above) and `TimerService`. Plain concrete classes injected via `__construct()`; the container resolves them by reflection, so **`AppServiceProvider` registers no bindings** — no interfaces, no singletons. Add one only when a second implementation actually exists. Its `boot()` holds the `login` rate limiter and nothing else.
+- **`app/Http/Resources/`** — `PortfolioProfileResource` and `PortfolioItemResource`, the two classes that decide what leaves the app. Only the portfolio has them: tasks and categories are read by their own owner behind the login, so there is nothing to withhold. See *One payload shape* above.
 - **`app/Http/Requests/`** — `Store`/`Update` pairs for Task and Category, plus `UpdatePortfolioRequest`. Pairs, not single classes: the partial-update path swaps `required` for `sometimes`, so one rule set genuinely cannot serve both.
 - **`app/Policies/`** — ownership, as above.
 - **The models themselves** — `Task::plannedMinutes()`, `Reflection::scopeForPeriod()` (the read and the upsert must find a row identically, and the `whereDate()` reasoning belongs in one place).
