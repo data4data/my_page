@@ -47,17 +47,20 @@ What is left to do, worst first. How to do the work is in
 
 # Architecture
 
-Four programmes of work, not single fixes. They are ordered by what has to
-happen first, which is not the order they were asked for.
+Three programmes of work, not single fixes, in the order they have to happen.
 
 **A** costs nothing and gets cheaper the sooner it happens — it is also the
-only moment the schema itself is free to change. **B** decides the
-shape of the backend. **C** is the big one and needs that shape settled, since
-it multiplies the number of callers every service has — and it needs item 6
-done first, for a reason C explains. **D** is a decision to take before B,
-because it changes what B is worth.
+only moment the schema itself is free to change. **B** decides the shape of the
+backend. **C** is the big one: it needs that shape settled, and it needs item 6
+done first, for a reason C explains.
 
 Each item says what to do and what it breaks. Nothing here is started.
+
+**Settled, so not planned for:** there will be no mobile app. That removes the
+versioned API, token authentication, an OpenAPI document and Resources on the
+planner endpoints — all of which existed only to serve a third-party consumer.
+The second implementations that *are* coming are mail providers and calendar
+sync, and B covers both.
 
 ## A. One migration per entity, and the schema fixes that ride with it
 
@@ -227,28 +230,40 @@ question is not reopened every six months.
 
 ## B. Interfaces, actions and events
 
-The aim is to be able to swap an implementation without editing its callers.
-Worth being blunt about what does and does not get us there.
+The aim is to swap an implementation without editing its callers. Worth being
+blunt about what gets us there and what does not.
 
-23. **Add interfaces only where a second implementation is named.**
-    An interface per service is a file and an indirection that buys nothing
-    while there is one class behind it — which is why
-    `AppServiceProvider::register()` is empty today. Three candidates that
-    genuinely have a second implementation in view:
+23. **Mail providers need no work at all.**
+    Laravel already abstracts them. `config/mail.php` lists the mailers and
+    `MAIL_MAILER` picks one — SMTP, SES, Postmark, Resend. Switching provider
+    is an `.env` change. Writing our own mail interface over the top of
+    Laravel's would add a layer and buy nothing.
 
+24. **Calendar sync is the one that genuinely needs an interface.**
+    Google Calendar, Microsoft 365 and CalDAV are three real implementations
+    of one idea, so `CalendarProvider` earns its keep — `pull()` and `push()`,
+    one class per service, bound in `AppServiceProvider::register()`.
+
+    The schema is half ready for it already: `tasks.source` and
+    `tasks.external_ref` exist for exactly this, and `TaskSource` gains a
+    `calendar` case beside `manual` and `seeder`.
+
+    What is missing and needs designing before any code: where the OAuth
+    tokens live (a table per user per provider), whether sync is one way or
+    two, and what happens when both sides changed the same event. Sketch that
+    first; it is the whole difficulty.
+
+25. **The other two interfaces worth having.**
     - `TwoFactorService` → a `TwoFactorProvider` contract. TOTP now, passkeys
-      or WebAuthn are a real possibility, and the whole lifecycle is already
-      behind one class.
-    - `SecurityEventRecorder` → a sink contract. Rows in MySQL now; an
-      external log or SIEM is where this goes if the install gets real
-      traffic.
-    - `DefaultPortfolioContent` → a contract for "where the seeded page comes
-      from", so a fork can ship its own without editing ours.
+      later.
+    - `DefaultPortfolioContent` → a contract for where the seeded page comes
+      from, so a fork ships its own without editing ours.
 
-    Everything infrastructural — cache, filesystem, mail, queue — already has
-    a Laravel contract. Use those rather than writing ours over the top.
+    Nothing else. An interface with one class behind it is a file and an
+    indirection, which is why `AppServiceProvider::register()` is empty today.
+    Cache, filesystem, mail and queue already have Laravel contracts.
 
-24. **Split `PortfolioContentService` instead of wrapping it.**
+26. **Split `PortfolioContentService` instead of wrapping it.**
     273 lines with five reasons to change: shaping a read (`payload`),
     writing (`save`, `replaceOrdered`), history (`recordRevision`,
     `pruneRevisions`), choosing the live profile (`activate`), and seeding
@@ -257,7 +272,7 @@ Worth being blunt about what does and does not get us there.
     transaction and one write path must survive the split — that property is
     why the class exists.
 
-25. **Put the one-off jobs in `app/Actions/`.**
+27. **Put the one-off jobs in `app/Actions/`.**
     Laravel has no first-party Action class, but Fortify and Jetstream both
     use plain invokable classes in `app/Actions/`, so that is the convention
     with precedent. Prefer it to `lorisleiva/laravel-actions`, which is one
@@ -265,247 +280,184 @@ Worth being blunt about what does and does not get us there.
     First candidates: restoring a revision, resetting to defaults, enrolling
     a second factor, starting and stopping a timer.
 
-26. **Raise events for the things another consumer will care about.**
-    Laravel 13 discovers listeners automatically, so this costs a class and
-    no registration. `PortfolioSaved` and `PortfolioRestored` are the ones
-    that pay: once the public frontend is deployed separately (C) they are
-    what purges its cache or triggers its rebuild. `InquiryReceived` is where
-    a notification belongs. `TimerStarted` / `TimerStopped` keep
-    `TimerService` from growing every time something new wants to know.
+28. **Raise events for the things something else reacts to.**
+    Laravel 13 discovers listeners automatically, so this costs a class and no
+    registration. Three that pay for themselves:
 
-    The `Login` and `Failed` listeners currently sit inline in
-    `AppServiceProvider::boot()`. Move them to `app/Listeners/` as soon as a
-    third one appears.
+    - `PortfolioSaved` / `PortfolioRestored` — what sends the page to the
+      public server (C).
+    - `InquiryReceived` — what emails you (item 33).
+    - `TimerStarted` / `TimerStopped` — so calendar sync can react later
+      without `TimerService` growing a branch for it.
 
-27. **Reverse the "no bindings" note in `CLAUDE.md`** once 23 lands, with the
-    reasoning, rather than leaving the file arguing against the code.
+    The `Login` and `Failed` listeners sit inline in
+    `AppServiceProvider::boot()`. Move them to `app/Listeners/` when a third
+    one appears.
+
+29. **Update the "no bindings" note in `CLAUDE.md`** once 24 and 25 land, with
+    the reasoning, rather than leaving the file arguing against the code.
 
 ## C. Two servers, one codebase, data pushed one way
 
 ### The picture
 
-- **Box A, private.** The database, the API, and the workspace screens. Only
-  you can reach it.
-- **Box B, public.** The visit card, and nothing else. Anyone can reach it.
-- **When you press Save on A**, A sends the new page content to B. B keeps its
-  own copy and serves that.
-- **When a visitor sends the connect form on B**, B keeps it and passes it on
-  to A.
+- **Box A, private.** The database and the workspace. Only you reach it.
+- **Box B, public.** The visit card, and nothing else. Anyone reaches it.
+- **You press Save on A**, and A sends the new page to B. B keeps its own copy
+  and serves that.
+- **A visitor sends the connect form on B**, and B emails you.
 
-Data moves because something was *saved*, never because someone *visited*.
-That single rule is what makes the rest of this simple.
+Everything flows one way, A → B, except the email. B never calls A, holds no
+key to A, and A has no door open for B to come through.
 
-### Why push, and not let B ask A
+### Why push rather than let B ask
 
-The obvious design is for B to ask A for the text each time someone visits.
-It has two problems, and both are avoided by sending the data instead.
+**A would have to be switched on for the page to work.** If A is rebooting or
+broken, every visitor gets an error. A public page that goes down because a
+private machine is restarting is a bad trade.
 
-**A would have to be switched on for the page to work.** If A is rebooting,
-being updated, or broken, every visitor to the portfolio gets an error. A
-public page that goes down because a private machine is restarting is a bad
-trade.
-
-**A would have to accept connections from B.** That means opening a door in
-A's firewall. With push, A only ever makes *outgoing* calls to B, so A can
-refuse every incoming connection except yours. Nothing on the public internet
-can knock on A's door at all.
+**A would have to accept connections from B.** With push, A only makes
+outgoing calls, so it can refuse every incoming connection except yours.
 
 The cost is that B needs somewhere to keep its copy — a small database, or one
 JSON file. That is the cheaper half of the trade.
 
+### What B holds
+
+The *published page*: the headline, summary, metrics, projects, social links
+and contact address — the same words a visitor reads, already filtered to
+`is_visible = true`. Copying public text onto the public server adds no
+exposure.
+
+None of the private data goes near B: not the planner, not the users table
+with its password hash and two-factor secret, not the sign-in trail, not the
+saved revisions, not `ADMIN_PATH`.
+
+Nor is that a cost of pushing. Any design that serves the page quickly holds a
+copy somewhere — asking would put the same words in a cache on B. The question
+is never "copy or no copy", it is "a copy of *what*".
+
+### If B is flooded or broken into
+
+**A flood on B does not touch A**, because A holds no open door for B. You keep
+working while the portfolio is unreachable, and saves send themselves when B
+answers again.
+
+**Unless both boxes share one machine or one connection** — two virtual servers
+behind one uplink die together. Separate machines, separate addresses. And put
+B behind a CDN, because a flood is absorbed at the edge or not at all.
+
+**A break-in on B reaches nothing**, once the connect form emails rather than
+forwards. B holds a mail credential and a copy of its own public page. There is
+no token pointing at A to steal.
+
 ### Why the workspace screens stay on the same address as the API
 
-A browser is only allowed to call the address it was loaded from. Ask it to
-call a different address and the browser blocks it unless the server adds
-permission headers (this is called CORS), and the login cookie stops being
-sent unless it is loosened too.
+A browser may only call the address it was loaded from. Calling a different one
+needs permission headers (CORS) and a loosened login cookie. Keeping the
+workspace screens and their JSON endpoints on **one address** on Box A means
+the login keeps working exactly as it does now — same cookie, same CSRF,
+`session.same_site` stays `strict`.
 
-So keeping the workspace screens and the API on **one address** on Box A means
-the login keeps working exactly as it does today — same cookie, same CSRF
-protection, `session.same_site` stays `strict`. Giving the screens their own
-address would mean undoing all three for no gain.
+### How the private part is protected
 
-### Then how is the private part actually protected?
+Block at the front door on Box A, by path:
 
-By blocking at the front door, on Box A, and by *path* rather than by address:
-
-- `{ADMIN_PATH}/*` — the workspace screens. Reachable only from where you
-  work: an IP allowlist, a VPN, or Cloudflare Access.
-- `/api/v1/*` — reachable from Box B's address, and from yours.
-
-You cannot block Box A as a whole, because the API on it is the thing B needs.
-Hence: per path, not per machine.
+- `{ADMIN_PATH}/*` — reachable only from where you work: IP allowlist, VPN or
+  Cloudflare Access.
+- Everything else on A — nothing public needs to reach it at all, now that B
+  never calls in.
 
 And the win that started this: the workspace's JavaScript stops being served
 from the public address. Today anyone can download `AdminPage`'s files and
-`manifest.json` from the public site and read every endpoint and field name
-out of them. After the split those files do not exist there.
-
-### What an attack on the public box can actually reach
-
-The worry is fair: if Box B is flooded or broken into, does Box A go with it?
-With data pushed rather than asked for, mostly no — but only if three things
-are true.
-
-**A flood on B does not touch A.** A holds no open door for B; every call goes
-A → B, outwards. So B being hammered does not slow A down, and you can keep
-working in the workspace while the portfolio is unreachable. Saves queue up and
-send themselves when B answers again.
-
-**...unless both boxes share one machine or one connection.** Two virtual
-servers on the same host, behind the same uplink, both die when that uplink is
-saturated. "Two servers" only buys anything if they are genuinely separate —
-different machines, different addresses, ideally different providers. This is
-the part that is easy to get wrong while thinking the split is done.
-
-**A break-in on B reaches exactly as far as B's token.** B never needs to read
-anything from A, because A sends. So the only credential B holds is the one it
-uses to pass connect-form messages back — and that must be scoped to *create
-an inquiry*, nothing else. Then owning B gets an attacker spam in the
-inquiries table and no way at all into the planner, the editor, or the login.
-Had B been *asking* A for the page, it would also hold a read token and A
-would have a hole in its firewall for B to come through.
-
-### What B holds is the page, not the database
-
-B keeps a copy of the *published page* — the same words a visitor reads. There
-is nothing in it that was private a moment earlier: `PROFILE_KEYS` is the
-headline, the summary, the metrics, the projects, the social links and the
-contact address, and the collections are already filtered to
-`is_visible = true`. Copying text that is on the public page onto the public
-server adds no exposure.
-
-None of the private data goes anywhere near B: not the planner (tasks,
-categories, time logs, reflections), not the users table with its password
-hash and two-factor secret, not the sign-in trail, not the saved revisions, not
-`ADMIN_PATH`.
-
-This is also not a cost of pushing. Any design that serves the page quickly
-holds a copy somewhere — pulling would put the same words in a cache on B. The
-question is never "copy or no copy", it is "a copy of *what*", and the four
-items below are how that stays answered.
+`manifest.json` from the public site and read every endpoint and field name.
+After the split those files are not there.
 
 ---
 
-28. **One repository, two deployments.**
+30. **One repository, two deployments.**
     The same repository deployed twice with a different role in `.env` —
     `APP_ROLE=workspace` and `APP_ROLE=public` — and the route files
     registered to match.
 
     **Repository count is not a security boundary.** An attacker on Box B gets
-    what is *installed* on Box B, not what is in git. Two repositories would
-    make the boundary impossible for a build script to get wrong, which is
-    their one real advantage — and it is paid for daily, because the payload
-    shape and the design tokens then live in two places. This project already
-    carries several pairs that must be kept in step by hand (`showsIn()` in PHP
-    and in JS, `TaskStatus` and `TASK_STATUSES`); doubling that for one person
-    is the thing that actually rots.
+    what is *installed* on B, not what is in git. Two repositories would make
+    the boundary impossible for a build script to get wrong, and that is paid
+    for daily: the payload shape and the design tokens would live in two
+    places. This project already carries pairs that must be kept in step by
+    hand (`showsIn()` in PHP and JS, `TaskStatus` and `TASK_STATUSES`);
+    doubling that for one person is what actually rots.
 
     So: one repository, and make the deployment boundary real and tested
     instead (item 34).
 
-29. **Render the public page on the server.**
-    Item 6, promoted to a prerequisite. Box B renders Blade from the copy it
-    holds, so a visitor's browser never talks to Box A at all. `publicMeta()`,
-    the `hreflang` alternates and the schema.org block move across unchanged —
+31. **Render the public page on the server.**
+    Item 6, promoted to a prerequisite — a visitor's browser must never need
+    to talk to Box A. B renders Blade from the copy it holds. `publicMeta()`,
+    the `hreflang` alternates and the schema.org block move across unchanged;
     they already read a payload rather than the models.
 
-30. **Give the backend a real API surface.**
-    `bootstrap/app.php` registers no `api` routes today. Add `routes/api.php`
-    under `/api/v1`. Version it from the first commit — a second consumer
-    cannot pin to an unversioned URL.
-
-31. **Send the page across when it is saved — the public payload, and only
+32. **Send the page across when it is saved — the public payload, and only
     that.**
-    `PortfolioSaved` and `PortfolioRestored` (item 26) queue a job that POSTs
-    to Box B. Queued, so a failed send retries instead of losing the edit;
-    Laravel gives the retries for nothing.
+    `PortfolioSaved` and `PortfolioRestored` (item 28) queue a job that POSTs
+    to B. Queued, so a failed send retries instead of losing the edit.
 
     **It must be `payload($profile, publicOnly: true)`.** The admin payload
-    carries the rows with `is_visible = false` — content deliberately kept off
-    the page — and sending it would put your drafts on a public server. The
-    two differ by one argument, which is exactly how this gets got wrong.
-    A test that pushes a hidden row and asserts it is not in what B received.
+    carries rows with `is_visible = false` — content deliberately kept off the
+    page — and sending it would put your drafts on a public server. The two
+    differ by one argument, which is exactly how this gets got wrong. Add a
+    test that pushes a hidden row and asserts B never received it.
 
     **B must check the push really came from A.** A shared token in both
-    `.env` files, and B rejects anything without it. Otherwise whoever finds
-    that endpoint can replace your portfolio with their own text.
+    `.env` files. Otherwise whoever finds that endpoint can replace your
+    portfolio with their own text.
 
-32. **Pass the connect form back the same way.**
-    A visitor posts to Box B. B saves it locally, then queues a send to A.
-    If A is off, it waits and retries rather than losing the message.
+33. **The connect form emails you, and stores nothing on B.**
+    This is how you find out somebody wants to reach you, and it is what keeps
+    B from holding any key to A.
 
-    **Rate limiting has to happen on B**, before the send. `throttle:10,1` and
-    the honeypot both key on whoever is calling. After forwarding, the caller
-    is Box B — so left alone, ten submissions would lock out every visitor at
-    once and every inquiry row would record the same address.
+    Keep the form. It already has three layers against spam — the throttle,
+    the honeypot and the validation rules — and `contact_email` already puts a
+    plain "get in touch" button beside it for people who prefer their own mail
+    client. A `mailto:` on its own hands your address to every scraper and
+    throws the spam protection away; a LinkedIn redirect forces everyone onto
+    one account and leaves you no record.
 
-    **Delete it from B once A confirms.** This is the one thing on B that is
-    somebody else's personal data — a name, an email address, a message — and
-    it is sitting on the public machine while it waits. B is a queue for it,
-    not an archive; the archive is on A, where Insights reads it.
+    **Rate limiting stays on B**, where the visitor is. That part is unchanged
+    and needs no forwarding logic at all.
 
-33. **Split the stylesheets, do not copy them.**
-    `packages/shared` holds the tokens and the pieces both halves use:
-    `theme.css`, `base.css`, `layout.css`, `buttons.css`, `forms.css`, the
-    `ui/` components, `i18n`, `api.js`, `vue-plugin.js`. `public.css` builds
-    only into B; `admin.css`, `agenda.css` and `insights.css` only into A.
-    Both bundles get smaller as a side effect.
-
-    `overlays.css` already separates cleanly — `.public-modal` to B,
-    `.admin-modal` to A.
-
-    **Copying any of it is the failure mode.** Two copies of `theme.css` is
-    two palettes, and they will not stay the same colour.
+    **If you want the Insights archive to keep working**, B has to store rows
+    and A has to collect them — and then *A* asks *B*, on a schedule or when
+    you open the page, so the one-way trust still holds. Decide whether the
+    archive is worth that; a mailbox is an archive too.
 
 34. **Each deployment must ship only its own half, and prove it.**
-    This is the whole security boundary, and it is the half of the split that
-    lives outside the code. A build or deploy script that copies everything to
-    both machines undoes it silently, without failing a single test.
+    This is the whole security boundary, and the half that lives outside the
+    code. A deploy script that copies everything to both machines undoes it
+    silently, without failing a test.
 
-    - A check in the deploy that Box B carries no admin bundle and no admin
-      route file. It should fail the deploy, not warn.
-    - Two genuinely separate machines with separate addresses, per the note
-      above. Same provider is acceptable; same host is not.
-    - Box B behind a CDN. A flood is absorbed at the edge or not at all — no
-      amount of application code on B helps once the connection is full.
-    - B's token scoped to creating an inquiry and nothing else, and different
-      from anything A uses elsewhere.
+    - A check in the deploy that B carries no admin bundle and no admin route
+      file. It should fail the deploy, not warn.
+    - Two genuinely separate machines with separate addresses. Same provider
+      is fine; same host is not.
+    - B behind a CDN.
 
-35. **Give B a database with two things in it.**
-    The published payload, and the inquiries still waiting to be sent. Running
-    the full migration set on B would create an empty `tasks`, `users` and
-    `security_events` on a public machine — tables nothing fills today, and
-    that a later bug or a careless seeder could. Give the public role its own
-    short migration path.
+35. **Give B a database with one thing in it.**
+    The published payload. Running the full migration set on B would create an
+    empty `users`, `tasks` and `security_events` on a public machine — tables
+    nothing fills, that a later bug or a careless seeder could. Give the
+    public role its own short migration path.
 
-    B also needs its own `.env`: a different `APP_KEY`, its own database
-    credentials, and none of A's — no admin seeder password, no mail
-    credentials it has no use for.
+    B needs its own `.env` too: a different `APP_KEY`, its own database
+    credentials, its mail credentials, and none of A's.
 
-36. **Write the contract down.**
-    Two halves against one payload shape drift unless something holds them
-    together. Generate an OpenAPI document from the routes and Resources, and
-    add a test that fails when a route exists the document does not describe.
+36. **Tidy the routes; do not invent an API.**
+    The workspace frontend already talks to the backend over JSON —
+    `apiFetch` and the `{admin}/...` endpoints are an API, just not spelled
+    `/api/`. With no third-party consumer there is nothing to version and no
+    contract document to publish.
 
-37. **Give the planner endpoints Resources too.**
-    `TaskController` and `CategoryController` still return models. That was
-    fine while the only reader was the owner's own browser behind a session.
-    A token-authenticated API is a different promise — the same argument that
-    produced `app/Http/Resources/` for the portfolio.
-
-## D. Decide before B
-
-38. **Is a mobile app real, or is it a maybe?**
-    One thing about it is hard to undo later. A phone connects from whatever
-    network it happens to be on — home, office, a cafe — and its address is
-    different every time. So there is no list of allowed addresses that would
-    let the phone in and keep everyone else out, and `/api/v1` on Box A would
-    have to stay open to the whole internet, protected by its token alone.
-
-    That is a real weakening of the shape above, and worth deciding on purpose
-    rather than discovering. Everything else a phone touches — versioning
-    (30), Resources on the planner (37), the OpenAPI document (36) — is cheap
-    if the answer is yes and speculative if it is no.
-
-    The split itself stands on its own and is worth doing either way.
+    Worth doing: split `routes/web.php` so the SPA shell routes and the JSON
+    endpoints are in separate files, and register the public role's routes
+    separately from the workspace role's. That is what item 30 needs. The rest
+    is renaming.
