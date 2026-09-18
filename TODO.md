@@ -39,48 +39,73 @@ What is left to do, worst first. How to do the work is in
 
 # Architecture
 
-**Read this before any of it.** What follows got long, and the length is worth
-explaining: it is the price of one requirement — *two servers* — not accidental
-complexity. Two boxes means a push pipeline, a second database, a payload
-contract between two versions of the same code, server-rendering as a
-prerequisite, an inquiry hand-off, and a deploy that ships two things in order.
-None of that is avoidable once the requirement is there. All of it is avoidable
-by not having the requirement.
+## The decision
 
-**What the split actually buys, measured rather than assumed.** The public site
-serves the workspace's JavaScript. A visitor can fetch `AdminPage`'s chunk and
-read endpoint names out of it — `/two-factor`, `/security-events`,
-`/inquiries`. It does **not** leak `ADMIN_PATH`: that is in a meta tag served
-only inside the workspace, and the prefix appears in no built asset. So what
-leaks is the shape of the API, not its location, and knowing the shape gets
-nobody past `auth` and `role:admin`.
+**One Laravel app, one server. Two front ends inside it, built separately.**
 
-That is worth fixing. It is not worth two servers.
+- **Public page** — HTML rendered by Blade, with Vue only where the page needs
+  to move: the carousel, the scroll-spy, the language toggle, the connect
+  modal.
+- **Workspace** — stays the single-page app it is today, behind the session
+  login.
+- **Two Vite entry points, one `vite.config.js`.** The public page never ships
+  the workspace's JavaScript.
 
-**So the recommendation is:**
+Security here comes from the login, not from the number of servers.
 
-- **Do A, item 6 and item 11.** The schema work is free right now and never
-  again; server-rendering fixes a real problem the site has today; and item 11
-  gets most of the security benefit of the split for an afternoon's work, on
-  one server.
-- **Do B when something asks for it.** The install command has a reason
-  already. The calendar interfaces have one the day you start that feature.
-  The rest can wait for the annoyance that justifies it.
-- **Leave C on the shelf.** It is written down so the thinking is not lost, and
-  so the trigger is recognisable: real traffic, a compliance requirement, or
-  other people's data living on the public side. None of those is true today.
+### Three things that are easy to mix up
 
-## The cheap version of the split
+**Blade and Vite are not alternatives.** Blade writes HTML on the server. Vite
+is the tool that compiles JavaScript and CSS. Every Laravel + Vue app uses
+both. The real question is *who renders the page* — the server, or the browser.
 
-11. **Give the workspace its own Vite entry point.** One server, no pipeline,
-    no second database. A second entry in `vite.config.js` and its own
-    manifest, referenced only by the workspace's Blade shell, so the public
-    page's HTML never mentions admin JavaScript and the public manifest does
-    not list `AdminPage.vue`.
+**Two entry points, not two configs.** `vite.config.js` already takes a list:
+`input: ['resources/css/app.css', 'resources/js/app.js']`. It becomes two
+pairs, one public and one workspace, and `app.blade.php` picks which to load.
+One config, one build command, two bundles.
 
-    Pair it with item 6 and the public page stops needing the SPA bundle for
-    its content at all. That is the leak above closed, on the setup that
-    already exists.
+**Inertia is a good tool at the wrong moment.** It replaces the JSON API with
+controllers that return Vue pages directly — no `apiFetch`, no loading flags,
+no hand-written error handling, and validation errors arrive on their own. It
+is what to reach for when *starting* a Laravel + Vue app of this shape, and it
+keeps the same session login.
+
+But this workspace already works and has 143 frontend tests behind it. Moving
+it to Inertia is a rewrite that changes nothing a user sees. The signal to
+reconsider is writing fetch, loading and error code by hand for every new
+screen and getting tired of it — item 1 is exactly that pain.
+
+### What is already right
+
+Session auth with an `HttpOnly` cookie and CSRF is the *strongest* option for a
+browser app — better than a token in JavaScript's reach. On top of it: opt-in
+two-factor, rate limiting per address and per account, a recorded sign-in
+trail, a Content-Security-Policy, security headers, a per-install admin prefix,
+and no `/login` for scanners to find.
+
+That is a protected admin side already. The work below improves it; it does not
+rescue it.
+
+## Do these
+
+Item 6 above belongs here too — rendering the public page in Blade is what
+makes the split of front ends worth anything.
+
+11. **Give the workspace its own Vite entry point.** A second pair of entries
+    in `vite.config.js` — `public.js`/`public.css` and `admin.js`/`admin.css` —
+    and `app.blade.php` chooses which to load, the same way it already chooses
+    whether to emit the `admin-path` meta tag.
+
+    The CSS splits along lines that already exist: `theme`, `base`, `layout`,
+    `buttons`, `forms` and `overlays` are shared; `public.css` goes only to the
+    public bundle; `admin.css`, `agenda.css` and `insights.css` only to the
+    workspace one. Both bundles get smaller.
+
+    This closes the one real leak: today anyone can fetch `AdminPage`'s chunk
+    from the public site and read endpoint names out of it — `/two-factor`,
+    `/security-events`, `/inquiries`. It does **not** leak `ADMIN_PATH`, which
+    appears in no built asset, so what leaks is the shape of the API and not
+    its location. Worth closing. Not worth a second server.
 
 ## A. One migration per entity, and the schema fixes that ride with it
 
@@ -221,123 +246,43 @@ months.
 
 32. **Raise events for what something else reacts to.** `PortfolioSaved` /
     `PortfolioRestored` send the page to the public server (C).
-    `InquiryReceived` emails you (item 37). `TimerStarted` / `TimerStopped` let
+    `InquiryReceived` emails you when someone uses the connect form.
+    `TimerStarted` / `TimerStopped` let
     calendar sync react without `TimerService` growing a branch. Move the
     inline `Login` / `Failed` listeners to `app/Listeners/` when a third
     appears.
 
 33. **Update the "no bindings" note in `CLAUDE.md`** once 27 and 29 land.
 
-## C. Two servers, one repository
+## C. Two servers — on the shelf
 
-- **Box A, private.** Database and workspace, on one origin so the login is
-  untouched — same cookie, same CSRF, `same_site` stays `strict`. Blocked at
-  the front door by path: `{ADMIN_PATH}/*` reachable only from where you work.
-- **Box B, public.** The visit card and nothing else.
-- **Save on A** sends the page to B. **The connect form on B** emails you.
+Not on the roadmap. Written down so the thinking is not lost and so the trigger
+is recognisable: **real traffic, a compliance requirement, or other people's
+data living on the public side.** None is true today, and item 11 gets most of
+the benefit for an afternoon.
 
-Everything flows A → B. B never calls A and holds no key to it, so a break-in
-on B reaches a mail credential and a copy of its own public page. A flood on B
-does not touch A — unless both boxes share one machine or one connection.
+If it ever happens, the decisions already taken:
 
-B holds the *published page*: the same words a visitor reads, already filtered
-to `is_visible = true`. Not the planner, the users table, the sign-in trail, the
-revisions or `ADMIN_PATH`. That is not a cost of pushing — asking would put the
-same words in a cache on B.
-
-The win that started this: the workspace's JavaScript stops being served from
-the public address. Today anyone can download `AdminPage`'s chunks and
-`manifest.json` from the public site and read every endpoint and field name.
-
-34. **One repository, two deployments.** Same repo, `APP_ROLE=workspace` and
-    `APP_ROLE=public`, route files registered to match. Repository count is not
-    a security boundary — an attacker on B gets what is *installed* there. Two
-    repos would put the payload shape and the design tokens in two places, and
-    this project already has enough pairs kept in step by hand.
-35. **Render the public page on the server.** Item 6, promoted to a
-    prerequisite: a visitor's browser must never need to talk to A.
-    `publicMeta()`, the `hreflang` alternates and the schema.org block move
-    across unchanged.
-36. **Send the public payload, and only that.** `payload($profile, publicOnly:
-    true)` — the admin payload carries `is_visible = false` rows, and the two
-    differ by one argument. Test that a hidden row never reaches B. B checks a
-    shared token, or whoever finds the endpoint can replace your portfolio.
-37. **B validates and stores the connect form; A collects it later.** Keep the
-    form — it already has the throttle, the honeypot and the rules, and
-    `contact_email` offers a plain button beside it. A `mailto:` hands your
-    address to scrapers; a LinkedIn redirect leaves no record.
-
-    `DeveloperInquiryController` and its validation move to B unchanged, and
-    rate limiting stays there, where the visitor actually is.
-
-    **A asks B, never the reverse.** A presents a token that B checks. The
-    one-way trust still holds: owning B reveals a value B *verifies*, not a
-    credential that opens A. Pull on the scheduler and when Insights is
-    opened.
-
-    **Give each inquiry a UUID and make it unique on both sides**, so a
-    repeated pull or a failed acknowledgement cannot duplicate it — the same
-    pattern as item 20. Add the column with the squash (A).
-
-    **Delete from B once A has it.** Somebody else's name, email and message
-    should not sit on the public machine after they have been collected. Email
-    on arrival too (item 32) — that is how you find out without opening
-    Insights.
-38. **Each deployment ships only its own half, and proves it.** A deploy check
-    that B carries no admin bundle and no admin route file, failing the deploy.
-    Two genuinely separate machines. B behind a CDN, because a flood is
-    absorbed at the edge or not at all.
-39. **Give B a database with one thing in it** — the published payload. The
-    full migration set would create an empty `users`, `tasks` and
-    `security_events` on a public machine. B needs its own `.env` too.
-40. **Split the routes by middleware, not by filename.** `routes/api.php` is
-    not "the API file" — it is the *stateless* group: no session, no cookies,
-    no CSRF. In Laravel 11+ it is not even installed until `php artisan
-    install:api` adds it together with Sanctum, which is the framework saying
-    what it is for.
-
-    **The workspace's JSON endpoints stay in `web.php`.** They are a
-    same-origin SPA authenticated by the session cookie, so moving them would
-    401 everything until Sanctum's stateful middleware put the session back —
-    undoing the move. A JSON endpoint in the web group is normal; Breeze and
-    Inertia do the same.
-
-    **`routes/api.php` is right for exactly one thing here:** the endpoint on
-    B that A pushes to (item 36). Stateless, token-authenticated, no session,
-    no CSRF — the api group as intended. Run `install:api` when C starts, not
-    before.
-
-    The rest is splitting shell routes from JSON endpoints so each role
-    registers its own, which is what item 34 needs. Note that
-    `shouldRenderJsonWhen()` in `bootstrap/app.php` stays either way — it
-    exists because the session-authenticated JSON endpoints sit outside
-    `api/*`, and they still will.
-
-41. **One branch, two deploy jobs — not two branches.** Long-lived
-    `main-public` / `main-admin` branches mean merging twice, cherry-picking
-    every shared fix, and a permanent "which branch is on which box" question.
-    Keep `main`, and let one pipeline deploy both boxes.
-
-    **The gate has to move into CI.** Pint, PHPStan, `composer test`, `npm
-    test` and `npm run build` are run by hand today. Once `main` deploys
-    anything, they have to block the merge instead — plus the check from item
-    37 that B's artifact carries no admin bundle.
-
-    **Deploy B before A**, and make B ignore payload keys it does not know and
-    default the ones it misses. Then a version skew between the two boxes
-    renders an older page rather than an error, and the ordering stops being
-    load-bearing.
-
-    **Let the boxes pull; do not open a door for the pipeline.** CI should not
-    hold an SSH key into A — that is a credential with the run of the private
-    machine, sitting in a third party. Either the box fetches and deploys
-    itself, or A is deployed by hand over the VPN. For one person, a manual
-    deploy of the private box is a defensible answer, not a gap.
-
-    **Back up before every migrate.** `mysqldump` first, `migrate --force`
-    second, keep the last few. Deploy into a releases directory behind a
-    symlink so a rollback is switching the link, not a restore.
-
-    **No emergency path around the gate.** A hotfix is still branch → gate →
-    `main`. Skipping it is a thing people do when they are stressed, which is
-    exactly when the gate is worth most.
+- **Box A private** (database + workspace, one origin so the login is
+  untouched), **Box B public** (the visit card only). Blocked at the front door
+  by path: `{ADMIN_PATH}/*` only from where you work.
+- **Push, never pull.** Saving on A sends the page to B. B never calls A and
+  holds no key to it, so a break-in on B reaches a copy of its own public page.
+  Asking would mean A must be up for the page to work, and must open a door.
+- **Send `payload($profile, publicOnly: true)`** — the admin payload carries
+  `is_visible = false` rows, and the two differ by one argument.
+- **B stores the connect form; A collects it**, with a UUID unique on both
+  sides so a repeated pull cannot duplicate it, and a delete from B once
+  collected.
+- **One repository, two deploy jobs — not two branches.** Deploy B first and
+  make B ignore payload keys it does not know. The verification gate moves into
+  CI, with a check that B's artifact carries no admin bundle.
+- **Let the boxes pull.** CI holding an SSH key into the private box undoes the
+  firewall. A manual deploy over the VPN is a fine answer for one person.
+- **`routes/api.php` earns its place here and only here** — the stateless,
+  token-authenticated endpoint on B that A pushes to. The workspace's own JSON
+  endpoints stay in `web.php`, because they are session-authenticated and
+  same-origin; moving them would 401 everything until Sanctum put the session
+  back.
+- Two genuinely separate machines, B behind a CDN, B's database holding only
+  the published payload and the pending inquiries.
