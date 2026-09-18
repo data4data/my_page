@@ -209,13 +209,49 @@ from the public address. Today anyone can download `AdminPage`'s files and
 `manifest.json` from the public site and read every endpoint and field name
 out of them. After the split those files do not exist there.
 
+### What an attack on the public box can actually reach
+
+The worry is fair: if Box B is flooded or broken into, does Box A go with it?
+With data pushed rather than asked for, mostly no — but only if three things
+are true.
+
+**A flood on B does not touch A.** A holds no open door for B; every call goes
+A → B, outwards. So B being hammered does not slow A down, and you can keep
+working in the workspace while the portfolio is unreachable. Saves queue up and
+send themselves when B answers again.
+
+**...unless both boxes share one machine or one connection.** Two virtual
+servers on the same host, behind the same uplink, both die when that uplink is
+saturated. "Two servers" only buys anything if they are genuinely separate —
+different machines, different addresses, ideally different providers. This is
+the part that is easy to get wrong while thinking the split is done.
+
+**A break-in on B reaches exactly as far as B's token.** B never needs to read
+anything from A, because A sends. So the only credential B holds is the one it
+uses to pass connect-form messages back — and that must be scoped to *create
+an inquiry*, nothing else. Then owning B gets an attacker spam in the
+inquiries table and no way at all into the planner, the editor, or the login.
+Had B been *asking* A for the page, it would also hold a read token and A
+would have a hole in its firewall for B to come through.
+
 ---
 
-20. **One codebase, two deployments.**
-    Not two projects. The same repository deployed twice with a different
-    role in `.env` — `APP_ROLE=workspace` and `APP_ROLE=public` — and the
-    route files registered to match. Two projects for one person is two
-    projects that drift.
+20. **One repository, two deployments.**
+    The same repository deployed twice with a different role in `.env` —
+    `APP_ROLE=workspace` and `APP_ROLE=public` — and the route files
+    registered to match.
+
+    **Repository count is not a security boundary.** An attacker on Box B gets
+    what is *installed* on Box B, not what is in git. Two repositories would
+    make the boundary impossible for a build script to get wrong, which is
+    their one real advantage — and it is paid for daily, because the payload
+    shape and the design tokens then live in two places. This project already
+    carries several pairs that must be kept in step by hand (`showsIn()` in PHP
+    and in JS, `TaskStatus` and `TASK_STATUSES`); doubling that for one person
+    is the thing that actually rots.
+
+    So: one repository, and make the deployment boundary real and tested
+    instead (item 26).
 
 21. **Render the public page on the server.**
     Item 6, promoted to a prerequisite. Box B renders Blade from the copy it
@@ -258,11 +294,19 @@ out of them. After the split those files do not exist there.
     **Copying any of it is the failure mode.** Two copies of `theme.css` is
     two palettes, and they will not stay the same colour.
 
-26. **Each deployment must ship only its own half.**
-    This is the whole security boundary. A build or deploy script that copies
-    everything to both machines undoes the split silently, without failing a
-    single test. Whatever runs the deploy needs a check that Box B carries no
-    admin bundle.
+26. **Each deployment must ship only its own half, and prove it.**
+    This is the whole security boundary, and it is the half of the split that
+    lives outside the code. A build or deploy script that copies everything to
+    both machines undoes it silently, without failing a single test.
+
+    - A check in the deploy that Box B carries no admin bundle and no admin
+      route file. It should fail the deploy, not warn.
+    - Two genuinely separate machines with separate addresses, per the note
+      above. Same provider is acceptable; same host is not.
+    - Box B behind a CDN. A flood is absorbed at the edge or not at all — no
+      amount of application code on B helps once the connection is full.
+    - B's token scoped to creating an inquiry and nothing else, and different
+      from anything A uses elsewhere.
 
 27. **Write the contract down.**
     Two halves against one payload shape drift unless something holds them
