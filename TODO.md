@@ -52,8 +52,9 @@ happen first, which is not the order they were asked for.
 
 **A** costs nothing and gets cheaper the sooner it happens. **B** decides the
 shape of the backend. **C** is the big one and needs that shape settled, since
-it multiplies the number of callers every service has. **D** is a decision to
-take before B, because it changes what B is worth.
+it multiplies the number of callers every service has — and it needs item 6
+done first, for a reason C explains. **D** is a decision to take before B,
+because it changes what B is worth.
 
 Each item says what to do and what it breaks. Nothing here is started.
 
@@ -147,93 +148,117 @@ Worth being blunt about what does and does not get us there.
 19. **Reverse the "no bindings" note in `CLAUDE.md`** once 15 lands, with the
     reasoning, rather than leaving the file arguing against the code.
 
-## C. Split into three deployables
+## C. Two boxes, one API
 
-One backend, two frontends, hosted separately: the public visit card on one
-server, the workspace on another, neither serving the other's code.
+The workspace and the backend ship together — one repo, one server, one
+origin — and talk over `/api/v1` like any other client. The public visit card
+is its own deployment on its own server, and gets everything it draws by
+calling that API.
 
-**The security this actually buys.** The admin URL prefix is unguessable, but
-the JavaScript that calls it is not hidden — `AdminPage`'s chunks and
-`manifest.json` are served from the public origin today, and anyone can read
-every endpoint and field name out of them. Splitting means the admin bundle
-does not exist on the public host at all. That is the win. Put the admin host
-behind an IP allowlist, a VPN or Cloudflare Access and it stops being reachable
-at all, which is worth more than the prefix ever was.
+**Why this is the right way round.** Keeping the admin frontend on the same
+origin as the API means the browser never makes a cross-origin request, so
+there is no CORS to configure, no Sanctum SPA cookie mode to set up, and
+`session.same_site` stays `strict` — three current decisions that a split onto
+separate hostnames would have forced us to undo for nothing. The security win
+is unchanged: the public host serves only public code, and `AdminPage`'s
+chunks and `manifest.json` stop being readable by anyone who asks the public
+origin for them, which is how every endpoint and field name is discoverable
+today.
 
-20. **Decide how far the public half moves first. Everything else depends on
-    it.**
-    The public page's server-rendered meta — title, description, canonical,
-    `hreflang`, Open Graph, the schema.org block — lives in Blade, and it is
-    the only reason link previews and crawlers see anything at all. A static
-    bundle on another server has none of it.
+**The condition the whole shape rests on.** The public page must fetch
+**server to server**. If the visitor's browser calls the workspace API, then
+the workspace has to be reachable from every network on earth and the lockdown
+is gone before it starts. So this makes item 6 — render the page server-side —
+a prerequisite rather than an improvement. That is a fair trade: it was wanted
+anyway, for the crawlers.
 
-    Recommended: the public half **stays a Laravel deployable** on its own
-    vhost, serving only the public routes, and only the workspace becomes a
-    standalone frontend against the API. That gets the whole security win for
-    a fraction of the work. Revisit if item 6 (render the page in Blade) lands
-    first, which would settle it the other way.
+20. **Render the public page from data the public server fetched.**
+    Item 6, promoted. The public box asks the workspace for the payload,
+    caches it, and renders Blade from it. `publicMeta()`, the `hreflang`
+    alternates and the schema.org block move across as they are — they already
+    read a payload rather than the models.
+
+    **Cache it hard and serve stale on failure.** Otherwise the workspace
+    being off takes the visit card down with it, and a portfolio page that
+    404s because a private admin box is rebooting is a bad trade for anyone.
 
 21. **Give the backend a real API surface.**
     `bootstrap/app.php` registers no `api` routes at all today. Add
-    `routes/api.php` under `/api/v1`, split into a public group and an admin
-    group. Version it from the first commit — a mobile app cannot pin to an
-    unversioned URL.
+    `routes/api.php` under `/api/v1`, split into a group the public server may
+    read and a group only the owner may touch. Version it from the first
+    commit — a second consumer cannot pin to an unversioned URL.
 
-22. **Move the workspace endpoints off the web session.**
-    Add `laravel/sanctum`. Use it two ways, on purpose:
+22. **Two kinds of caller, two kinds of auth.**
+    - **The admin frontend** keeps the session cookie it has. Same origin,
+      `HttpOnly`, `same_site: strict`, CSRF as today. Nothing changes.
+    - **The public server** gets a `laravel/sanctum` token with read scope,
+      sent server to server. No cookies, no CSRF, no CORS, and the token lives
+      in the public box's `.env` rather than in anyone's browser.
 
-    - **Browser frontends: SPA cookie mode.** The session cookie stays
-      `HttpOnly`, so a script cannot read it. This needs both hosts to be
-      subdomains of one registrable domain, `SANCTUM_STATEFUL_DOMAINS` set,
-      and `/sanctum/csrf-cookie` called before the first write.
-    - **A future mobile app: personal access tokens.** A token in a phone's
-      keychain is fine; a token in `localStorage` is not, which is why the
-      browser apps do not use them. An XSS that could steal it is the same
-      XSS `SecurityHeaders` exists to stop, and we should not hand it a
-      second prize.
+23. **Lock down by path, not by host.**
+    One origin means the edge rules go on paths: allow `/api/v1/*` from the
+    public server's address (and the owner's, for a phone later), and allow
+    `{ADMIN_PATH}/*` only from where the owner actually works — IP allowlist,
+    VPN or Cloudflare Access. That is worth more than the unguessable prefix
+    ever was, and the prefix keeps its job on top.
 
-23. **Three config changes the split forces, each undoing a current
-    decision.**
-    - `config/session.php` — `same_site` must go from `strict` to `lax`. It
-      is `strict` today precisely because nothing was meant to reach this app
-      from another origin. Update the reasoning in `CLAUDE.md`; do not just
-      change the value.
-    - `config/cors.php` — not published yet. `php artisan config:publish
-      cors`, then allow exactly the two frontend origins with
-      `supports_credentials: true`. Not `*`.
-    - `SecurityHeaders` — `connect-src` is `'self'` only, so every call to the
-      API origin would be blocked. `SecurityHeadersTest` parses the policy and
-      will fail on this, which is the test doing its job.
+    The moment the admin frontend moves to its own hostname, CORS and Sanctum
+    SPA mode come back. Do not, unless something forces it.
 
-24. **Give the planner endpoints Resources too.**
+24. **The connect form is the exception, and the trap.**
+    It is a write from an anonymous visitor, so the public box has to accept
+    the POST and forward it — a second token scope, `inquiries:create` and
+    nothing else.
+
+    **The visitor's address has to travel with it.** `throttle:10,1` and the
+    honeypot both key on the caller, and after forwarding the caller is the
+    public server. Left alone, ten submissions lock out every visitor at once
+    and the inquiry rows all record one address. Either rate-limit on the
+    public box before forwarding, or forward the address and configure trusted
+    proxies to believe it. Decide which; do not do half of each.
+
+25. **Consider pushing instead of pulling.**
+    The alternative to 20: on `PortfolioSaved` / `PortfolioRestored` (item 18)
+    the workspace *sends* the payload to the public box, which then reads only
+    local data and has no API client at all. The workspace can be fully
+    offline and the visit card does not notice.
+
+    Worth real thought, because this content changes about monthly. The cost
+    is a delivery mechanism and a shared secret; the gain is that the public
+    page stops depending on a private box being up.
+
+26. **One repo, two deploy targets.**
+    Two repos for one person is two repos that drift, and the payload shape is
+    the one thing both halves must agree on. Keep `apps/api`,
+    `apps/admin-web` and `apps/public-web` in this repo with npm workspaces,
+    and put the shared frontend pieces — `api.js`, `i18n`, `ui/`,
+    `vue-plugin.js` — in `packages/shared` so neither app forks them.
+
+    **The deploy for each host must ship only its own app.** That discipline
+    is the whole security boundary; a build script that copies everything
+    undoes the split without failing anything.
+
+27. **Write the contract down.**
+    Two consumers against one API drift unless something holds them together —
+    three if a phone arrives. Generate an OpenAPI document from the routes and
+    Resources, and add a test that fails when a route exists the document does
+    not describe.
+
+28. **Give the planner endpoints Resources too.**
     `TaskController` and `CategoryController` still return models. That was
-    fine while the only reader was the owner's own browser. A published API
-    with a mobile client is a different promise — the same argument that
+    fine while the only reader was the owner's own browser behind a session.
+    A token-authenticated API is a different promise — the same argument that
     produced `app/Http/Resources/` for the portfolio.
-
-25. **One frontend repo, three builds.**
-    npm workspaces: `apps/public`, `apps/admin`, `packages/shared`. `api.js`,
-    `i18n`, the `ui/` components and `vue-plugin.js` are shared by both apps
-    and must not be forked into two copies. Three `package.json` files, three
-    Vite builds, one place each shared thing lives.
-
-26. **Write the contract down.**
-    Three consumers against one backend drift unless something holds them
-    together. Generate an OpenAPI document from the routes and Resources, and
-    add a test that fails when a route exists that the document does not
-    describe.
-
-27. **`ADMIN_PATH` needs a decision once the workspace is its own host.**
-    An unguessable prefix on an admin-only host is belt and braces; on the
-    API it still has a job. Keep it or drop it deliberately, and write down
-    which — it is load-bearing in `routes/web.php`, `phpunit.xml`,
-    `admin-path.js` and the `app.blade.php` meta tag.
 
 ## D. Decide before B
 
-28. **Is a mobile app real, or is it a maybe?**
-    Several items above are cheap if the answer is yes and speculative if it
-    is no — the versioned API (21), token auth (22), Resources on the planner
-    (24) and the OpenAPI contract (26). The split itself (C) stands on its own
-    security argument and is worth doing either way. Answer this first so the
-    rest is not built for a consumer that never arrives.
+29. **Is a mobile app real, or is it a maybe?**
+    It changes one thing that is hard to undo later: a phone dials in from
+    whatever network it is on, so `/api/v1` has to stay open to the internet
+    and cannot sit behind the allowlist in item 23. Everything else it touches
+    — versioning (21), Resources on the planner (28), the OpenAPI document
+    (27) — is cheap if the answer is yes and speculative if it is no.
+
+    The split itself stands on its own security argument and is worth doing
+    either way. Answer this before B, so the rest is not built for a consumer
+    that never arrives.
