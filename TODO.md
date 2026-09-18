@@ -24,7 +24,7 @@ What is left to do, worst first. How to do the work is in
 6. **The page text is drawn by JavaScript, so the HTML comes back empty.**
    Render the six sections in Blade from the same data `payload()` returns;
    keep Vue for the carousel, scroll-spy, language toggle and connect modal.
-   Splits `PublicPage.vue` as a side effect. **Do it: item 11.**
+   Splits `PublicPage.vue` as a side effect. **Worth doing? See item 11.**
 7. **The public page has no light or dark mode.** Deliberate while the two
    halves looked different. Decide again.
 8. **There is no skip link.** A keyboard user tabs through the whole nav and
@@ -62,13 +62,38 @@ choose when *starting* an app of this shape. This workspace already works and
 has tests behind it, so moving it now is a rewrite that changes nothing a user
 sees. The signal to reconsider is item 1 becoming a chore on every new screen.
 
-## Do this next
+## Do this next — but decide item 11 first
 
-11. **Item 6 above** — render the public page in Blade. With the bundles now
-    split, the public one still carries Vue, the router and PrimeVue only to
-    paint text that could come back as HTML. Rendering it server-side fixes
-    what a crawler and a link preview see, and leaves that bundle with almost
-    nothing in it.
+11. **Decide whether the public page's text has to be in the HTML.** Item 6
+    above is the work; this is whether it is worth doing, and the honest answer
+    is "it depends on one thing you have to answer".
+
+    **Measured, so the trade is not guessed at.** A request for `/` returns
+    2,387 bytes of head — description, Open Graph, Twitter card, the
+    schema.org block — and a body of exactly `<div id="app"></div>`. So:
+
+    - **Link previews already work.** LinkedIn, WhatsApp, Slack and iMessage
+      read the head, and the head is server-rendered. Nothing to fix.
+    - **Search engines get an empty body.** Google runs JavaScript and will
+      index it, but on a second pass and less reliably. Bing, DuckDuckGo and
+      the AI crawlers are worse at it.
+    - **It saves almost no JavaScript.** The public bundle is 270 KB, of which
+      `PublicPage.vue` is 13 KB. The other 243 KB is Vue, vue-router and
+      PrimeVue — and the connect modal keeps all of it, because `AppInput`,
+      `AppTextarea` and `AppButton` wrap PrimeVue components.
+
+    **So the only thing it buys is being *found* by a search engine**, rather
+    than being *shared* by a link. If the page is reached from a CV, an email
+    or a LinkedIn profile, this is already done and item 6 should be dropped.
+
+    **And the cost is real:** Blade and Vue would both know how to draw a
+    project card, and two renderers for one thing drift.
+
+    If the answer is that search matters, the alternative worth weighing is
+    **Inertia with server-side rendering** — one set of Vue components,
+    rendered to HTML by a Node process next to PHP. It keeps a single
+    renderer, which is the thing item 6 gives up, at the cost of a second
+    process to run and deploy.
 
 ## A. One migration per entity, and the schema fixes that ride with it
 
