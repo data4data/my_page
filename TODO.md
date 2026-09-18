@@ -39,16 +39,48 @@ What is left to do, worst first. How to do the work is in
 
 # Architecture
 
-Three programmes, in the order they have to happen.
+**Read this before any of it.** What follows got long, and the length is worth
+explaining: it is the price of one requirement — *two servers* — not accidental
+complexity. Two boxes means a push pipeline, a second database, a payload
+contract between two versions of the same code, server-rendering as a
+prerequisite, an inquiry hand-off, and a deploy that ships two things in order.
+None of that is avoidable once the requirement is there. All of it is avoidable
+by not having the requirement.
 
-**A — squash the migrations and fix the schema in one pass.** Free now and
-never again.
-**B — settle the shape of the backend.** Before C multiplies every caller.
-**C — split into two servers.** Needs item 6 first.
+**What the split actually buys, measured rather than assumed.** The public site
+serves the workspace's JavaScript. A visitor can fetch `AdminPage`'s chunk and
+read endpoint names out of it — `/two-factor`, `/security-events`,
+`/inquiries`. It does **not** leak `ADMIN_PATH`: that is in a meta tag served
+only inside the workspace, and the prefix appears in no built asset. So what
+leaks is the shape of the API, not its location, and knowing the shape gets
+nobody past `auth` and `role:admin`.
 
-**Not planned for:** no mobile app, so no versioned API, no token auth, no
-OpenAPI document, no Resources on the planner endpoints. The second
-implementations that *are* coming are mail providers and calendar sync.
+That is worth fixing. It is not worth two servers.
+
+**So the recommendation is:**
+
+- **Do A, item 6 and item 11.** The schema work is free right now and never
+  again; server-rendering fixes a real problem the site has today; and item 11
+  gets most of the security benefit of the split for an afternoon's work, on
+  one server.
+- **Do B when something asks for it.** The install command has a reason
+  already. The calendar interfaces have one the day you start that feature.
+  The rest can wait for the annoyance that justifies it.
+- **Leave C on the shelf.** It is written down so the thinking is not lost, and
+  so the trigger is recognisable: real traffic, a compliance requirement, or
+  other people's data living on the public side. None of those is true today.
+
+## The cheap version of the split
+
+11. **Give the workspace its own Vite entry point.** One server, no pipeline,
+    no second database. A second entry in `vite.config.js` and its own
+    manifest, referenced only by the workspace's Blade shell, so the public
+    page's HTML never mentions admin JavaScript and the public manifest does
+    not list `AdminPage.vue`.
+
+    Pair it with item 6 and the public page stops needing the SPA bundle for
+    its content at all. That is the leak above closed, on the setup that
+    already exists.
 
 ## A. One migration per entity, and the schema fixes that ride with it
 
@@ -56,17 +88,17 @@ implementations that *are* coming are mail providers and calendar sync.
 Squash to one `create_` per table — and since every create is being rewritten,
 change the schema in the same pass rather than as an alter each.
 
-11. **Fold the four profile alters into the create.** `add_quote_author`,
+12. **Fold the four profile alters into the create.** `add_quote_author`,
     `add_language_settings`, `add_headline_highlights`,
     `add_contact_email_and_social_image`.
-12. **Fold the rest.** `drop_gear_size` becomes "do not create the column";
+13. **Fold the rest.** `drop_gear_size` becomes "do not create the column";
     `add_two_factor_columns` moves into the skeleton users table;
     `neutralise_default_initials` is a default, so put `default('AB')` on the
     column; `add_missing_indexes` splits back to the table each index belongs
     to.
-13. **Leave vendor and skeleton alone.** `create_permission_tables` is
+14. **Leave vendor and skeleton alone.** `create_permission_tables` is
     Spatie's; `create_cache_table` and `create_jobs_table` are Laravel's.
-14. **After it lands:** everyone runs `migrate:fresh --seed`, there is no
+15. **After it lands:** everyone runs `migrate:fresh --seed`, there is no
     upgrade path and there need not be one, and `CLAUDE.md` notes the cut-off.
     Not `schema:dump` — it pins the repo to one MySQL version and hides the
     schema from review.
@@ -76,38 +108,38 @@ were tried against this project's MySQL 8.4 first. A constraint is worth adding
 when it defends against *concurrency* — one admin still means double clicks,
 retries and second tabs — and not when it defends a state nothing can create.
 
-15. **Make `social_links` a child table.** A repeating group with its own
+16. **Make `social_links` a child table.** A repeating group with its own
     fields, ordering and visibility is a table, not a JSON column. Removes
     `withVisibleSocialLinks()` and its clone, and lets rows be validated as
     rows.
-16. **Let the database hold "one timer at a time".** Add `user_id` to
+17. **Let the database hold "one timer at a time".** Add `user_id` to
     `time_logs`, a stored `running_user_id AS (IF(ended_at IS NULL, user_id,
     NULL))`, and a UNIQUE index on it. Keep `TimerService`'s lock — it turns a
     violation into an orderly pause; the constraint catches the path that
     forgets to lock.
-17. **Make `duration_minutes` a generated column.** `TIMESTAMPDIFF(MINUTE,
+18. **Make `duration_minutes` a generated column.** `TIMESTAMPDIFF(MINUTE,
     started_at, ended_at)` STORED. Removes `TimeLog::booted()` and the trap
     that a builder `update()` silently skips it. Still stored, so totals stay
     one `SUM()`.
-18. **Do not add a one-active-profile index.** It works, but nothing in the app
+19. **Do not add a one-active-profile index.** It works, but nothing in the app
     can create a second profile — the only path is
     `updateOrCreate(['slug' => 'oa'])` — and the index would break
     `test_only_one_profile_stays_active`. The real question is whether
     `is_active` and `activate()` earn their place at all. If multi-profile is
     ever built, the column and the index come back together.
-19. **One remote event, one task.** UNIQUE on
+20. **One remote event, one task.** UNIQUE on
     `(user_id, source, external_ref)`, so an overlapping sync or a retry cannot
     import the same event twice. Manual tasks have a NULL `external_ref` and a
     unique index does not compare NULLs, so they are unaffected.
-20. **`portfolio_profiles.type` is dead.** Seeded `person`, never read —
+21. **`portfolio_profiles.type` is dead.** Seeded `person`, never read —
     `personSchema()` hardcodes it. Wire it up or drop it.
-21. **The seeded slug still names the author.** `seed()` matches on
+22. **The seeded slug still names the author.** `seed()` matches on
     `['slug' => 'oa']`; `initials` was neutralised to `AB` and the slug was
     not. Also decide what `slug` is *for* — nothing reads it.
-22. **`reflections.period_end` can disagree with itself.** Derivable from
+23. **`reflections.period_end` can disagree with itself.** Derivable from
     `period_type` + `period_start`. Make it generated (the unique index uses
     it, so that is the smaller change).
-23. **Say what `categories.user_id = NULL` means** in the migration, next to
+24. **Say what `categories.user_id = NULL` means** in the migration, next to
     the self-referencing key — and that one level of nesting is enforced only
     in PHP, because a CHECK cannot see another row.
 
@@ -129,7 +161,7 @@ months.
 
 ## B. Interfaces, actions, and who creates what
 
-24. **Three kinds of row, three owners.** *Roles are code* — `admin` is a name
+25. **Three kinds of row, three owners.** *Roles are code* — `admin` is a name
     the middleware refers to, so it stays seeded and idempotent. *The admin
     user and the profile are this install's identity* — they move to
     `php artisan app:install`, which asks for email, password and initials.
@@ -141,11 +173,11 @@ months.
     handle "not set up yet": `activeProfile()` is `firstOrFail()`, so the
     workspace would throw rather than say so.
 
-25. **Mail providers need no work.** `config/mail.php` plus `MAIL_MAILER`
+26. **Mail providers need no work.** `config/mail.php` plus `MAIL_MAILER`
     already switches SMTP, SES, Postmark, Resend. Do not write an interface
     over Laravel's.
 
-26. **Calendar sync is the one interface that earns its place.** Google,
+27. **Calendar sync is the one interface that earns its place.** Google,
     Microsoft 365 and CalDAV are three implementations of one idea:
     `CalendarProvider` with `pull()` and `push()`, bound in
     `AppServiceProvider::register()`. Providers speak a plain readonly
@@ -157,7 +189,7 @@ months.
     deletion means here, and what happens when both sides changed the same
     event.
 
-27. **No `Task` subclasses.** Eloquent has no single-table inheritance, so
+28. **No `Task` subclasses.** Eloquent has no single-table inheritance, so
     `ManualTask`/`SyncedTask` means `newFromBuilder()` or `tighten/parental`,
     and `$timeLog->task` silently returns the base class wherever it is missed.
     The differences are guard rules — remote owns the schedule, deleting
@@ -172,29 +204,29 @@ months.
     `task_calendar_details` table — not a subclass, and not nullable columns
     empty for most rows.
 
-28. **The other two interfaces.** `TwoFactorService` → a `TwoFactorProvider`
+29. **The other two interfaces.** `TwoFactorService` → a `TwoFactorProvider`
     contract (TOTP now, passkeys later). `DefaultPortfolioContent` → a contract
     for where the seeded page comes from, so a fork ships its own. Nothing
     else: an interface with one class behind it is a file and an indirection.
 
-29. **Split `PortfolioContentService`.** 273 lines with five reasons to change
+30. **Split `PortfolioContentService`.** 273 lines with five reasons to change
     — reading, writing, history, activation, seeding. An interface in front
     would preserve the problem. The one transaction and one write path must
     survive the split.
 
-30. **Put one-off jobs in `app/Actions/`.** Fortify and Jetstream set the
+31. **Put one-off jobs in `app/Actions/`.** Fortify and Jetstream set the
     precedent; prefer it to `lorisleiva/laravel-actions`. First candidates:
     restore a revision, reset to defaults, enrol a second factor, start and
     stop a timer.
 
-31. **Raise events for what something else reacts to.** `PortfolioSaved` /
+32. **Raise events for what something else reacts to.** `PortfolioSaved` /
     `PortfolioRestored` send the page to the public server (C).
-    `InquiryReceived` emails you (item 36). `TimerStarted` / `TimerStopped` let
+    `InquiryReceived` emails you (item 37). `TimerStarted` / `TimerStopped` let
     calendar sync react without `TimerService` growing a branch. Move the
     inline `Login` / `Failed` listeners to `app/Listeners/` when a third
     appears.
 
-32. **Update the "no bindings" note in `CLAUDE.md`** once 26 and 28 land.
+33. **Update the "no bindings" note in `CLAUDE.md`** once 27 and 29 land.
 
 ## C. Two servers, one repository
 
@@ -217,20 +249,20 @@ The win that started this: the workspace's JavaScript stops being served from
 the public address. Today anyone can download `AdminPage`'s chunks and
 `manifest.json` from the public site and read every endpoint and field name.
 
-33. **One repository, two deployments.** Same repo, `APP_ROLE=workspace` and
+34. **One repository, two deployments.** Same repo, `APP_ROLE=workspace` and
     `APP_ROLE=public`, route files registered to match. Repository count is not
     a security boundary — an attacker on B gets what is *installed* there. Two
     repos would put the payload shape and the design tokens in two places, and
     this project already has enough pairs kept in step by hand.
-34. **Render the public page on the server.** Item 6, promoted to a
+35. **Render the public page on the server.** Item 6, promoted to a
     prerequisite: a visitor's browser must never need to talk to A.
     `publicMeta()`, the `hreflang` alternates and the schema.org block move
     across unchanged.
-35. **Send the public payload, and only that.** `payload($profile, publicOnly:
+36. **Send the public payload, and only that.** `payload($profile, publicOnly:
     true)` — the admin payload carries `is_visible = false` rows, and the two
     differ by one argument. Test that a hidden row never reaches B. B checks a
     shared token, or whoever finds the endpoint can replace your portfolio.
-36. **B validates and stores the connect form; A collects it later.** Keep the
+37. **B validates and stores the connect form; A collects it later.** Keep the
     form — it already has the throttle, the honeypot and the rules, and
     `contact_email` offers a plain button beside it. A `mailto:` hands your
     address to scrapers; a LinkedIn redirect leaves no record.
@@ -245,20 +277,20 @@ the public address. Today anyone can download `AdminPage`'s chunks and
 
     **Give each inquiry a UUID and make it unique on both sides**, so a
     repeated pull or a failed acknowledgement cannot duplicate it — the same
-    pattern as item 19. Add the column with the squash (A).
+    pattern as item 20. Add the column with the squash (A).
 
     **Delete from B once A has it.** Somebody else's name, email and message
     should not sit on the public machine after they have been collected. Email
-    on arrival too (item 31) — that is how you find out without opening
+    on arrival too (item 32) — that is how you find out without opening
     Insights.
-37. **Each deployment ships only its own half, and proves it.** A deploy check
+38. **Each deployment ships only its own half, and proves it.** A deploy check
     that B carries no admin bundle and no admin route file, failing the deploy.
     Two genuinely separate machines. B behind a CDN, because a flood is
     absorbed at the edge or not at all.
-38. **Give B a database with one thing in it** — the published payload. The
+39. **Give B a database with one thing in it** — the published payload. The
     full migration set would create an empty `users`, `tasks` and
     `security_events` on a public machine. B needs its own `.env` too.
-39. **Split the routes by middleware, not by filename.** `routes/api.php` is
+40. **Split the routes by middleware, not by filename.** `routes/api.php` is
     not "the API file" — it is the *stateless* group: no session, no cookies,
     no CSRF. In Laravel 11+ it is not even installed until `php artisan
     install:api` adds it together with Sanctum, which is the framework saying
@@ -271,17 +303,17 @@ the public address. Today anyone can download `AdminPage`'s chunks and
     Inertia do the same.
 
     **`routes/api.php` is right for exactly one thing here:** the endpoint on
-    B that A pushes to (item 35). Stateless, token-authenticated, no session,
+    B that A pushes to (item 36). Stateless, token-authenticated, no session,
     no CSRF — the api group as intended. Run `install:api` when C starts, not
     before.
 
     The rest is splitting shell routes from JSON endpoints so each role
-    registers its own, which is what item 33 needs. Note that
+    registers its own, which is what item 34 needs. Note that
     `shouldRenderJsonWhen()` in `bootstrap/app.php` stays either way — it
     exists because the session-authenticated JSON endpoints sit outside
     `api/*`, and they still will.
 
-40. **One branch, two deploy jobs — not two branches.** Long-lived
+41. **One branch, two deploy jobs — not two branches.** Long-lived
     `main-public` / `main-admin` branches mean merging twice, cherry-picking
     every shared fix, and a permanent "which branch is on which box" question.
     Keep `main`, and let one pipeline deploy both boxes.
