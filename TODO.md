@@ -1,601 +1,249 @@
 # TODO
 
 What is left to do, worst first. How to do the work is in
-[CONTRIBUTING.md](CONTRIBUTING.md).
+[CONTRIBUTING.md](CONTRIBUTING.md). Nothing here is started.
 
 ## Security and the API
 
-1. **Errors are handled three different ways.**
-   `ApiError.validationMessage` (`api.js:22`) is never called, and seven
-   `catch {}` blocks in `CalendarView`, `CategoriesView` and `ReportView` drop
-   the real message for a fixed string. Add one shared handler next to
-   `apiFetch` and call it from all of them.
+1. **Errors are handled three different ways.** `ApiError.validationMessage`
+   (`api.js:22`) is never called, and seven `catch {}` blocks in
+   `CalendarView`, `CategoriesView` and `ReportView` drop the real message for
+   a fixed string. One shared handler next to `apiFetch`.
 
 ## Code with no tests
 
 2. **`showsIn()` is copied in two places and tested in one.** PHP is covered,
-   `shared/portfolio.js` is not, and both files say to keep them matching.
-
+   `shared/portfolio.js` is not.
 3. **`planning.js` has no tests.** 251 lines holding every planner request.
-
-4. **`theme.js` has no test.** The holder counting in `holdTheme()` decides
-   whether the public page stays out of dark mode.
-
+4. **`theme.js` has no test.** `holdTheme()`'s holder counting decides whether
+   the public page stays out of dark mode.
 5. **`TaskModal` and `ReportView` have no tests.** 242 and 270 lines.
 
 ## Rebuild the public page
 
 6. **The page text is drawn by JavaScript, so the HTML comes back empty.**
-   Render the six sections in Blade from the same data `payload()` returns,
-   and keep small Vue components for the carousel, the scroll-spy, the
-   language toggle and the connect modal. This splits `PublicPage.vue` as a
-   side effect.
-
-7. **The public page has no light or dark mode.** That was deliberate while
-   the two halves looked different. Decide again.
-
+   Render the six sections in Blade from the same data `payload()` returns;
+   keep Vue for the carousel, scroll-spy, language toggle and connect modal.
+   Splits `PublicPage.vue` as a side effect. **Prerequisite for C.**
+7. **The public page has no light or dark mode.** Deliberate while the two
+   halves looked different. Decide again.
 8. **There is no skip link.** A keyboard user tabs through the whole nav and
-   side rail before reaching the content.
+   side rail first.
 
 ## Never built
 
 9. **Tasks cannot be dragged between days** in Week and Month view.
-
 10. **`TaskSource::AiChat` is unused.** Build it or remove the case.
 
 ---
 
 # Architecture
 
-Three programmes of work, not single fixes, in the order they have to happen.
+Three programmes, in the order they have to happen.
 
-**A** costs nothing and gets cheaper the sooner it happens — it is also the
-only moment the schema itself is free to change. **B** decides the shape of the
-backend. **C** is the big one: it needs that shape settled, and it needs item 6
-done first, for a reason C explains.
+**A — squash the migrations and fix the schema in one pass.** Free now and
+never again.
+**B — settle the shape of the backend.** Before C multiplies every caller.
+**C — split into two servers.** Needs item 6 first.
 
-Each item says what to do and what it breaks. Nothing here is started.
-
-### The whole plan on one screen
-
-**A — squash the migrations and fix the schema in the same pass** (11-23)
-One `create_` per table. `social_links` becomes a table. MySQL enforces one
-running timer per user, `duration_minutes` becomes a generated column, and
-`(user_id, source, external_ref)` becomes unique so a calendar cannot import
-the same event twice. Drop the dead `type` column, fix the seeded `oa` slug,
-and decide whether `is_active` is a feature at all.
-
-**B — settle the shape of the backend** (24-32)
-An `app:install` command creates the admin user and the profile; roles stay
-seeded; placeholder content stays a local-only sample. `CalendarProvider` plus
-a `CalendarEvent` DTO is the one interface that earns its place — mail
-providers need none, and `Task` stays a plain model with its rules on the
-`TaskSource` enum. Split `PortfolioContentService`. Move one-off jobs into
-`app/Actions/` and raise `PortfolioSaved`, `InquiryReceived`,
-`TimerStarted`/`TimerStopped`.
-
-**C — two servers, one repository** (33-39)
-Box A is private: the database and the workspace, on one origin, so the login
-is untouched. Box B is public: the visit card and nothing else. Saving on A
-sends the page to B; the connect form on B emails you. Nothing ever calls back
-into A, so B holds no key to it. Needs item 6 — the public page rendered
-server-side — done first.
-
-**Settled, so not planned for:** there will be no mobile app. That removes the
-versioned API, token authentication, an OpenAPI document and Resources on the
-planner endpoints — all of which existed only to serve a third-party consumer.
-The second implementations that *are* coming are mail providers and calendar
-sync, and B covers both.
+**Not planned for:** no mobile app, so no versioned API, no token auth, no
+OpenAPI document, no Resources on the planner endpoints. The second
+implementations that *are* coming are mail providers and calendar sync.
 
 ## A. One migration per entity, and the schema fixes that ride with it
 
-Nothing is deployed, so the history in `database/migrations` is 24 files
-recording a private development log. Squash to one `create_*` per table — and
-since every create migration is being rewritten in that pass, make the schema
-changes at the same time rather than as an alter each.
+24 migration files record a private development log and nothing is deployed.
+Squash to one `create_` per table — and since every create is being rewritten,
+change the schema in the same pass rather than as an alter each.
 
-11. **Fold the four profile alters into the create.**
-    `add_quote_author`, `add_language_settings`, `add_headline_highlights` and
-    `add_contact_email_and_social_image` all just add columns to
-    `portfolio_profiles`. Move the columns into
-    `2026_06_09_000001_create_portfolio_profiles_table` and delete the four.
+11. **Fold the four profile alters into the create.** `add_quote_author`,
+    `add_language_settings`, `add_headline_highlights`,
+    `add_contact_email_and_social_image`.
+12. **Fold the rest.** `drop_gear_size` becomes "do not create the column";
+    `add_two_factor_columns` moves into the skeleton users table;
+    `neutralise_default_initials` is a default, so put `default('AB')` on the
+    column; `add_missing_indexes` splits back to the table each index belongs
+    to.
+13. **Leave vendor and skeleton alone.** `create_permission_tables` is
+    Spatie's; `create_cache_table` and `create_jobs_table` are Laravel's.
+14. **After it lands:** everyone runs `migrate:fresh --seed`, there is no
+    upgrade path and there need not be one, and `CLAUDE.md` notes the cut-off.
+    Not `schema:dump` — it pins the repo to one MySQL version and hides the
+    schema from review.
 
-12. **Fold the rest of the alters.**
-    `drop_gear_size_from_expertise_items` becomes "do not create the column".
-    `add_two_factor_columns_to_users` moves into the skeleton
-    `0001_01_01_000000_create_users_table`.
-    `neutralise_default_initials` is a default, not a schema change — move
-    `default('AB')` onto the column in the create and delete the file.
-    `add_missing_indexes` is the awkward one: it touches several tables, so
-    each index goes back to the `create_` of the table it indexes.
+**Schema changes.** Two of these move a rule from PHP into the database. Both
+were tried against this project's MySQL 8.4 first. A constraint is worth adding
+when it defends against *concurrency* — one admin still means double clicks,
+retries and second tabs — and not when it defends a state nothing can create.
 
-13. **Leave two groups alone.**
-    `create_permission_tables` is published by `spatie/laravel-permission` and
-    should stay as that package wrote it. `create_cache_table` and
-    `create_jobs_table` are Laravel's own and carry no project history.
+15. **Make `social_links` a child table.** A repeating group with its own
+    fields, ordering and visibility is a table, not a JSON column. Removes
+    `withVisibleSocialLinks()` and its clone, and lets rows be validated as
+    rows.
+16. **Let the database hold "one timer at a time".** Add `user_id` to
+    `time_logs`, a stored `running_user_id AS (IF(ended_at IS NULL, user_id,
+    NULL))`, and a UNIQUE index on it. Keep `TimerService`'s lock — it turns a
+    violation into an orderly pause; the constraint catches the path that
+    forgets to lock.
+17. **Make `duration_minutes` a generated column.** `TIMESTAMPDIFF(MINUTE,
+    started_at, ended_at)` STORED. Removes `TimeLog::booted()` and the trap
+    that a builder `update()` silently skips it. Still stored, so totals stay
+    one `SUM()`.
+18. **Do not add a one-active-profile index.** It works, but nothing in the app
+    can create a second profile — the only path is
+    `updateOrCreate(['slug' => 'oa'])` — and the index would break
+    `test_only_one_profile_stays_active`. The real question is whether
+    `is_active` and `activate()` earn their place at all. If multi-profile is
+    ever built, the column and the index come back together.
+19. **One remote event, one task.** UNIQUE on
+    `(user_id, source, external_ref)`, so an overlapping sync or a retry cannot
+    import the same event twice. Manual tasks have a NULL `external_ref` and a
+    unique index does not compare NULLs, so they are unaffected.
+20. **`portfolio_profiles.type` is dead.** Seeded `person`, never read —
+    `personSchema()` hardcodes it. Wire it up or drop it.
+21. **The seeded slug still names the author.** `seed()` matches on
+    `['slug' => 'oa']`; `initials` was neutralised to `AB` and the slug was
+    not. Also decide what `slug` is *for* — nothing reads it.
+22. **`reflections.period_end` can disagree with itself.** Derivable from
+    `period_type` + `period_start`. Make it generated (the unique index uses
+    it, so that is the smaller change).
+23. **Say what `categories.user_id = NULL` means** in the migration, next to
+    the self-referencing key — and that one level of nesting is enforced only
+    in PHP, because a CHECK cannot see another row.
 
-14. **Say so once the squash lands.**
-    Everyone with a local database needs `migrate:fresh --seed`; there is no
-    upgrade path and there does not need to be one. `RefreshDatabase` means
-    the test suite needs nothing. Note the cut-off date in `CLAUDE.md` so a
-    later reader does not go looking for the missing history.
+**Leave denormalised, on purpose.** So the question is not reopened every six
+months.
 
-    Not `php artisan schema:dump`: it squashes to a MySQL dump, which pins the
-    repo to one server version and hides the schema from review. One readable
-    `create_` per table is the point.
-
-### The schema changes that ride with the squash
-
-The create migrations are being rewritten anyway and nothing is deployed, so
-this is the cheapest these will ever be. Doing them later means an alter
-migration each, and the squash was about not having those.
-
-Two of the items below move a rule the application holds in PHP into the
-database, where it cannot be bypassed by a bug, a console command or a retried
-request. Both were tried against this project's MySQL (8.4) before being
-written down.
-
-**A constraint is worth adding when it defends against *concurrency*, and not
-when it defends against a state nothing can create.** One admin does not mean
-one request at a time — a double click, a retry or a second tab all race — so
-the timer rule below still needs holding. A second portfolio profile is the
-other kind: nothing in the app can make one, so there is nothing to defend.
-See item 18.
-
-15. **Make `social_links` a child table.**
-    It is a JSON array of `{label, url, icon, in_rail, in_footer}` on the
-    profile — a repeating group with its own fields, its own ordering and its
-    own visibility. Every other repeating group on the page is already a
-    table; this one is a table in a JSON costume.
-
-    Making it `portfolio_social_links` with `sort_order`, `in_rail` and
-    `in_footer` as real columns:
-
-    - removes `withVisibleSocialLinks()` and the clone it works on, because
-      the `is_visible` filtering `payload()` already applies to the child
-      collections would reach it like everything else;
-    - lets `UpdatePortfolioRequest` validate a row as a row;
-    - lets a link be ordered without rewriting the whole column.
-
-    The `showsIn()` pair in PHP and JS stays either way — the fallback for a
-    link saved before the two placements existed is about old data, not about
-    where it is stored.
-
-16. **Let the database hold "one timer at a time".**
-    `TimerService` prevents two running timers with a lock on the user row,
-    and that is the only thing standing between a race and every report total
-    being wrong. MySQL can guarantee it outright:
-
-    - add `user_id` to `time_logs` (it reaches the user through `task_id`
-      today, so this is a denormalisation, and it is what makes the rest
-      possible);
-    - add a stored generated column `running_user_id AS (IF(ended_at IS NULL,
-      user_id, NULL))`;
-    - put a UNIQUE index on it.
-
-    A second open log for the same user is then rejected by the database.
-    Closed logs hold NULL, and a unique index does not compare NULLs, so any
-    number of finished logs coexist. Verified: the second insert is refused,
-    another user's is accepted, and a new one is accepted once the first is
-    closed.
-
-    **Keep the lock.** It turns a constraint violation into an orderly pause
-    of the other task, which is the behaviour the app wants. The constraint is
-    what catches the path that forgets to take the lock.
-
-17. **Make `duration_minutes` a generated column.**
-    `TIMESTAMPDIFF(MINUTE, started_at, ended_at)` STORED. It is computed in
-    `TimeLog::booted()`'s saving hook today, which is why a builder `update()`
-    silently skips it — a trap `CLAUDE.md` has to warn about. As a generated
-    column it cannot disagree with the timestamps it is derived from, by any
-    path at all, and the hook goes away.
-
-    Still stored, so report totals stay one `SUM()`.
-
-18. **Decide whether more than one profile is a feature. It currently is not.**
-    The obvious move is a UNIQUE index on a generated `only_active` column, to
-    replace the by-hand work in `activate()`. It does work on MySQL 8.4 — but
-    it should not be added, because it defends a state nothing can reach.
-
-    The only code that creates a profile is
-    `DefaultPortfolioContent::seed()`, and it is `updateOrCreate(['slug' =>
-    'oa'])` — the same row every time. There is no endpoint to create another,
-    and nothing ever sets `is_active` to false. Two profiles exist only inside
-    tests that build them by hand, and a UNIQUE index would make the setup of
-    `test_only_one_profile_stays_active` throw before it could assert
-    anything.
-
-    So the real question is the column, not the constraint. If one profile is
-    the whole story, then `is_active`, `activate()`, that test, and the
-    `where('is_active', true)` in three query paths are all machinery for a
-    feature that does not exist — `activeProfile()` becomes `firstOrFail()`
-    and `app()` becomes `first()`.
-
-    Take the column out with the squash, or keep it and leave `activate()` as
-    the guard. Do not add the index: it defends nothing, and it costs a test
-    that currently documents real behaviour. If multi-profile is ever built,
-    the column and the index come back together, and that is the moment for
-    both.
-
-19. **One remote event, one task.**
-    Pulling from a calendar means the same event arriving twice — two syncs
-    overlapping, a retry, a provider resending. A UNIQUE index on
-    `(user_id, source, external_ref)` makes a duplicate impossible instead of
-    something the sync code has to remember.
-
-    This is the concurrency kind of constraint, so it is worth having. Manual
-    tasks are unaffected: their `external_ref` is NULL, and a unique index
-    does not compare NULLs, so there can be any number of them.
-
-    The columns already exist — `source` and `external_ref` were put on
-    `tasks` for exactly this.
-
-20. **`portfolio_profiles.type` is dead.**
-    Seeded `'person'`, never read. `personSchema()` hardcodes `Person`
-    instead. Either wire it up — it is the obvious switch for a schema.org
-    `Organization` — or drop the column.
-
-21. **The seeded slug still carries the author's initials.**
-    `DefaultPortfolioContent::seed()` matches on `['slug' => 'oa']`. The
-    `initials` default was neutralised to `AB`; the slug it is looked up by
-    was not. It is the one identifier in a fresh install that still names a
-    particular person, in a project whose seed rules say the opposite.
-
-    Change it with the squash. While in there, decide what `slug` is *for* —
-    nothing reads it, `is_active` is what finds the live profile, and being
-    the seeder's idempotency key is the only job it has.
-
-22. **`reflections.period_end` can disagree with itself.**
-    It is derivable from `period_type` plus `period_start` — a week's end is
-    its start plus six days. Two columns that encode one fact can drift.
-    Either make it generated, or drop it and derive it in
-    `scopeForPeriod()`. Note the unique index uses it, so a generated column
-    is the smaller change.
-
-23. **Write down what `categories.user_id = NULL` means.**
-    Null means "shared by everyone", which makes one column carry two kinds
-    of row, and it is why `CategoryPolicy` needs its special rule that a
-    global category is editable by anyone but deletable only when nobody
-    else's subcategory hangs off it.
-
-    It is idiomatic Laravel and probably worth keeping. What is missing is the
-    same for depth: one level of nesting is enforced only in PHP, so a
-    subcategory of a subcategory is representable in the table. A CHECK cannot
-    see another row, so this stays application-side — but it should be said
-    out loud in the migration, next to the self-referencing key.
-
-### What to leave alone, and why
-
-Normalising these would make the schema worse, not better. Recorded so the
-question is not reopened every six months.
-
-- **The `{en, nl}` JSON columns.** The relational alternative is a
-  translations table keyed by model, id, field and locale. For two languages
-  and a page that is always read whole, that turns every read into a join and
-  a pivot and gives up column types for nothing. Revisit only if a translated
-  value ever has to be filtered or sorted in SQL, or if the two languages need
-  to be published separately.
-- **`portfolio_projects.tags`.** A tags table and a pivot would be more
-  normalised, but these are free text typed into one field, never shared
-  between projects and never queried. Revisit when something wants "every
-  project tagged Laravel".
-- **`headline_highlights`.** A short list tied to one string, with no ordering
-  that matters and no life of its own.
-- **`portfolio_revisions.payload`.** A deliberate snapshot. Storing it whole is
-  exactly what makes `restore()` the same code path as `save()`.
-- **The four child tables staying four tables.** Folding metrics, expertise,
-  projects and process steps into one table with a `type` and a JSON blob
-  would be *less* relational, not more — four sets of real columns replaced by
-  one bag.
-- **`tasks.status` and `tasks.source` as strings.** Already the right call:
-  adding a case to a DB enum needs an `ALTER TABLE`, and the enum classes plus
-  validation already constrain them.
+- **`{en, nl}` JSON columns.** A translations table turns every read into a
+  join and a pivot, for two languages on a page always read whole. Revisit if a
+  translated value must be sorted or filtered in SQL.
+- **`projects.tags`.** Free text, never shared, never queried. Revisit when
+  something wants "every project tagged Laravel".
+- **`headline_highlights`.** A short list tied to one string.
+- **`portfolio_revisions.payload`.** The snapshot is what makes `restore()` the
+  same code path as `save()`.
+- **Four child tables staying four tables.** One table with a `type` and a JSON
+  blob would be *less* relational.
+- **`tasks.status` and `source` as strings.** A DB enum needs an `ALTER TABLE`
+  to gain a case.
 
 ## B. Interfaces, actions, and who creates what
 
-The aim is to swap an implementation without editing its callers. Worth being
-blunt about what gets us there and what does not.
+24. **Three kinds of row, three owners.** *Roles are code* — `admin` is a name
+    the middleware refers to, so it stays seeded and idempotent. *The admin
+    user and the profile are this install's identity* — they move to
+    `php artisan app:install`, which asks for email, password and initials.
+    *Placeholder content and the demo week are samples* — seeder, local only.
 
-24. **Three kinds of row, three different owners.**
-    The mistake is treating them alike. They are not.
+    The command deletes most of `AdminUserSeeder`, whose sixty lines of
+    password-refusal exist only because it reads `.env`. Keep
+    `DefaultPortfolioContent` as *content* — the reset button needs it. Then
+    handle "not set up yet": `activeProfile()` is `firstOrFail()`, so the
+    workspace would throw rather than say so.
 
-    - **Roles are code.** `admin` is a name the `role:admin` middleware refers
-      to; it is a constant that happens to live in a table. It stays seeded,
-      idempotent, never prompted for. `Role::findOrCreate('admin', 'web')` is
-      already right where it is.
-    - **The admin user and the profile are this install's identity.** They
-      belong in a command — `php artisan app:install` — that asks for the
-      email, the password and the initials. Not in a seeder, not in
-      `.env.example`, not in git.
-    - **Placeholder content and the demo week are samples.** Seeder, local
-      only, exactly as today.
+25. **Mail providers need no work.** `config/mail.php` plus `MAIL_MAILER`
+    already switches SMTP, SES, Postmark, Resend. Do not write an interface
+    over Laravel's.
 
-    Making the identity a command pays for itself twice. `AdminUserSeeder`
-    carries sixty lines refusing weak passwords and warning about
-    `config:cache` — all of it compensating for being a seeder that reads
-    `.env`. A command can simply ask, with a hidden prompt, and most of that
-    class goes. And the profile stops being created by
-    `updateOrCreate(['slug' => 'oa'])`, which is what put one person's
-    initials in every fresh install (item 21).
+26. **Calendar sync is the one interface that earns its place.** Google,
+    Microsoft 365 and CalDAV are three implementations of one idea:
+    `CalendarProvider` with `pull()` and `push()`, bound in
+    `AppServiceProvider::register()`. Providers speak a plain readonly
+    `CalendarEvent`; one mapper turns that into a `Task`. `TaskSource` gains a
+    `calendar` case.
 
-    **Keep `DefaultPortfolioContent` as content.** Creating the row and
-    choosing what is in it are two jobs; the reset button in Content versions
-    needs the second one whether or not the first is a command.
+    **Design before code:** where OAuth tokens live, one-way or two-way, how a
+    change is detected without rewriting everything each run, what a remote
+    deletion means here, and what happens when both sides changed the same
+    event.
 
-    **Then handle "not set up yet".** `activeProfile()` is `firstOrFail()`, so
-    an install where the command has not run would throw rather than say so.
-    `PortfolioController::app()` already copes; the workspace does not.
+27. **No `Task` subclasses.** Eloquent has no single-table inheritance, so
+    `ManualTask`/`SyncedTask` means `newFromBuilder()` or `tighten/parental`,
+    and `$timeLog->task` silently returns the base class wherever it is missed.
+    The differences are guard rules — remote owns the schedule, deleting
+    unlinks, cannot be created by hand — and `TaskPolicy` and
+    `UpdateTaskRequest` are where rules live.
 
-25. **Mail providers need no work at all.**
-    Laravel already abstracts them. `config/mail.php` lists the mailers and
-    `MAIL_MAILER` picks one — SMTP, SES, Postmark, Resend. Switching provider
-    is an `.env` change. Writing our own mail interface over the top of
-    Laravel's would add a layer and buy nothing.
+    Put the differences on the `TaskSource` enum instead: `ownsSchedule()`,
+    `canBeEditedHere()`, `deletesRemotely()`. One `match` per rule in one file.
 
-26. **Calendar sync is the one that genuinely needs an interface.**
-    Google Calendar, Microsoft 365 and CalDAV are three real implementations
-    of one idea, so `CalendarProvider` earns its keep — `pull()` and `push()`,
-    one class per service, bound in `AppServiceProvider::register()`.
+    **Revisit on columns, not behaviour.** If synced tasks need a recurrence
+    rule, attendees or a meeting link, that is a one-to-one
+    `task_calendar_details` table — not a subclass, and not nullable columns
+    empty for most rows.
 
-    The schema is half ready for it already: `tasks.source` and
-    `tasks.external_ref` exist for exactly this, and `TaskSource` gains a
-    `calendar` case beside `manual` and `seeder`.
+28. **The other two interfaces.** `TwoFactorService` → a `TwoFactorProvider`
+    contract (TOTP now, passkeys later). `DefaultPortfolioContent` → a contract
+    for where the seeded page comes from, so a fork ships its own. Nothing
+    else: an interface with one class behind it is a file and an indirection.
 
-    **`Task` stays a plain model — do not make it an interface.** A task is a
-    title, a time range and a status whoever created it; what varies is where
-    it came from and how it syncs, and `source` plus `external_ref` already
-    say that. An interface over your own table is an abstraction with one
-    implementation, and Eloquent will not play along with it — relations,
-    scopes and `withSum` all want the concrete model.
+29. **Split `PortfolioContentService`.** 273 lines with five reasons to change
+    — reading, writing, history, activation, seeding. An interface in front
+    would preserve the problem. The one transaction and one write path must
+    survive the split.
 
-    The abstraction actually wanted sits on the provider side: a plain
-    readonly `CalendarEvent` holding an event as that service described it.
-    Providers speak `CalendarEvent`, the app speaks `Task`, and one mapper
-    sits between them. Adding a provider is then one class, and nothing that
-    reads tasks changes.
+30. **Put one-off jobs in `app/Actions/`.** Fortify and Jetstream set the
+    precedent; prefer it to `lorisleiva/laravel-actions`. First candidates:
+    restore a revision, reset to defaults, enrol a second factor, start and
+    stop a timer.
 
-    What is missing and needs designing before any code: where the OAuth
-    tokens live (a table per user per provider), whether sync is one way or
-    two, how a change is detected without rewriting everything each run, what
-    a deletion on their side means here, and what happens when both sides
-    changed the same event. Sketch that first; it is the whole difficulty.
+31. **Raise events for what something else reacts to.** `PortfolioSaved` /
+    `PortfolioRestored` send the page to the public server (C).
+    `InquiryReceived` emails you (item 36). `TimerStarted` / `TimerStopped` let
+    calendar sync react without `TimerService` growing a branch. Move the
+    inline `Login` / `Failed` listeners to `app/Listeners/` when a third
+    appears.
 
-27. **Two kinds of task, one table, no subclasses.**
-    Child classes — `ManualTask` and `SyncedTask` extending `Task` — are
-    possible. Eloquent has no single-table inheritance of its own, so it means
-    overriding `newFromBuilder()` or adding `tighten/parental`, and then every
-    query and every relation has to be taught which class to hand back.
-    `$timeLog->task` returns the base class otherwise, and nothing tells you.
+32. **Update the "no bindings" note in `CLAUDE.md`** once 26 and 28 land.
 
-    The cost is not worth it, because the differences are rules, not kinds:
+## C. Two servers, one repository
 
-    - a synced task's title and times are owned by the remote calendar, so
-      editing them here is pointless until sync is two-way;
-    - deleting one locally should probably unlink it, not delete it there;
-    - it cannot be created by hand.
+- **Box A, private.** Database and workspace, on one origin so the login is
+  untouched — same cookie, same CSRF, `same_site` stays `strict`. Blocked at
+  the front door by path: `{ADMIN_PATH}/*` reachable only from where you work.
+- **Box B, public.** The visit card and nothing else.
+- **Save on A** sends the page to B. **The connect form on B** emails you.
 
-    All three are guard rules, and this project already has places for those —
-    `TaskPolicy` for what may be done, `UpdateTaskRequest` for which fields
-    may change.
+Everything flows A → B. B never calls A and holds no key to it, so a break-in
+on B reaches a mail credential and a copy of its own public page. A flood on B
+does not touch A — unless both boxes share one machine or one connection.
 
-    **Put the differences on `TaskSource` instead.** It is already the
-    discriminator, it is already an enum, and PHP enums take methods:
-    `ownsSchedule()`, `canBeEditedHere()`, `deletesRemotely()`. One `match`
-    per rule, in one file, instead of `if ($task->source === ...)` scattered
-    through the controllers. That is the polymorphism the subclasses were
-    being asked for, without the part Eloquent fights.
+B holds the *published page*: the same words a visitor reads, already filtered
+to `is_visible = true`. Not the planner, the users table, the sign-in trail, the
+revisions or `ADMIN_PATH`. That is not a cost of pushing — asking would put the
+same words in a cache on B.
 
-    **The trigger to revisit is columns, not behaviour.** If synced tasks need
-    fields manual ones have no use for — a recurrence rule, attendees, a
-    meeting link, the remote calendar's id — that is a one-to-one companion
-    table (`task_calendar_details`), not a subclass and not nullable columns
-    on `tasks` that are empty for most rows.
-
-28. **The other two interfaces worth having.**
-    - `TwoFactorService` → a `TwoFactorProvider` contract. TOTP now, passkeys
-      later.
-    - `DefaultPortfolioContent` → a contract for where the seeded page comes
-      from, so a fork ships its own without editing ours.
-
-    Nothing else. An interface with one class behind it is a file and an
-    indirection, which is why `AppServiceProvider::register()` is empty today.
-    Cache, filesystem, mail and queue already have Laravel contracts.
-
-29. **Split `PortfolioContentService` instead of wrapping it.**
-    273 lines with five reasons to change: shaping a read (`payload`),
-    writing (`save`, `replaceOrdered`), history (`recordRevision`,
-    `pruneRevisions`), choosing the live profile (`activate`), and seeding
-    (`seedDefaults`). That is the SOLID problem here, and an interface in
-    front of it would preserve the problem rather than fix it. The one
-    transaction and one write path must survive the split — that property is
-    why the class exists.
-
-30. **Put the one-off jobs in `app/Actions/`.**
-    Laravel has no first-party Action class, but Fortify and Jetstream both
-    use plain invokable classes in `app/Actions/`, so that is the convention
-    with precedent. Prefer it to `lorisleiva/laravel-actions`, which is one
-    more dependency and blurs controller, job and command into one class.
-    First candidates: restoring a revision, resetting to defaults, enrolling
-    a second factor, starting and stopping a timer.
-
-31. **Raise events for the things something else reacts to.**
-    Laravel 13 discovers listeners automatically, so this costs a class and no
-    registration. Three that pay for themselves:
-
-    - `PortfolioSaved` / `PortfolioRestored` — what sends the page to the
-      public server (C).
-    - `InquiryReceived` — what emails you (item 36).
-    - `TimerStarted` / `TimerStopped` — so calendar sync can react later
-      without `TimerService` growing a branch for it.
-
-    The `Login` and `Failed` listeners sit inline in
-    `AppServiceProvider::boot()`. Move them to `app/Listeners/` when a third
-    one appears.
-
-32. **Update the "no bindings" note in `CLAUDE.md`** once 26 and 28 land, with
-    the reasoning, rather than leaving the file arguing against the code.
-
-## C. Two servers, one codebase, data pushed one way
-
-### The picture
-
-- **Box A, private.** The database and the workspace. Only you reach it.
-- **Box B, public.** The visit card, and nothing else. Anyone reaches it.
-- **You press Save on A**, and A sends the new page to B. B keeps its own copy
-  and serves that.
-- **A visitor sends the connect form on B**, and B emails you.
-
-Everything flows one way, A → B, except the email. B never calls A, holds no
-key to A, and A has no door open for B to come through.
-
-### Why push rather than let B ask
-
-**A would have to be switched on for the page to work.** If A is rebooting or
-broken, every visitor gets an error. A public page that goes down because a
-private machine is restarting is a bad trade.
-
-**A would have to accept connections from B.** With push, A only makes
-outgoing calls, so it can refuse every incoming connection except yours.
-
-The cost is that B needs somewhere to keep its copy — a small database, or one
-JSON file. That is the cheaper half of the trade.
-
-### What B holds
-
-The *published page*: the headline, summary, metrics, projects, social links
-and contact address — the same words a visitor reads, already filtered to
-`is_visible = true`. Copying public text onto the public server adds no
-exposure.
-
-None of the private data goes near B: not the planner, not the users table
-with its password hash and two-factor secret, not the sign-in trail, not the
-saved revisions, not `ADMIN_PATH`.
-
-Nor is that a cost of pushing. Any design that serves the page quickly holds a
-copy somewhere — asking would put the same words in a cache on B. The question
-is never "copy or no copy", it is "a copy of *what*".
-
-### If B is flooded or broken into
-
-**A flood on B does not touch A**, because A holds no open door for B. You keep
-working while the portfolio is unreachable, and saves send themselves when B
-answers again.
-
-**Unless both boxes share one machine or one connection** — two virtual servers
-behind one uplink die together. Separate machines, separate addresses. And put
-B behind a CDN, because a flood is absorbed at the edge or not at all.
-
-**A break-in on B reaches nothing**, once the connect form emails rather than
-forwards. B holds a mail credential and a copy of its own public page. There is
-no token pointing at A to steal.
-
-### Why the workspace screens stay on the same address as the API
-
-A browser may only call the address it was loaded from. Calling a different one
-needs permission headers (CORS) and a loosened login cookie. Keeping the
-workspace screens and their JSON endpoints on **one address** on Box A means
-the login keeps working exactly as it does now — same cookie, same CSRF,
-`session.same_site` stays `strict`.
-
-### How the private part is protected
-
-Block at the front door on Box A, by path:
-
-- `{ADMIN_PATH}/*` — reachable only from where you work: IP allowlist, VPN or
-  Cloudflare Access.
-- Everything else on A — nothing public needs to reach it at all, now that B
-  never calls in.
-
-And the win that started this: the workspace's JavaScript stops being served
-from the public address. Today anyone can download `AdminPage`'s files and
+The win that started this: the workspace's JavaScript stops being served from
+the public address. Today anyone can download `AdminPage`'s chunks and
 `manifest.json` from the public site and read every endpoint and field name.
-After the split those files are not there.
 
----
-
-33. **One repository, two deployments.**
-    The same repository deployed twice with a different role in `.env` —
-    `APP_ROLE=workspace` and `APP_ROLE=public` — and the route files
-    registered to match.
-
-    **Repository count is not a security boundary.** An attacker on Box B gets
-    what is *installed* on B, not what is in git. Two repositories would make
-    the boundary impossible for a build script to get wrong, and that is paid
-    for daily: the payload shape and the design tokens would live in two
-    places. This project already carries pairs that must be kept in step by
-    hand (`showsIn()` in PHP and JS, `TaskStatus` and `TASK_STATUSES`);
-    doubling that for one person is what actually rots.
-
-    So: one repository, and make the deployment boundary real and tested
-    instead (item 37).
-
-34. **Render the public page on the server.**
-    Item 6, promoted to a prerequisite — a visitor's browser must never need
-    to talk to Box A. B renders Blade from the copy it holds. `publicMeta()`,
-    the `hreflang` alternates and the schema.org block move across unchanged;
-    they already read a payload rather than the models.
-
-35. **Send the page across when it is saved — the public payload, and only
-    that.**
-    `PortfolioSaved` and `PortfolioRestored` (item 31) queue a job that POSTs
-    to B. Queued, so a failed send retries instead of losing the edit.
-
-    **It must be `payload($profile, publicOnly: true)`.** The admin payload
-    carries rows with `is_visible = false` — content deliberately kept off the
-    page — and sending it would put your drafts on a public server. The two
-    differ by one argument, which is exactly how this gets got wrong. Add a
-    test that pushes a hidden row and asserts B never received it.
-
-    **B must check the push really came from A.** A shared token in both
-    `.env` files. Otherwise whoever finds that endpoint can replace your
-    portfolio with their own text.
-
-36. **The connect form emails you, and stores nothing on B.**
-    This is how you find out somebody wants to reach you, and it is what keeps
-    B from holding any key to A.
-
-    Keep the form. It already has three layers against spam — the throttle,
-    the honeypot and the validation rules — and `contact_email` already puts a
-    plain "get in touch" button beside it for people who prefer their own mail
-    client. A `mailto:` on its own hands your address to every scraper and
-    throws the spam protection away; a LinkedIn redirect forces everyone onto
-    one account and leaves you no record.
-
-    **Rate limiting stays on B**, where the visitor is. That part is unchanged
-    and needs no forwarding logic at all.
-
-    **If you want the Insights archive to keep working**, B has to store rows
-    and A has to collect them — and then *A* asks *B*, on a schedule or when
-    you open the page, so the one-way trust still holds. Decide whether the
-    archive is worth that; a mailbox is an archive too.
-
-37. **Each deployment must ship only its own half, and prove it.**
-    This is the whole security boundary, and the half that lives outside the
-    code. A deploy script that copies everything to both machines undoes it
-    silently, without failing a test.
-
-    - A check in the deploy that B carries no admin bundle and no admin route
-      file. It should fail the deploy, not warn.
-    - Two genuinely separate machines with separate addresses. Same provider
-      is fine; same host is not.
-    - B behind a CDN.
-
-38. **Give B a database with one thing in it.**
-    The published payload. Running the full migration set on B would create an
-    empty `users`, `tasks` and `security_events` on a public machine — tables
-    nothing fills, that a later bug or a careless seeder could. Give the
-    public role its own short migration path.
-
-    B needs its own `.env` too: a different `APP_KEY`, its own database
-    credentials, its mail credentials, and none of A's.
-
-39. **Tidy the routes; do not invent an API.**
-    The workspace frontend already talks to the backend over JSON —
-    `apiFetch` and the `{admin}/...` endpoints are an API, just not spelled
-    `/api/`. With no third-party consumer there is nothing to version and no
-    contract document to publish.
-
-    Worth doing: split `routes/web.php` so the SPA shell routes and the JSON
-    endpoints are in separate files, and register the public role's routes
-    separately from the workspace role's. That is what item 33 needs. The rest
-    is renaming.
+33. **One repository, two deployments.** Same repo, `APP_ROLE=workspace` and
+    `APP_ROLE=public`, route files registered to match. Repository count is not
+    a security boundary — an attacker on B gets what is *installed* there. Two
+    repos would put the payload shape and the design tokens in two places, and
+    this project already has enough pairs kept in step by hand.
+34. **Render the public page on the server.** Item 6, promoted to a
+    prerequisite: a visitor's browser must never need to talk to A.
+    `publicMeta()`, the `hreflang` alternates and the schema.org block move
+    across unchanged.
+35. **Send the public payload, and only that.** `payload($profile, publicOnly:
+    true)` — the admin payload carries `is_visible = false` rows, and the two
+    differ by one argument. Test that a hidden row never reaches B. B checks a
+    shared token, or whoever finds the endpoint can replace your portfolio.
+36. **The connect form emails you and stores nothing on B.** Keep the form: it
+    already has the throttle, the honeypot and the rules, and `contact_email`
+    already offers a plain button beside it. A `mailto:` hands your address to
+    scrapers; a LinkedIn redirect leaves no record. Rate limiting stays on B,
+    where the visitor is. If the Insights archive must keep working, *A* asks
+    *B* — so the one-way trust holds.
+37. **Each deployment ships only its own half, and proves it.** A deploy check
+    that B carries no admin bundle and no admin route file, failing the deploy.
+    Two genuinely separate machines. B behind a CDN, because a flood is
+    absorbed at the edge or not at all.
+38. **Give B a database with one thing in it** — the published payload. The
+    full migration set would create an empty `users`, `tasks` and
+    `security_events` on a public machine. B needs its own `.env` too.
+39. **Tidy the routes; do not invent an API.** `apiFetch` and the
+    `{admin}/...` endpoints already are one. Split `routes/web.php` so shell
+    routes and JSON endpoints are separate files and each role registers its
+    own — that is what item 33 needs. The rest is renaming.
