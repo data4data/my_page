@@ -243,7 +243,25 @@ the public address. Today anyone can download `AdminPage`'s chunks and
 38. **Give B a database with one thing in it** — the published payload. The
     full migration set would create an empty `users`, `tasks` and
     `security_events` on a public machine. B needs its own `.env` too.
-39. **Tidy the routes; do not invent an API.** `apiFetch` and the
-    `{admin}/...` endpoints already are one. Split `routes/web.php` so shell
-    routes and JSON endpoints are separate files and each role registers its
-    own — that is what item 33 needs. The rest is renaming.
+39. **Split the routes by middleware, not by filename.** `routes/api.php` is
+    not "the API file" — it is the *stateless* group: no session, no cookies,
+    no CSRF. In Laravel 11+ it is not even installed until `php artisan
+    install:api` adds it together with Sanctum, which is the framework saying
+    what it is for.
+
+    **The workspace's JSON endpoints stay in `web.php`.** They are a
+    same-origin SPA authenticated by the session cookie, so moving them would
+    401 everything until Sanctum's stateful middleware put the session back —
+    undoing the move. A JSON endpoint in the web group is normal; Breeze and
+    Inertia do the same.
+
+    **`routes/api.php` is right for exactly one thing here:** the endpoint on
+    B that A pushes to (item 35). Stateless, token-authenticated, no session,
+    no CSRF — the api group as intended. Run `install:api` when C starts, not
+    before.
+
+    The rest is splitting shell routes from JSON endpoints so each role
+    registers its own, which is what item 33 needs. Note that
+    `shouldRenderJsonWhen()` in `bootstrap/app.php` stays either way — it
+    exists because the session-authenticated JSON endpoints sit outside
+    `api/*`, and they still will.
