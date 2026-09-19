@@ -6,7 +6,7 @@ import AppInput from './ui/AppInput.vue';
 import AppTextarea from './ui/AppTextarea.vue';
 import AppButton from './ui/AppButton.vue';
 import { copy } from '../shared/i18n';
-import { apiFetch } from '../shared/api';
+import { apiFetch, errorMessage } from '../shared/api';
 import { barePath, localeFromPath } from '../shared/i18n';
 
 const router = useRouter();
@@ -65,7 +65,7 @@ const submit = async () => {
 
         submitted.value = true;
     } catch (failure) {
-        error.value = failure.message;
+        error.value = errorMessage(failure, copy('connectError'));
     } finally {
         submitting.value = false;
     }

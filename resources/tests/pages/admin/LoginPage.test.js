@@ -2,12 +2,24 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const apiFetch = vi.fn();
-vi.mock('../../../js/shared/api', () => ({ apiFetch: (...args) => apiFetch(...args) }));
 
-// admin-path.js reads the tag once at module load, so the shell has to be in
-// place before LoginPage imports it.
-document.head.innerHTML = '<meta name="admin-path" content="test-workspace">'
-    + '<meta name="csrf-token" content="test-token">';
+// admin-path.js reads the tag once at module load, and vi.mock is hoisted
+// above ordinary statements — so writing the shell here, inside vi.hoisted,
+// is what puts it in place before anything imports that module.
+vi.hoisted(() => {
+    document.head.innerHTML = '<meta name="admin-path" content="test-workspace">'
+        + '<meta name="csrf-token" content="test-token">';
+});
+
+// Only apiFetch is faked. ApiError and errorMessage come through for real,
+// because how a failure is turned into a sentence is part of what this page
+// is being tested for.
+vi.mock('../../../js/shared/api', async (importOriginal) => ({
+    ...(await importOriginal()),
+    apiFetch: (...args) => apiFetch(...args),
+}));
+
+const { ApiError } = await import('../../../js/shared/api');
 
 const LoginPage = (await import('../../../js/pages/admin/LoginPage.vue')).default;
 
@@ -114,7 +126,10 @@ describe('LoginPage two-step sign-in', () => {
         apiFetch.mockResolvedValueOnce({ two_factor: true });
         await signIn(wrapper);
 
-        apiFetch.mockRejectedValueOnce(new Error('That code is not valid.'));
+        // An ApiError, because that is the only thing apiFetch throws — a
+        // plain Error would be a bug, and errorMessage() deliberately hides
+        // those behind the caller's own wording.
+        apiFetch.mockRejectedValueOnce(new ApiError('That code is not valid.', { status: 422 }));
         await signIn(wrapper);
 
         expect(window.location.href).toBe('');

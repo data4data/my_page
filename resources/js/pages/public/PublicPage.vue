@@ -175,6 +175,10 @@ const scrollExpertise = (direction) => {
     <!-- No bg-cream: body paints it, and an opaque background here would
          cover the body::before wash, which sits at a negative z-index. -->
     <main v-else class="page-grid min-h-screen text-ink">
+        <!-- First thing in the tab order. Without it a keyboard user walks
+             the whole nav and the social rail before reaching any content. -->
+        <a href="#main-content" class="skip-link u-full">{{ copy('skipToContent') }}</a>
+
         <header class="site-header u-full" :class="{ scrolled: headerScrolled }">
             <div class="site-header-inner">
                 <a href="#" class="site-logo">{{ profile.initials }}</a>
@@ -211,7 +215,7 @@ const scrollExpertise = (direction) => {
             </div>
         </header>
 
-        <section class="hero-shell u-full">
+        <section id="main-content" tabindex="-1" class="hero-shell u-full">
             <div class="hero-visual" aria-hidden="true">
                 <img class="hero-photo" :src="'/images/header-hero.png'" alt="">
                 <div class="hero-photo-shade"></div>

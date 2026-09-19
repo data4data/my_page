@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, apiFetch } from '../../js/shared/api';
+import { ApiError, apiFetch, errorMessage } from '../../js/shared/api';
+import { copy } from '../../js/shared/i18n';
 
 const jsonResponse = (status, body) => ({
     ok: status >= 200 && status < 300,
@@ -75,5 +76,59 @@ describe('apiFetch', () => {
 
         await expect(apiFetch('/tasks', { message: 'Could not load the tasks.' }))
             .rejects.toThrow('Could not load the tasks.');
+    });
+});
+
+/**
+ * One handler decides what a failure reads like, so the same kind of failure
+ * says the same thing wherever it happens — and so nothing technical reaches
+ * a user. Before this, seven catch blocks threw the real message away for a
+ * fixed string, and the ones that did not could print a stack trace's first
+ * line straight into a toast.
+ */
+describe('errorMessage', () => {
+    it('prefers the field-level message, which names what to fix', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(422, { errors: { title: ['The title is required.'] } })));
+
+        await expect(apiFetch('/x', { method: 'POST', body: {} })).rejects.toThrow('The title is required.');
+    });
+
+    it('passes a 4xx message through, because those are written for a reader', () => {
+        expect(errorMessage(new ApiError('That code is not valid.', { status: 422 }))).toBe('That code is not valid.');
+    });
+
+    // A 500's message is the exception's own text, which with APP_DEBUG on is
+    // the first line of a stack trace.
+    it('never shows a server error message, only the caller\u2019s words', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(500, { message: 'SQLSTATE[42S22]: Column not found' })));
+
+        await expect(apiFetch('/x', { message: 'Could not load the report.' }))
+            .rejects.toThrow('Could not load the report.');
+    });
+
+    it('says nothing for a 401, which is already bouncing to the login page', () => {
+        expect(errorMessage(new ApiError('Unauthenticated.', { status: 401 }))).toBeNull();
+    });
+
+    it('explains a 419 rather than blaming what was typed', () => {
+        expect(errorMessage(new ApiError('CSRF token mismatch.', { status: 419 })))
+            .toBe(copy('errorSessionExpired'));
+    });
+
+    it('turns a failed fetch into a connection problem', () => {
+        expect(errorMessage(new TypeError('Failed to fetch'))).toBe(copy('errorOffline'));
+    });
+
+    // Something threw that was not a response at all. Its message reads like
+    // "Cannot read properties of undefined" — the strange error this exists
+    // to keep off the screen.
+    it('hides a bug behind the caller\u2019s wording', () => {
+        const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        expect(errorMessage(new RangeError('bad index'), 'Could not save the task.'))
+            .toBe('Could not save the task.');
+        expect(logged).toHaveBeenCalled();
+
+        logged.mockRestore();
     });
 });

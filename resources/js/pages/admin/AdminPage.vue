@@ -22,7 +22,7 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog.vue';
 import { copy } from '../../shared/i18n';
 import { adminUrl } from '../../shared/admin-path';
 import { usePortfolioSource } from '../../shared/portfolio';
-import { apiFetch } from '../../shared/api';
+import { apiFetch, reportError } from '../../shared/api';
 import { useToast } from '../../shared/toast';
 import { useConfirm } from '../../shared/confirm';
 
@@ -160,8 +160,6 @@ const fetchRevisions = async () => {
     }
 };
 
-const reportFailure = (error) => toast.error(error.message || copy('error'));
-
 const fetchSecurityEvents = async () => {
     securityLoading.value = true;
 
@@ -172,17 +170,17 @@ const fetchSecurityEvents = async () => {
     }
 };
 
-const loadMoreInquiries = () => fetchInquiries(inquiriesPage.value + 1).catch(reportFailure);
+const loadMoreInquiries = () => fetchInquiries(inquiriesPage.value + 1).catch(reportError);
 
 // Snapshot once the payload lands, so `dirty` has something to compare to.
 const loadPortfolio = () => fetchPortfolio().then(() => {
     savedPayload.value = JSON.stringify(data.value);
 });
 
-loadPortfolio().catch(reportFailure);
-fetchInquiries().catch(reportFailure);
-fetchRevisions().catch(reportFailure);
-fetchSecurityEvents().catch(reportFailure);
+loadPortfolio().catch(reportError);
+fetchInquiries().catch(reportError);
+fetchRevisions().catch(reportError);
+fetchSecurityEvents().catch(reportError);
 
 const savePortfolio = async () => {
     saving.value = true;
@@ -200,7 +198,7 @@ const savePortfolio = async () => {
         await fetchRevisions();
         toast.success(copy('saved'));
     } catch (error) {
-        reportFailure(error);
+        reportError(error);
     } finally {
         saving.value = false;
     }
@@ -222,7 +220,7 @@ const restoreDefaults = async () => {
         await fetchRevisions();
         toast.success(copy('restored'));
     } catch (error) {
-        reportFailure(error);
+        reportError(error);
     } finally {
         restoring.value = false;
     }
@@ -243,7 +241,7 @@ const restoreRevision = async (id) => {
         await fetchRevisions();
         toast.success(copy('historyRestored'));
     } catch (error) {
-        reportFailure(error);
+        reportError(error);
     } finally {
         restoringId.value = null;
     }
@@ -317,7 +315,7 @@ const updateTags = (project, value) => {
             <template v-if="showSaveButton" #status>{{ saveStatus }}</template>
 
             <template v-if="showSaveButton" #actions>
-                <AppButton variant="outline" :disabled="!dirty || saving" @click="loadPortfolio().catch(reportFailure)">
+                <AppButton variant="outline" :disabled="!dirty || saving" @click="loadPortfolio().catch(reportError)">
                     {{ copy('cancel') }}
                 </AppButton>
                 <AppButton variant="solid" :disabled="saving" @click="savePortfolio">
@@ -344,7 +342,7 @@ const updateTags = (project, value) => {
             <template #status>{{ saveStatus }}</template>
 
             <template #actions>
-                <AppButton variant="outline" :disabled="!dirty || saving" @click="loadPortfolio().catch(reportFailure)">
+                <AppButton variant="outline" :disabled="!dirty || saving" @click="loadPortfolio().catch(reportError)">
                     {{ copy('cancel') }}
                 </AppButton>
                 <AppButton variant="solid" :disabled="saving" @click="savePortfolio">

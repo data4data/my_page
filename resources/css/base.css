@@ -136,3 +136,38 @@
         font: inherit;
     }
 }
+
+@layer components {
+    /* Off-screen until focused, not display:none — a hidden link is not in
+       the tab order at all, and this one has to be the first thing in it.
+       Both halves use it: the public page skips the nav and the social rail,
+       the workspace skips the rail's destinations. */
+    .skip-link {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        z-index: var(--z-header);
+        transform: translate(-50%, -150%);
+        padding: 0.65rem 1.25rem;
+        border-radius: 0 0 0.5rem 0.5rem;
+        background: var(--color-ink);
+        color: var(--color-ink-text);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        transition: transform 150ms ease;
+    }
+
+    .skip-link:focus-visible {
+        transform: translate(-50%, 0);
+        outline: 2px solid var(--color-accent);
+        outline-offset: 2px;
+    }
+
+    /* The target takes focus so the next Tab continues from the content, not
+       from the top of the document again. It is only focusable by being
+       jumped to, so it must not draw a ring of its own. */
+    [id='main-content']:focus,
+    [id='workspace-content']:focus {
+        outline: none;
+    }
+}

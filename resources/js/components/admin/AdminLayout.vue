@@ -69,6 +69,10 @@ onBeforeUnmount(releaseTheme);
 
 <template>
     <div class="admin-shell">
+        <!-- Ahead of the rail, so a keyboard user reaches the section they
+             opened without tabbing through every destination first. -->
+        <a href="#workspace-content" class="skip-link">{{ copy('skipToContent') }}</a>
+
         <!-- Reserves the collapsed/expanded footprint in the flex row. The
              panel inside is fixed, so widening it on hover overlays the sheet
              instead of reflowing it. -->
@@ -155,7 +159,7 @@ onBeforeUnmount(releaseTheme);
 
         <!-- Inset on three sides and open at the bottom: the sheet runs off the
              end of the page rather than closing into a floating card. -->
-        <div class="admin-frame">
+        <div id="workspace-content" tabindex="-1" class="admin-frame">
             <slot />
         </div>
     </div>

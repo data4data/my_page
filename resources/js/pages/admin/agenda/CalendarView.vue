@@ -14,6 +14,7 @@ import { usePlanning } from '../../../shared/planning';
 import { useCalendarPeriod } from './useCalendarPeriod';
 import { useTaskFilters } from './useTaskFilters';
 import { copy } from '../../../shared/i18n';
+import { reportError } from '../../../shared/api';
 import { useToast } from '../../../shared/toast';
 import { useConfirm } from '../../../shared/confirm';
 
@@ -133,8 +134,8 @@ const handleSave = async (payload) => {
         closeModal();
         toast.success(copy('taskSaved'));
         await load();
-    } catch {
-        toast.error(copy('taskError'));
+    } catch (error) {
+        reportError(error, copy('taskError'));
     } finally {
         savingTask.value = false;
     }
@@ -154,8 +155,8 @@ const runTimerAction = async (task, action) => {
         if (editingTask.value?.id === task.id) {
             editingTask.value = updated;
         }
-    } catch {
-        toast.error(copy('taskError'));
+    } catch (error) {
+        reportError(error, copy('taskError'));
     }
 };
 
@@ -190,8 +191,8 @@ const handleDelete = async () => {
         closeModal();
         toast.success(copy('taskDeleted'));
         await load();
-    } catch {
-        toast.error(copy('taskError'));
+    } catch (error) {
+        reportError(error, copy('taskError'));
     } finally {
         savingTask.value = false;
     }

@@ -4,7 +4,7 @@ import AppButton from '../../components/ui/AppButton.vue';
 import AppInput from '../../components/ui/AppInput.vue';
 import { copy } from '../../shared/i18n';
 import { adminUrl } from '../../shared/admin-path';
-import { apiFetch } from '../../shared/api';
+import { apiFetch, errorMessage, reportError } from '../../shared/api';
 import { useToast } from '../../shared/toast';
 import { useConfirm } from '../../shared/confirm';
 
@@ -34,7 +34,7 @@ const load = async () => {
     }
 };
 
-onMounted(() => load().catch((failure) => toast.error(failure.message)));
+onMounted(() => load().catch(reportError));
 
 const run = async (work) => {
     busy.value = true;
@@ -43,7 +43,7 @@ const run = async (work) => {
     try {
         await work();
     } catch (failure) {
-        error.value = failure.message;
+        error.value = errorMessage(failure, copy('error'));
     } finally {
         busy.value = false;
     }

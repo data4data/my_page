@@ -74,6 +74,39 @@ describe('page smoke tests', () => {
         },
     });
 
+    /**
+     * A keyboard user should reach the content without walking the whole nav
+     * and the social rail first. Three things have to be right: the link
+     * comes first in the tab order, it points at something that exists, and
+     * that target can take focus so the next Tab continues from the content
+     * rather than from the top of the document.
+     */
+    const assertSkipLink = (wrapper) => {
+        const focusable = 'a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+        const first = wrapper.findAll(focusable)[0];
+
+        expect(first.classes()).toContain('skip-link');
+
+        const landing = wrapper.find(`#${first.attributes('href').slice(1)}`);
+
+        expect(landing.exists()).toBe(true);
+        expect(landing.attributes('tabindex')).toBe('-1');
+    };
+
+    it('PublicPage puts a skip link ahead of the nav and the rail', async () => {
+        const wrapper = mountPage(PublicPage);
+        await flush();
+
+        assertSkipLink(wrapper);
+    });
+
+    it('AdminPage puts a skip link ahead of the rail', async () => {
+        const wrapper = mountPage(AdminPage);
+        await flush();
+
+        assertSkipLink(wrapper);
+    });
+
     it('PublicPage renders its content without errors', async () => {
         const wrapper = mountPage(PublicPage);
         await flush();

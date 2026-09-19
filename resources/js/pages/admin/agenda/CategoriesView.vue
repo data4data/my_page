@@ -6,6 +6,7 @@ import CategoryModal from './CategoryModal.vue';
 import { iconMap } from '../../../shared/icons';
 import { copy } from '../../../shared/i18n';
 import { usePlanning } from '../../../shared/planning';
+import { reportError } from '../../../shared/api';
 import { useToast } from '../../../shared/toast';
 import { useConfirm } from '../../../shared/confirm';
 
@@ -74,8 +75,8 @@ const handleSave = async (payload) => {
         toast.success(copy('categorySaved'));
         await load();
         emit('changed');
-    } catch {
-        toast.error(copy('categoryError'));
+    } catch (error) {
+        reportError(error, copy('categoryError'));
     } finally {
         saving.value = false;
     }
@@ -98,8 +99,8 @@ const handleDelete = async (category) => {
         toast.success(copy('categoryDeleted'));
         await load();
         emit('changed');
-    } catch {
-        toast.error(copy('categoryError'));
+    } catch (error) {
+        reportError(error, copy('categoryError'));
     }
 };
 
