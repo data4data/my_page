@@ -74,24 +74,11 @@ rendering is Inertia with SSR, and a Node process beside PHP.
 
 ## B. Interfaces, actions, and who creates what
 
-9. **Three kinds of row, three owners.** *Roles are code* — `admin` is a name
-    the middleware refers to, so it stays seeded and idempotent. *The admin
-    user and the profile are this install's identity* — they move to
-    `php artisan app:install`, which asks for email, password and initials.
-    *Placeholder content and the demo week are samples* — seeder, local only.
-
-    The command deletes most of `AdminUserSeeder`, whose sixty lines of
-    password-refusal exist only because it reads `.env`. Keep
-    `DefaultPortfolioContent` as *content* — the reset button needs it. Then
-    handle "not set up yet": `activeProfile()` is `firstOrFail()`, so the
-    workspace would throw rather than say so. **Has a reason already — item
-    24.**
-
-10. **Mail providers need no work.** `config/mail.php` plus `MAIL_MAILER`
+9. **Mail providers need no work.** `config/mail.php` plus `MAIL_MAILER`
     already switches SMTP, SES, Postmark, Resend. Do not write an interface
     over Laravel's.
 
-11. **Calendar sync is the one interface that earns its place.** Google,
+10. **Calendar sync is the one interface that earns its place.** Google,
     Microsoft 365 and CalDAV are three implementations of one idea:
     `CalendarProvider` with `pull()` and `push()`. Providers speak a plain
     readonly `CalendarEvent`; one mapper turns that into a `Task`. `TaskSource`
@@ -102,7 +89,7 @@ rendering is Inertia with SSR, and a Node process beside PHP.
     deletion means here, and what happens when both sides changed the same
     event.
 
-12. **No `Task` subclasses.** Eloquent has no single-table inheritance, so
+11. **No `Task` subclasses.** Eloquent has no single-table inheritance, so
     `ManualTask`/`SyncedTask` means `newFromBuilder()` or `tighten/parental`,
     and `$timeLog->task` silently returns the base class wherever it is missed.
     The differences are guard rules — remote owns the schedule, deleting
@@ -114,25 +101,25 @@ rendering is Inertia with SSR, and a Node process beside PHP.
     rule, attendees or a meeting link, that is a one-to-one
     `task_calendar_details` table.
 
-13. **The other two interfaces.** `TwoFactorService` → a `TwoFactorProvider`
+12. **The other two interfaces.** `TwoFactorService` → a `TwoFactorProvider`
     contract (TOTP now, passkeys later). `DefaultPortfolioContent` → a contract
     for where the seeded page comes from, so a fork ships its own. Nothing
     else: an interface with one class behind it is a file and an indirection.
 
-14. **Split `PortfolioContentService`.** 273 lines with five reasons to change
+13. **Split `PortfolioContentService`.** 273 lines with five reasons to change
     — reading, writing, history, activation, seeding. An interface in front
     would preserve the problem. The one transaction and one write path must
     survive the split.
 
-15. **Put one-off jobs in `app/Actions/`.** Fortify and Jetstream set the
+14. **Put one-off jobs in `app/Actions/`.** Fortify and Jetstream set the
     precedent; prefer it to `lorisleiva/laravel-actions`. First candidates:
     restore a revision, reset to defaults, enrol a second factor, start and
     stop a timer.
 
-16. **Raise events for what something else reacts to.** `PortfolioSaved` /
+15. **Raise events for what something else reacts to.** `PortfolioSaved` /
     `PortfolioRestored`, `InquiryReceived` to email you when the connect form
     is used, `TimerStarted` / `TimerStopped` so calendar sync can react without
     `TimerService` growing a branch. Move the inline `Login` / `Failed`
     listeners to `app/Listeners/` when a third appears.
 
-17. **Update the "no bindings" note in `CLAUDE.md`** once 11 and 13 land.
+16. **Update the "no bindings" note in `CLAUDE.md`** once 10 and 12 land.

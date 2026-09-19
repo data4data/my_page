@@ -25,7 +25,7 @@ class DemoWeekSeeder extends Seeder
         $user = User::whereHas('roles', fn ($query) => $query->where('name', 'admin'))->first();
 
         if (! $user) {
-            $this->command?->warn('DemoWeekSeeder: no admin user found yet — run AdminUserSeeder first. Skipping.');
+            $this->command?->warn('DemoWeekSeeder: no admin user yet — run `php artisan app:install` first. Skipping.');
 
             return;
         }

@@ -82,6 +82,15 @@ class PortfolioContentService
      */
     public function activeProfile(): PortfolioProfile
     {
+        // Self-healing rather than a 404. There is normally a profile by the
+        // time anyone reaches the workspace — `app:install` creates one, and
+        // so does `migrate --seed` — but `migrate` alone leaves none, and an
+        // editor that answers "not found" is a worse answer than an editor
+        // full of the placeholder content the reset button would give you.
+        if (! PortfolioProfile::query()->exists()) {
+            $this->defaults->seed();
+        }
+
         return PortfolioProfile::query()
             ->with([
                 'metrics' => fn ($query) => $query->orderBy('sort_order'),

@@ -21,7 +21,8 @@ never hardcoded.
 ```bash
 composer install && npm install
 cp .env.example .env && php artisan key:generate
-php artisan migrate --seed        # set ADMIN_EMAIL/ADMIN_PASSWORD first
+php artisan migrate --seed        # placeholder content and categories
+php artisan app:install           # the admin account and the profile — asks for them
 composer run dev                  # serve + queue + logs + vite
 ```
 

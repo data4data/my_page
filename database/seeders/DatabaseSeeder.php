@@ -5,15 +5,20 @@ namespace Database\Seeders;
 use App\Support\DefaultPortfolioContent;
 use Illuminate\Database\Seeder;
 
+/**
+ * Samples only.
+ *
+ * This install's *identity* — the admin account and the profile — is created
+ * by `php artisan app:install`, which can ask for a password instead of
+ * reading one out of a file. What is left here is placeholder page content,
+ * the shared categories, and a demo week: things a fresh clone wants so the
+ * app has something to show, and that a live instance must never be handed.
+ */
 class DatabaseSeeder extends Seeder
 {
-    // Laravel resolves seeder run() arguments through the container, so the
-    // now-instance-based content class arrives here the same way it does in
-    // PortfolioContentService.
     public function run(DefaultPortfolioContent $defaults): void
     {
         $defaults->seed();
-        $this->call(AdminUserSeeder::class);
         $this->call(CategorySeeder::class);
 
         // Demo tasks are local-only: never let a `git pull` + `migrate --seed`

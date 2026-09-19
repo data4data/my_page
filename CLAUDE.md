@@ -16,7 +16,8 @@ The public page is fully open; everything else is authenticated and lives at an 
 ```bash
 composer install && npm install         # install deps
 cp .env.example .env && php artisan key:generate
-php artisan migrate --seed              # content + admin user + categories (+ demo week, local only)
+php artisan migrate --seed              # placeholder content + categories (+ demo week, local only)
+php artisan app:install                 # the admin account and the profile — asks for them
 
 composer run dev                        # serve + queue + logs + vite, all concurrently
 php artisan serve                       # backend only
@@ -36,9 +37,7 @@ vendor/bin/pint                         # PHP code style (Laravel Pint)
 php artisan db:seed --class=DemoWeekSeeder   # refresh the demo week onto the current week
 ```
 
-Note: `AdminUserSeeder` reads `config('admin.seed.*')`, not `env()` — after `php artisan config:cache`, `env()` outside a config file returns null, and the seeder would have quietly used the placeholder credentials from `.env.example`. It also **refuses a weak `ADMIN_PASSWORD` outside local development**, so those placeholders cannot reach a live install.
-
-Note: **MySQL everywhere** — development, tests and production. `phpunit.xml` pins only the database *name* (`my_page_testing`, deliberately not derived from whatever the working database is called), so host and credentials come from your own `.env` and the suite never touches your development data. Running tests on a different engine from production hides exactly the differences that matter: strict mode, foreign-key indexing, date functions and JSON handling all differ. Set `ADMIN_EMAIL`/`ADMIN_PASSWORD` before seeding — `AdminUserSeeder` uses them to create the one admin login. `ADMIN_PATH` sets the URL prefix the whole private workspace sits behind (see Auth below); it is per-install and never hardcoded.
+Note: **MySQL everywhere** — development, tests and production. `phpunit.xml` pins only the database *name* (`my_page_testing`, deliberately not derived from whatever the working database is called), so host and credentials come from your own `.env` and the suite never touches your development data. Running tests on a different engine from production hides exactly the differences that matter: strict mode, foreign-key indexing, date functions and JSON handling all differ. Run `php artisan app:install` to create the one admin login. `ADMIN_PATH` sets the URL prefix the whole private workspace sits behind (see Auth below); it is per-install and never hardcoded.
 
 ## Working on this project
 
@@ -56,13 +55,21 @@ This file covers the other half — what the project *is*. Architecture, the agg
 
 Not `php artisan schema:dump`: it squashes to a MySQL dump, which pins the repo to one server version and hides the schema from review. One readable `create_` per table is the point.
 
-## Seeding
+## Setting up an install
 
-`DatabaseSeeder` runs `DefaultPortfolioContent::seed()`, `AdminUserSeeder`, `CategorySeeder`, and — **only when `app()->environment('local')`** — `DemoWeekSeeder`. That guard is deliberate: a `git pull` + `migrate --seed` on a live instance must never bury real planning data under sample rows.
+**Three kinds of row, three owners.**
+
+- **Roles are code.** `admin` is a name `role:admin` refers to — a constant that happens to live in a table. Created idempotently, never asked for.
+- **The admin account and the profile are this install's identity.** `php artisan app:install` creates them, prompting for the email, the password and the initials. It replaced `AdminUserSeeder`, which read credentials from `.env` and then spent sixty lines refusing the weak ones it might be handed; a command can simply ask, so a real password never sits in a file and a placeholder one can never reach a live install. There is no `ADMIN_EMAIL` or `ADMIN_PASSWORD` any more. Safe to run twice: it updates rather than duplicating, and leaves edited content alone.
+- **Placeholder content and the demo week are samples.** `DatabaseSeeder` runs `DefaultPortfolioContent::seed()` and `CategorySeeder`, plus `DemoWeekSeeder` **only when `app()->environment('local')`** — a `git pull` + `migrate --seed` on a live instance must never bury real planning data under sample rows.
+
+`App\Rules\StrongPassword` is the bar the command applies: 12 characters and not one of the usual suspects. Deliberately not `Password::uncompromised()`, which asks haveibeenpwned over the network — installing should not pause, or behave differently, because the machine is offline.
+
+`activeProfile()` seeds the defaults when no profile exists, so an install that ran `migrate` alone gets an editor full of placeholder content rather than a 404.
 
 Both planner seeders are re-runnable: `CategorySeeder` uses `updateOrCreate`; `DemoWeekSeeder` deletes its own prior rows (`source = seeder`, that user only) before recreating them pinned to the current week. Neither touches manually created tasks.
 
-**Everything seeded is deliberately generic.** This project is meant to be forked and made someone else's, so the default categories are buckets any week falls into (Work, Learning, Projects, Health, Home, Social, Other) rather than one person's situation — an earlier set shipped "Job Search", "Interview Prep" and a `Language → Dutch` child, which told a reader which country the author was job-hunting in. The sample week follows the same rule and covers all five `TaskStatus` cases, so a fresh install shows every state the board can be in. `DefaultPortfolioContent` was already placeholder content under the initials `AB`.
+**Everything seeded is deliberately generic.** This project is meant to be forked and made someone else's, so the default categories are buckets any week falls into (Work, Learning, Projects, Health, Home, Social, Other) rather than one person's situation. The sample week covers all five `TaskStatus` cases, so a fresh install shows every state the board can be in. `DefaultPortfolioContent` ships placeholder content under the initials `AB` and the slug `default`.
 
 ## Architecture
 

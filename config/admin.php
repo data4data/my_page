@@ -24,23 +24,4 @@ return [
 
     'path' => trim((string) env('ADMIN_PATH', 'change-me-before-going-live'), '/') ?: 'change-me-before-going-live',
 
-    /*
-    |--------------------------------------------------------------------------
-    | Seeded workspace login
-    |--------------------------------------------------------------------------
-    |
-    | AdminUserSeeder creates the single admin account from these. They live
-    | here, not in env() calls inside the seeder: after `php artisan
-    | config:cache`, env() returns null outside config files, and the seeder
-    | would fall back to the placeholders in .env.example.
-    |
-    | The seeder refuses a weak password outside local development.
-    |
-    */
-
-    'seed' => [
-        'email' => env('ADMIN_EMAIL', 'admin@example.com'),
-        'password' => env('ADMIN_PASSWORD', 'password'),
-    ],
-
 ];
