@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Support\DefaultPortfolioContent;
+use App\Services\PortfolioSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Vite;
 use Spatie\Permission\Models\Role;
@@ -95,7 +95,7 @@ class SecurityHeadersTest extends TestCase
 
     public function test_the_headers_reach_the_json_endpoints_too(): void
     {
-        app(DefaultPortfolioContent::class)->seed();
+        app(PortfolioSeeder::class)->seed();
 
         $this->getJson('/portfolio')
             ->assertOk()

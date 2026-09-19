@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Models\PortfolioProfile;
 use App\Models\PortfolioRevision;
 use App\Models\User;
-use App\Support\DefaultPortfolioContent;
+use App\Services\PortfolioSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
@@ -31,7 +31,7 @@ class PortfolioContentTest extends TestCase
 
     private function seededProfile(): PortfolioProfile
     {
-        return app(DefaultPortfolioContent::class)->seed();
+        return app(PortfolioSeeder::class)->seed();
     }
 
     /**

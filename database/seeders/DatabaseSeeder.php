@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Support\DefaultPortfolioContent;
+use App\Services\PortfolioSeeder;
 use Illuminate\Database\Seeder;
 
 /**
@@ -16,9 +16,9 @@ use Illuminate\Database\Seeder;
  */
 class DatabaseSeeder extends Seeder
 {
-    public function run(DefaultPortfolioContent $defaults): void
+    public function run(PortfolioSeeder $seeder): void
     {
-        $defaults->seed();
+        $seeder->seed();
         $this->call(CategorySeeder::class);
 
         // Demo tasks are local-only: never let a `git pull` + `migrate --seed`

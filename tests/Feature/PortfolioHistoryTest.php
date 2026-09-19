@@ -6,7 +6,7 @@ use App\Models\PortfolioProfile;
 use App\Models\PortfolioRevision;
 use App\Models\User;
 use App\Services\PortfolioContentService;
-use App\Support\DefaultPortfolioContent;
+use App\Services\PortfolioSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -27,7 +27,7 @@ class PortfolioHistoryTest extends TestCase
 
     private function seededProfile(): PortfolioProfile
     {
-        return app(DefaultPortfolioContent::class)->seed();
+        return app(PortfolioSeeder::class)->seed();
     }
 
     private function payload(string $headline): array

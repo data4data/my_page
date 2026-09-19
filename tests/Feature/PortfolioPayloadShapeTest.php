@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\PortfolioRevision;
 use App\Models\User;
-use App\Support\DefaultPortfolioContent;
+use App\Services\PortfolioSeeder;
 use App\Support\PortfolioFields;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -48,7 +48,7 @@ class PortfolioPayloadShapeTest extends TestCase
 
     private function seeded(): void
     {
-        app(DefaultPortfolioContent::class)->seed();
+        app(PortfolioSeeder::class)->seed();
     }
 
     private function admin(): User

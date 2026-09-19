@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\TwoFactorService;
+use App\Contracts\TwoFactorProvider;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -15,7 +15,7 @@ use Illuminate\Validation\ValidationException;
  */
 class TwoFactorController extends Controller
 {
-    public function __construct(private TwoFactorService $twoFactor) {}
+    public function __construct(private TwoFactorProvider $twoFactor) {}
 
     public function show(Request $request): JsonResponse
     {
@@ -29,13 +29,14 @@ class TwoFactorController extends Controller
 
         return response()->json([
             ...$this->state($request),
-            // A data URI rather than raw markup, so the page renders it as an
-            // ordinary <img> instead of reaching for v-html. The CSP already
-            // allows data: images; it allows no inline anything else.
-            'qr_data_uri' => 'data:image/svg+xml;base64,'.base64_encode($this->twoFactor->qrCodeSvg($user)),
+            // Provider-shaped: TOTP fills this with a QR data URI and the
+            // same secret typed out. A data URI rather than raw markup, so
+            // the page renders it as an ordinary <img> instead of reaching
+            // for v-html — the CSP allows data: images and no inline
+            // anything else.
+            ...$this->twoFactor->enrolmentDetails($user),
             // Shown once, here, because enrolment is the only moment they are
             // useful and the QR is worthless without somewhere to fall back to.
-            'setup_key' => $user->two_factor_secret,
             'recovery_codes' => $user->two_factor_recovery_codes,
         ]);
     }

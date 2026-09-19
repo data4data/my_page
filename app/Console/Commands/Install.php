@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use App\Models\PortfolioProfile;
 use App\Models\User;
 use App\Rules\StrongPassword;
-use App\Support\DefaultPortfolioContent;
+use App\Services\PortfolioSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
@@ -34,7 +34,7 @@ class Install extends Command
 
     protected $description = 'Create the admin account and the profile the public page is drawn from';
 
-    public function handle(DefaultPortfolioContent $defaults): int
+    public function handle(PortfolioSeeder $seeder): int
     {
         // Prompts throws a raw NonInteractiveValidationException when there
         // is no terminal to answer with, which is a stack trace where an
@@ -66,7 +66,7 @@ class Install extends Command
             $this->createOrUpdateAdmin($email, $existing);
         }
 
-        $this->createProfile($defaults);
+        $this->createProfile($seeder);
 
         $this->newLine();
         $this->components->info('Ready. The workspace is at /'.config('admin.path').' — set ADMIN_PATH in .env to something random before going live.');
@@ -127,7 +127,7 @@ class Install extends Command
         $this->components->info($existing ? "Updated the password for {$email}." : "Created {$email}.");
     }
 
-    private function createProfile(DefaultPortfolioContent $defaults): void
+    private function createProfile(PortfolioSeeder $seeder): void
     {
         if (PortfolioProfile::query()->exists()) {
             $this->components->warn('A profile already exists — left its content alone.');
@@ -135,7 +135,7 @@ class Install extends Command
             return;
         }
 
-        $profile = $defaults->seed();
+        $profile = $seeder->seed();
 
         $initials = (string) ($this->option('initials') ?: text(
             label: 'Initials for the public page',

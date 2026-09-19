@@ -2,38 +2,10 @@
 
 namespace App\Support;
 
-use App\Models\PortfolioProfile;
-use Illuminate\Support\Facades\DB;
+use App\Contracts\PortfolioSeedContent;
 
-class DefaultPortfolioContent
+class DefaultPortfolioContent implements PortfolioSeedContent
 {
-    /**
-     * The row this seeds is matched on, and the only thing that identifies a
-     * profile in the table. Deliberately not anybody's initials: this project
-     * is meant to be forked, and the seeded slug used to be the author's.
-     */
-    public const SLUG = 'default';
-
-    public function seed(): PortfolioProfile
-    {
-        return DB::transaction(function (): PortfolioProfile {
-            $content = $this->content();
-
-            $profile = PortfolioProfile::updateOrCreate(
-                ['slug' => self::SLUG],
-                $content['profile'],
-            );
-
-            $this->replace($profile, 'socialLinks', $content['social_links']);
-            $this->replace($profile, 'metrics', $content['metrics']);
-            $this->replace($profile, 'expertiseItems', $content['expertise_items']);
-            $this->replace($profile, 'projects', $content['projects']);
-            $this->replace($profile, 'processSteps', $content['process_steps']);
-
-            return $profile;
-        });
-    }
-
     public function content(): array
     {
         return [
@@ -169,23 +141,5 @@ class DefaultPortfolioContent
                 ['group' => 'output', 'title' => ['en' => 'Real Impact', 'nl' => 'Echte impact'], 'description' => ['en' => 'Measurable outcomes', 'nl' => 'Meetbare resultaten'], 'icon' => 'sparkles'],
             ],
         ];
-    }
-
-    private function replace(PortfolioProfile $profile, string $relation, array $items): void
-    {
-        $profile->{$relation}()->delete();
-
-        foreach (array_values($items) as $index => $item) {
-            // is_visible only where the relation has the column: social links
-            // derive theirs from their two placements, and MySQL rejects an
-            // INSERT naming a generated column.
-            $defaults = ['sort_order' => $index + 1];
-
-            if ($relation !== 'socialLinks') {
-                $defaults['is_visible'] = true;
-            }
-
-            $profile->{$relation}()->create($item + $defaults);
-        }
     }
 }

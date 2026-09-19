@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Enums\TaskStatus;
+use App\Events\TimerStarted;
+use App\Events\TimerStopped;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -16,7 +18,9 @@ class TimerService
      */
     public function start(Task $task): Task
     {
-        return DB::transaction(function () use ($task) {
+        $started = false;
+
+        $task = DB::transaction(function () use ($task, &$started) {
             $this->lockOwner($task->user_id);
 
             $running = $task->timeLogs()->whereNull('ended_at')->exists();
@@ -34,23 +38,41 @@ class TimerService
                     'started_at' => Carbon::now(),
                 ]);
                 $task->update(['status' => TaskStatus::InProgress]);
+                $started = true;
             }
 
             return $task->fresh(['category', 'timeLogs']);
         });
+
+        // After the commit, and only when a timer actually opened — calling
+        // start() on a task that is already running is a no-op, not news.
+        if ($started) {
+            TimerStarted::dispatch($task);
+        }
+
+        return $task;
     }
 
     /** Does nothing if no timer is running, so it is safe to call twice. */
     public function stop(Task $task): Task
     {
-        return DB::transaction(function () use ($task) {
+        $stopped = false;
+
+        $task = DB::transaction(function () use ($task, &$stopped) {
             $this->lockOwner($task->user_id);
 
             $running = $task->timeLogs()->whereNull('ended_at')->latest('started_at')->first();
             $running?->update(['ended_at' => Carbon::now()]);
+            $stopped = $running !== null;
 
             return $task->fresh(['category', 'timeLogs']);
         });
+
+        if ($stopped) {
+            TimerStopped::dispatch($task);
+        }
+
+        return $task;
     }
 
     /**

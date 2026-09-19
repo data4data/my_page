@@ -2,14 +2,14 @@
 
 namespace App\Providers;
 
+use App\Contracts\PortfolioSeedContent;
+use App\Contracts\TwoFactorProvider;
 use App\Enums\SecurityEventType;
-use App\Models\User;
 use App\Services\SecurityEventRecorder;
-use Illuminate\Auth\Events\Failed;
-use Illuminate\Auth\Events\Login;
+use App\Services\TwoFactorService;
+use App\Support\DefaultPortfolioContent;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -17,39 +17,29 @@ use Illuminate\Support\Str;
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Empty on purpose. Services in app/Services are concrete classes the
-     * container resolves by reflection. Add a binding only when a second
-     * implementation exists.
+     * The two contracts that have somewhere to go.
+     *
+     * Everything else in app/Services is a concrete class the container
+     * resolves by reflection, and stays that way: an interface with one
+     * implementation behind it is a file and an indirection. These two are
+     * different — a second factor that is not TOTP is a real prospect, and a
+     * fork replacing the seeded page is the whole point of the project being
+     * forkable.
      */
-    public function register(): void {}
-
-    public function boot(): void
+    public function register(): void
     {
-        $this->configureLoginRateLimiting();
-        $this->recordSignInAttempts();
+        $this->app->bind(TwoFactorProvider::class, TwoFactorService::class);
+        $this->app->bind(PortfolioSeedContent::class, DefaultPortfolioContent::class);
     }
 
     /**
-     * The sign-in trail behind the Security tab. Listeners, not code in
-     * AuthController, so an attempt is recorded however it was made.
+     * Only the rate limiter. The sign-in trail's listeners live in
+     * app/Listeners and are discovered by Laravel from their handle()
+     * signature — nothing registers them.
      */
-    private function recordSignInAttempts(): void
+    public function boot(): void
     {
-        Event::listen(function (Login $event): void {
-            app(SecurityEventRecorder::class)->record(
-                SecurityEventType::LoginSucceeded,
-                $event->user->email ?? null,
-                $event->user instanceof User ? $event->user : null,
-            );
-        });
-
-        Event::listen(function (Failed $event): void {
-            app(SecurityEventRecorder::class)->record(
-                SecurityEventType::LoginFailed,
-                $event->credentials['email'] ?? null,
-                $event->user instanceof User ? $event->user : null,
-            );
-        });
+        $this->configureLoginRateLimiting();
     }
 
     /**

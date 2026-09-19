@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
+use App\Events\PortfolioSaved;
 use App\Models\PortfolioProfile;
 use App\Models\PortfolioRevision;
 use App\Models\User;
-use App\Support\DefaultPortfolioContent;
 use App\Support\PortfolioFields;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -26,13 +26,13 @@ use Illuminate\Support\Facades\DB;
 class PortfolioContentService
 {
     public function __construct(
-        private DefaultPortfolioContent $defaults,
+        private PortfolioSeeder $seeder,
         private PortfolioPayload $payload,
         private PortfolioHistory $history,
     ) {}
 
     /**
-     * The profile. There is one — DefaultPortfolioContent::seed() is the only
+     * The profile. There is one — PortfolioSeeder::seed() is the only
      * thing that creates it, and it matches on a fixed slug — so this is
      * "the first row" rather than a choice between rows.
      */
@@ -44,7 +44,7 @@ class PortfolioContentService
         // editor that answers "not found" is a worse answer than an editor
         // full of the placeholder content the reset button would give you.
         if (! PortfolioProfile::query()->exists()) {
-            $this->defaults->seed();
+            $this->seeder->seed();
         }
 
         return PortfolioProfile::query()
@@ -67,11 +67,16 @@ class PortfolioContentService
      * Replace-on-save: the admin always submits complete collection state,
      * so each child relation is deleted and recreated from the payload.
      *
+     * One event for all three write paths, with a flag, rather than a
+     * separate PortfolioRestored: a restore *is* a save through this method —
+     * that is the property the class exists for — so two classes would be two
+     * wrappers over the same boolean.
+     *
      * @param  array<string, mixed>  $data
      */
-    public function save(array $data, ?User $author): PortfolioProfile
+    public function save(array $data, ?User $author, bool $restored = false): PortfolioProfile
     {
-        return DB::transaction(function () use ($data, $author): PortfolioProfile {
+        $profile = DB::transaction(function () use ($data, $author): PortfolioProfile {
             $profile = $this->activeProfile();
 
             $this->history->recordBaseline($profile);
@@ -87,11 +92,17 @@ class PortfolioContentService
 
             return $fresh;
         });
+
+        // After the commit, never inside it: a listener that reads the page
+        // must not see a version a rollback is about to undo.
+        PortfolioSaved::dispatch($profile, $author, $restored);
+
+        return $profile;
     }
 
     public function seedDefaults(?User $author): PortfolioProfile
     {
-        return DB::transaction(function () use ($author): PortfolioProfile {
+        $profile = DB::transaction(function () use ($author): PortfolioProfile {
             // Soft lookup: on a fresh install there is nothing to take a
             // baseline of yet, and activeProfile() would seed the very
             // content this is about to write.
@@ -99,19 +110,23 @@ class PortfolioContentService
                 $this->history->recordBaseline($this->activeProfile());
             }
 
-            $this->defaults->seed();
+            $this->seeder->seed();
 
             $fresh = $this->activeProfile();
             $this->history->record($fresh, $author);
 
             return $fresh;
         });
+
+        PortfolioSaved::dispatch($profile, $author);
+
+        return $profile;
     }
 
     /** Restoring is saving the snapshot again, so a restore is undoable too. */
     public function restore(PortfolioRevision $revision, ?User $author): PortfolioProfile
     {
-        return $this->save($revision->payload, $author);
+        return $this->save($revision->payload, $author, restored: true);
     }
 
     /**

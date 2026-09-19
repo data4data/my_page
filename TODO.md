@@ -27,20 +27,8 @@ What is left to do, worst first. How to do the work is in
    deletion means here, and what happens when both sides changed the same
    event. That last one is the whole difficulty.
 
-4. **The other two interfaces.** `TwoFactorService` → a `TwoFactorProvider`
-    contract (TOTP now, passkeys later). `DefaultPortfolioContent` → a contract
-    for where the seeded page comes from, so a fork ships its own. Nothing
-    else: an interface with one class behind it is a file and an indirection.
-
-5. **Put one-off jobs in `app/Actions/`.** Fortify and Jetstream set the
+4. **Put one-off jobs in `app/Actions/`.** Fortify and Jetstream set the
     precedent; prefer it to `lorisleiva/laravel-actions`. First candidates:
     restore a revision, reset to defaults, enrol a second factor, start and
     stop a timer.
 
-6. **Raise events for what something else reacts to.** `PortfolioSaved` /
-    `PortfolioRestored`, `InquiryReceived` to email you when the connect form
-    is used, `TimerStarted` / `TimerStopped` so calendar sync can react without
-    `TimerService` growing a branch. Move the inline `Login` / `Failed`
-    listeners to `app/Listeners/` when a third appears.
-
-7. **Update the "no bindings" note in `CLAUDE.md`** once 3 and 4 land.
