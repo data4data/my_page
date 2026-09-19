@@ -47,6 +47,80 @@ Its rules are **not** repeated here or in `.claude/skills/ship/`, on purpose: a 
 
 This file covers the other half — what the project *is*. Architecture, the aggregates, time handling, the design system.
 
+## Decisions taken, and not reopened
+
+Recorded here rather than in `TODO.md`, which holds only what is left to do.
+Each of these was measured or argued out; reopening one needs a new reason,
+not a fresh opinion.
+
+**One Laravel app on one server, not two.** Splitting the public page and the
+workspace onto separate machines buys a push pipeline, a second database, a
+payload contract between two versions of the same code and a two-stage deploy.
+What it was *for* — the public site serving the workspace's JavaScript — is
+closed by the two Vite bundles instead. Security here comes from the login:
+session auth with an `HttpOnly` cookie and CSRF is the strongest option for a
+browser app, better than a token in JavaScript's reach. Reopen if there is real
+traffic, a compliance requirement, or other people's data on the public side.
+
+**No versioned API, no token auth, no OpenAPI document.** All three existed to
+serve a third-party consumer. There is no mobile app. The workspace's JSON
+endpoints stay in `web.php`, because they are session-authenticated and
+same-origin — moving them to `routes/api.php` would 401 everything until
+Sanctum put the session back. `routes/api.php` earns its place the day a
+stateless caller does.
+
+**Not Inertia.** It replaces the JSON API with controllers that return Vue
+pages — no `apiFetch`, no loading flags, no hand-written error handling — and
+it is what to choose when *starting* an app of this shape. This workspace
+already works and has tests behind it, so moving it now is a rewrite that
+changes nothing a user sees. The signal to reconsider is writing fetch, loading
+and error code by hand for every new screen and getting tired of it.
+
+**The public page stays drawn by JavaScript.** A request for `/` returns a full
+`<head>` — around 2.4 KB of title, description, Open Graph, Twitter card and
+schema.org — and an empty body. That is enough for the link previews a
+portfolio is actually reached through, and Google indexes JavaScript pages
+anyway. Rendering the six sections in Blade would buy only being *found* by a
+search engine rather than *sent* to; it would cost two files that both know how
+to draw a project card, and it would save 13 KB of a 252 KB bundle, because the
+connect form keeps Vue and PrimeVue either way. If search ever matters, the
+cheap version is the hero — role, headline, summary — inside `#app` in Blade:
+Vue wipes `#app` on mount, so a browser never sees it twice and a crawler reads
+the part that matters.
+
+**Mail providers need no code.** `config/mail.php` plus `MAIL_MAILER` already
+switches SMTP, SES, Postmark and Resend. Writing an interface over Laravel's
+would add a layer and buy nothing.
+
+**No `Task` subclasses.** Eloquent has no single-table inheritance, so
+`ManualTask`/`SyncedTask` means overriding `newFromBuilder()` or adding
+`tighten/parental` — and then `$timeLog->task` silently returns the base class
+wherever that is missed. The differences between a hand-made task and a synced
+one are guard rules (the remote owns the schedule, deleting unlinks rather than
+deletes, it cannot be created by hand), and `TaskPolicy` and
+`UpdateTaskRequest` are where rules live. They belong on the `TaskSource` enum
+— `ownsSchedule()`, `canBeEditedHere()`, `deletesRemotely()` — one `match` per
+rule in one file. **Revisit on columns, not behaviour:** if synced tasks need a
+recurrence rule, attendees or a meeting link, that is a one-to-one
+`task_calendar_details` table, not a subclass and not nullable columns empty
+for most rows.
+
+**What stays denormalised, and why.**
+
+- **The `{en, nl}` JSON columns.** A translations table turns every read into a
+  join and a pivot, for two languages on a page always read whole. Revisit if a
+  translated value must be sorted or filtered in SQL.
+- **`portfolio_projects.tags`.** Free text, never shared between projects,
+  never queried. Revisit when something wants "every project tagged Laravel".
+- **`headline_highlights`.** A short list tied to one string.
+- **`portfolio_revisions.payload`.** The snapshot is what makes `restore()` the
+  same code path as `save()`.
+- **Four content child tables staying four tables.** One table with a `type`
+  and a JSON blob would be *less* relational, not more.
+- **`tasks.status` and `tasks.source` as strings.** A DB enum needs an
+  `ALTER TABLE` to gain a case, and the enum classes plus validation already
+  constrain them.
+
 ## Migrations
 
 **One `create_` per table, and no alters.** The history was squashed on 2026-09-19, while nothing was deployed: every column, index and default lives in the migration that creates its table. Anyone with an older database runs `migrate:fresh --seed`; there is no upgrade path and there does not need to be one.
