@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\PortfolioRevision;
 use App\Models\User;
-use App\Services\PortfolioContentService;
 use App\Support\DefaultPortfolioContent;
+use App\Support\PortfolioFields;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
@@ -103,7 +103,7 @@ class PortfolioPayloadShapeTest extends TestCase
     {
         $profile = $this->fetch($asAdmin)['profile'];
 
-        $this->assertSame(PortfolioContentService::PROFILE_KEYS, array_keys($profile));
+        $this->assertSame(PortfolioFields::PROFILE, array_keys($profile));
     }
 
     #[DataProvider('bothEndpoints')]
@@ -124,7 +124,7 @@ class PortfolioPayloadShapeTest extends TestCase
 
             foreach ($payload[$payloadKey] as $index => $row) {
                 $this->assertSame(
-                    PortfolioContentService::CHILD_KEYS[$relation],
+                    PortfolioFields::CHILDREN[$relation],
                     array_keys($row),
                     "{$payloadKey}[{$index}] should carry only its editable fields.",
                 );
@@ -193,11 +193,11 @@ class PortfolioPayloadShapeTest extends TestCase
         // contract here. The HTTP responses above keep the order they are
         // built in, which is why those compare it.
         $this->assertSame(
-            $this->sorted(PortfolioContentService::PROFILE_KEYS),
+            $this->sorted(PortfolioFields::PROFILE),
             $this->sorted(array_keys($snapshot['profile'])),
         );
         $this->assertSame(
-            $this->sorted(PortfolioContentService::CHILD_KEYS['metrics']),
+            $this->sorted(PortfolioFields::CHILDREN['metrics']),
             $this->sorted(array_keys($snapshot['metrics'][0])),
         );
     }

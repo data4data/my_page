@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources;
 
-use App\Services\PortfolioContentService;
+use App\Support\PortfolioFields;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -15,7 +15,7 @@ use LogicException;
  * project, a process step — as exactly the fields that row is made of.
  *
  * The four collections differ only in which keys they carry, and those live
- * in PortfolioContentService::CHILD_KEYS already, so this is one class asked
+ * in PortfolioFields::CHILDREN already, so this is one class asked
  * for a relation rather than four classes naming one list each. What it drops
  * is `id`, `portfolio_profile_id`, the timestamps and `sort_order`: position
  * is the order of the array, which is the only thing the page reads.
@@ -41,7 +41,7 @@ class PortfolioItemResource extends JsonResource
      */
     public static function forRelation(Collection $items, string $relation): array
     {
-        $keys = PortfolioContentService::CHILD_KEYS[$relation]
+        $keys = PortfolioFields::CHILDREN[$relation]
             ?? throw new LogicException("No key list for the [{$relation}] relation.");
 
         return $items

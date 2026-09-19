@@ -41,22 +41,15 @@ What is left to do, worst first. How to do the work is in
     for where the seeded page comes from, so a fork ships its own. Nothing
     else: an interface with one class behind it is a file and an indirection.
 
-9. **Split `PortfolioContentService`.** Four reasons to change in one class:
-    shaping a read (`payload`), writing (`save`, `replaceOrdered`), history
-    (`recordRevision`, `pruneRevisions`) and seeding (`seedDefaults`). An
-    interface in front would preserve the problem rather than fix it. The one
-    transaction and one write path must survive the split — that property is
-    why the class exists.
-
-10. **Put one-off jobs in `app/Actions/`.** Fortify and Jetstream set the
+9. **Put one-off jobs in `app/Actions/`.** Fortify and Jetstream set the
     precedent; prefer it to `lorisleiva/laravel-actions`. First candidates:
     restore a revision, reset to defaults, enrol a second factor, start and
     stop a timer.
 
-11. **Raise events for what something else reacts to.** `PortfolioSaved` /
+10. **Raise events for what something else reacts to.** `PortfolioSaved` /
     `PortfolioRestored`, `InquiryReceived` to email you when the connect form
     is used, `TimerStarted` / `TimerStopped` so calendar sync can react without
     `TimerService` growing a branch. Move the inline `Login` / `Failed`
     listeners to `app/Listeners/` when a third appears.
 
-12. **Update the "no bindings" note in `CLAUDE.md`** once 7 and 8 land.
+11. **Update the "no bindings" note in `CLAUDE.md`** once 7 and 8 land.

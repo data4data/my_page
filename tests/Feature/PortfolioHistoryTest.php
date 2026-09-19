@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\PortfolioProfile;
 use App\Models\PortfolioRevision;
 use App\Models\User;
+use App\Services\PortfolioContentService;
 use App\Support\DefaultPortfolioContent;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -160,6 +162,39 @@ class PortfolioHistoryTest extends TestCase
         $this->assertSame(['a', 'b'], array_column($response->json('metrics'), 'value'));
         $this->assertDatabaseHas('portfolio_metrics', ['value' => 'a', 'sort_order' => 1]);
         $this->assertDatabaseHas('portfolio_metrics', ['value' => 'b', 'sort_order' => 2]);
+    }
+
+    /**
+     * The property the service exists for, and the one a split could quietly
+     * lose: a save is **one** transaction. If anything in it throws, the
+     * profile, the child rows and the revision all go back together — a
+     * half-written page with a revision claiming it is whole would make the
+     * undo history lie.
+     */
+    public function test_a_failed_save_rolls_the_revision_back_with_the_content(): void
+    {
+        $this->seededProfile();
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->putJson($this->adminUrl('/portfolio'), $this->payload('Before'))->assertOk();
+
+        $revisionsBefore = PortfolioRevision::query()->count();
+
+        // A metric value longer than the column takes. Validation is bypassed
+        // by calling the service directly, so this fails at the insert —
+        // after the profile has been updated and the baseline written.
+        $broken = $this->payload('After');
+        $broken['metrics'] = [['value' => str_repeat('x', 300), 'label' => ['en' => 'A', 'nl' => 'A'], 'is_visible' => true]];
+
+        try {
+            app(PortfolioContentService::class)->save($broken, $admin);
+            $this->fail('The oversized metric should have failed the insert.');
+        } catch (QueryException) {
+            // Expected. What matters is what survived it.
+        }
+
+        $this->assertSame($revisionsBefore, PortfolioRevision::query()->count());
+        $this->assertSame('Before', PortfolioProfile::query()->value('headline')['en']);
     }
 
     /** Every save writes a row, so the table has to be capped. */

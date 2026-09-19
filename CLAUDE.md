@@ -243,11 +243,11 @@ All four writes go through `PortfolioContentService` — `save()`, `seedDefaults
 
 The five child collections all go through the same machinery: a key list in `CHILD_KEYS`, an entry in `PAYLOAD_TO_RELATION`, and `replaceOrdered()`. `replaceOrdered()` sets `is_visible` **only where the relation has the column** — social links derive theirs, and MySQL rejects an INSERT naming a generated column.
 
-*Adding a profile/child field:* migration → model `$fillable`/`$casts` → the matching key-list constant in `PortfolioContentService` (`PROFILE_KEYS` or `CHILD_KEYS`) → a rule in `UpdatePortfolioRequest` → `DefaultPortfolioContent::content()` if it should ship seeded.
+*Adding a profile/child field:* migration → model `$fillable`/`$casts` → the matching list in `App\Support\PortfolioFields` (`PROFILE` or `CHILDREN`) → a rule in `UpdatePortfolioRequest` → `DefaultPortfolioContent::content()` if it should ship seeded.
 
 #### One payload shape
 
-`payload()` is the only shape any read of the page returns — the public endpoint, the admin endpoint, and the JSON a `PortfolioRevision` stores. It is assembled by `PortfolioProfileResource` and `PortfolioItemResource` in `app/Http/Resources/`, which emit **exactly** `PROFILE_KEYS` and `CHILD_KEYS[$relation]`.
+`payload()` is the only shape any read of the page returns — the public endpoint, the admin endpoint, and the JSON a `PortfolioRevision` stores. `PortfolioPayload` builds it from `PortfolioProfileResource` and `PortfolioItemResource`, which emit **exactly** `PortfolioFields::PROFILE` and `PortfolioFields::CHILDREN[$relation]`.
 
 **It used to hand out the models.** `GET /portfolio` needs no login, so `id`, `slug`, `type`, `is_active` and the timestamps were public — and because `activeProfile()` eager-loads the four relations, the profile serialized them too, so every child row was sent once nested under `profile` and once at the top level. The cost of the metadata was small; the cost of the *default* was not, since any column added later joined the public response with no code change and no decision.
 
@@ -278,7 +278,9 @@ Ownership lives in `app/Policies/` (`TaskPolicy`, `CategoryPolicy`), found by na
 
 Controllers validate, authorize, delegate, and return JSON. Rules that outlive a request live elsewhere:
 
-- **`app/Services/`** — `PortfolioContentService` (the single write path for the public page, above) and `TimerService`. Plain concrete classes injected via `__construct()`; the container resolves them by reflection, so **`AppServiceProvider` registers no bindings** — no interfaces, no singletons. Add one only when a second implementation actually exists. Its `boot()` holds the `login` rate limiter and nothing else.
+- **`app/Services/`** — `PortfolioContentService`, `PortfolioPayload`, `PortfolioHistory` and `TimerService`.
+
+  The portfolio's three are one job each, split out of a class that had four reasons to change. **`PortfolioContentService` is the single write path** — `save()`, `seedDefaults()` and `restore()` in one transaction, which is the property the class exists for and the one a split could quietly lose (`PortfolioHistoryTest` has a test that a failed save takes its revision back with it). **`PortfolioPayload`** decides the shape of a read. **`PortfolioHistory`** owns the undo snapshots and their cap. What a profile and its children are *made of* lives in neither: `App\Support\PortfolioFields` holds the lists, so the read and the write cannot disagree about which fields exist. Plain concrete classes injected via `__construct()`; the container resolves them by reflection, so **`AppServiceProvider` registers no bindings** — no interfaces, no singletons. Add one only when a second implementation actually exists. Its `boot()` holds the `login` rate limiter and nothing else.
 - **`app/Http/Resources/`** — `PortfolioProfileResource` and `PortfolioItemResource`, the two classes that decide what leaves the app. Only the portfolio has them: tasks and categories are read by their own owner behind the login, so there is nothing to withhold. See *One payload shape* above.
 - **`app/Http/Requests/`** — `Store`/`Update` pairs for Task and Category, plus `UpdatePortfolioRequest`. Pairs, not single classes: the partial-update path swaps `required` for `sometimes`, so one rule set genuinely cannot serve both.
 - **`app/Policies/`** — ownership, as above.

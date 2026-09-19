@@ -3,14 +3,14 @@
 namespace App\Http\Resources;
 
 use App\Models\PortfolioProfile;
-use App\Services\PortfolioContentService;
+use App\Support\PortfolioFields;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * The profile as exactly the fields the page is made of.
  *
- * Built from PortfolioContentService::PROFILE_KEYS — the same list save()
+ * Built from PortfolioFields::PROFILE — the same list save()
  * writes — so the endpoint can only ever hand back what the editor can put
  * there. `GET /portfolio` needs no login, and returning the model instead
  * published `id`, `slug`, `type`, `is_active` and the timestamps, and would
@@ -31,6 +31,6 @@ class PortfolioProfileResource extends JsonResource
     {
         // only() reads through the casts, so the translated columns arrive as
         // {en, nl} arrays rather than as the raw JSON strings.
-        return $this->resource->only(PortfolioContentService::PROFILE_KEYS);
+        return $this->resource->only(PortfolioFields::PROFILE);
     }
 }
