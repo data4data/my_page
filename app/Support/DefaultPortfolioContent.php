@@ -24,6 +24,7 @@ class DefaultPortfolioContent
                 $content['profile'],
             );
 
+            $this->replace($profile, 'socialLinks', $content['social_links']);
             $this->replace($profile, 'metrics', $content['metrics']);
             $this->replace($profile, 'expertiseItems', $content['expertise_items']);
             $this->replace($profile, 'projects', $content['projects']);
@@ -37,7 +38,6 @@ class DefaultPortfolioContent
     {
         return [
             'profile' => [
-                'is_active' => true,
                 // A placeholder. Change it in the workspace.
                 'initials' => 'AB',
                 'role' => ['en' => 'Full-Stack Developer', 'nl' => 'Full-stack ontwikkelaar'],
@@ -79,12 +79,12 @@ class DefaultPortfolioContent
                     'en' => 'Leonardo da Vinci',
                     'nl' => 'Leonardo da Vinci',
                 ],
-                // Placeholders. Edited under Edit page -> Social links.
-                'social_links' => [
-                    ['label' => 'GitHub', 'url' => 'https://github.com/', 'icon' => 'github', 'in_rail' => true, 'in_footer' => true],
-                    ['label' => 'LinkedIn', 'url' => 'https://www.linkedin.com/', 'icon' => 'linkedin', 'in_rail' => true, 'in_footer' => true],
-                    ['label' => 'Email', 'url' => 'mailto:hello@example.com', 'icon' => 'mail', 'in_rail' => true, 'in_footer' => true],
-                ],
+            ],
+            // Placeholders. Edited under Edit page -> Social links.
+            'social_links' => [
+                ['label' => 'GitHub', 'url' => 'https://github.com/', 'icon' => 'github', 'in_rail' => true, 'in_footer' => true],
+                ['label' => 'LinkedIn', 'url' => 'https://www.linkedin.com/', 'icon' => 'linkedin', 'in_rail' => true, 'in_footer' => true],
+                ['label' => 'Email', 'url' => 'mailto:hello@example.com', 'icon' => 'mail', 'in_rail' => true, 'in_footer' => true],
             ],
             'metrics' => [
                 ['value' => '10+', 'label' => ['en' => 'Years of experience', 'nl' => 'Jaren ervaring']],
@@ -176,10 +176,16 @@ class DefaultPortfolioContent
         $profile->{$relation}()->delete();
 
         foreach (array_values($items) as $index => $item) {
-            $profile->{$relation}()->create($item + [
-                'sort_order' => $index + 1,
-                'is_visible' => true,
-            ]);
+            // is_visible only where the relation has the column: social links
+            // derive theirs from their two placements, and MySQL rejects an
+            // INSERT naming a generated column.
+            $defaults = ['sort_order' => $index + 1];
+
+            if ($relation !== 'socialLinks') {
+                $defaults['is_visible'] = true;
+            }
+
+            $profile->{$relation}()->create($item + $defaults);
         }
     }
 }

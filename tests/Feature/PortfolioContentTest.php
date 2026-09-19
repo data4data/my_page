@@ -107,10 +107,10 @@ class PortfolioContentTest extends TestCase
 
         $this->actingAs($admin)
             ->putJson($this->adminUrl('/portfolio'), $this->payload([
-                'profile' => ['social_links' => [['label' => 'Evil', 'url' => $url, 'icon' => 'link']]],
+                'social_links' => [['label' => 'Evil', 'url' => $url, 'icon' => 'link']],
             ]))
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['profile.social_links.0.url']);
+            ->assertJsonValidationErrors(['social_links.0.url']);
     }
 
     /** Looser than Laravel's `url`, which rejects the seeded fragment CTAs. */
@@ -422,22 +422,20 @@ class PortfolioContentTest extends TestCase
 
         $this->actingAs($admin)
             ->putJson($this->adminUrl('/portfolio'), $this->payload([
-                'profile' => [
-                    'social_links' => [
-                        ['label' => 'Shown', 'url' => 'https://example.test/shown', 'icon' => 'link', 'in_rail' => true, 'in_footer' => true],
-                        ['label' => 'Hidden', 'url' => 'https://example.test/hidden', 'icon' => 'link', 'in_rail' => false, 'in_footer' => false],
-                    ],
+                'social_links' => [
+                    ['label' => 'Shown', 'url' => 'https://example.test/shown', 'icon' => 'link', 'in_rail' => true, 'in_footer' => true],
+                    ['label' => 'Hidden', 'url' => 'https://example.test/hidden', 'icon' => 'link', 'in_rail' => false, 'in_footer' => false],
                 ],
             ]))
             ->assertOk();
 
-        $public = $this->getJson('/portfolio')->assertOk()->json('profile.social_links');
+        $public = $this->getJson('/portfolio')->assertOk()->json('social_links');
 
         $this->assertCount(1, $public);
         $this->assertSame('Shown', $public[0]['label']);
 
         // The editor sees both, or a hidden one could never come back.
-        $admin_links = $this->actingAs($admin)->getJson($this->adminUrl('/portfolio'))->json('profile.social_links');
+        $admin_links = $this->actingAs($admin)->getJson($this->adminUrl('/portfolio'))->json('social_links');
         $this->assertCount(2, $admin_links);
     }
 
@@ -448,15 +446,13 @@ class PortfolioContentTest extends TestCase
 
         $this->actingAs($admin)
             ->putJson($this->adminUrl('/portfolio'), $this->payload([
-                'profile' => [
-                    'social_links' => [
-                        ['label' => 'One', 'url' => 'https://example.test/one', 'icon' => 'link', 'in_rail' => false, 'in_footer' => false],
-                    ],
+                'social_links' => [
+                    ['label' => 'One', 'url' => 'https://example.test/one', 'icon' => 'link', 'in_rail' => false, 'in_footer' => false],
                 ],
             ]))
             ->assertOk();
 
-        $this->assertSame([], $this->getJson('/portfolio')->assertOk()->json('profile.social_links'));
+        $this->assertSame([], $this->getJson('/portfolio')->assertOk()->json('social_links'));
     }
 
     // Filtering must not touch the caller's instance: the same method builds
@@ -468,10 +464,8 @@ class PortfolioContentTest extends TestCase
 
         $this->actingAs($admin)
             ->putJson($this->adminUrl('/portfolio'), $this->payload([
-                'profile' => [
-                    'social_links' => [
-                        ['label' => 'Hidden', 'url' => 'https://example.test/hidden', 'icon' => 'link', 'in_rail' => false, 'in_footer' => false],
-                    ],
+                'social_links' => [
+                    ['label' => 'Hidden', 'url' => 'https://example.test/hidden', 'icon' => 'link', 'in_rail' => false, 'in_footer' => false],
                 ],
             ]))
             ->assertOk();
@@ -482,7 +476,7 @@ class PortfolioContentTest extends TestCase
 
         $snapshot = PortfolioRevision::query()->latest('id')->first()->payload;
 
-        $this->assertCount(1, $snapshot['profile']['social_links']);
+        $this->assertCount(1, $snapshot['social_links']);
     }
 
     /** A link with no flag at all must still show. */
@@ -493,15 +487,13 @@ class PortfolioContentTest extends TestCase
 
         $this->actingAs($admin)
             ->putJson($this->adminUrl('/portfolio'), $this->payload([
-                'profile' => [
-                    'social_links' => [
-                        ['label' => 'Legacy', 'url' => 'https://example.test/legacy', 'icon' => 'link'],
-                    ],
+                'social_links' => [
+                    ['label' => 'Legacy', 'url' => 'https://example.test/legacy', 'icon' => 'link'],
                 ],
             ]))
             ->assertOk();
 
-        $public = $this->getJson('/portfolio')->assertOk()->json('profile.social_links');
+        $public = $this->getJson('/portfolio')->assertOk()->json('social_links');
 
         $this->assertCount(1, $public);
         $this->assertSame('Legacy', $public[0]['label']);
@@ -518,17 +510,15 @@ class PortfolioContentTest extends TestCase
 
         $this->actingAs($admin)
             ->putJson($this->adminUrl('/portfolio'), $this->payload([
-                'profile' => [
-                    'social_links' => [
-                        ['label' => 'Rail only', 'url' => 'https://example.test/rail', 'icon' => 'link', 'in_rail' => true, 'in_footer' => false],
-                        ['label' => 'Footer only', 'url' => 'https://example.test/footer', 'icon' => 'link', 'in_rail' => false, 'in_footer' => true],
-                        ['label' => 'Neither', 'url' => 'https://example.test/none', 'icon' => 'link', 'in_rail' => false, 'in_footer' => false],
-                    ],
+                'social_links' => [
+                    ['label' => 'Rail only', 'url' => 'https://example.test/rail', 'icon' => 'link', 'in_rail' => true, 'in_footer' => false],
+                    ['label' => 'Footer only', 'url' => 'https://example.test/footer', 'icon' => 'link', 'in_rail' => false, 'in_footer' => true],
+                    ['label' => 'Neither', 'url' => 'https://example.test/none', 'icon' => 'link', 'in_rail' => false, 'in_footer' => false],
                 ],
             ]))
             ->assertOk();
 
-        $public = $this->getJson('/portfolio')->assertOk()->json('profile.social_links');
+        $public = $this->getJson('/portfolio')->assertOk()->json('social_links');
 
         // The one shown nowhere is dropped; the placements survive.
         $this->assertSame(['Rail only', 'Footer only'], array_column($public, 'label'));
@@ -542,25 +532,34 @@ class PortfolioContentTest extends TestCase
      * Links saved before the split carry only is_visible. Treating a missing
      * placement as "off" would empty both places on an existing install.
      */
-    public function test_a_link_from_before_the_split_still_shows_in_both_places(): void
+    /**
+     * A link saved before the two placements existed carried only
+     * `is_visible`, and PortfolioContentService had a fallback for it. That
+     * data lived in a JSON column that no longer exists — the links are rows
+     * now, with real defaults, and `migrate:fresh` is the only path here — so
+     * there is nothing left to fall back for.
+     *
+     * What replaces it: a row shown in neither place is not published,
+     * because is_visible is generated from the two placements.
+     */
+    public function test_a_link_shown_in_neither_place_is_not_published(): void
     {
         $admin = $this->admin();
         $this->seededProfile();
 
         $this->actingAs($admin)
             ->putJson($this->adminUrl('/portfolio'), $this->payload([
-                'profile' => [
-                    'social_links' => [
-                        ['label' => 'Legacy on', 'url' => 'https://example.test/on', 'icon' => 'link', 'is_visible' => true],
-                        ['label' => 'Legacy off', 'url' => 'https://example.test/off', 'icon' => 'link', 'is_visible' => false],
-                    ],
+                'social_links' => [
+                    ['label' => 'Rail only', 'url' => 'https://example.test/rail', 'icon' => 'link', 'in_rail' => true, 'in_footer' => false],
+                    ['label' => 'Footer only', 'url' => 'https://example.test/footer', 'icon' => 'link', 'in_rail' => false, 'in_footer' => true],
+                    ['label' => 'Nowhere', 'url' => 'https://example.test/none', 'icon' => 'link', 'in_rail' => false, 'in_footer' => false],
                 ],
             ]))
             ->assertOk();
 
-        $public = $this->getJson('/portfolio')->assertOk()->json('profile.social_links');
+        $public = $this->getJson('/portfolio')->assertOk()->json('social_links');
 
-        $this->assertSame(['Legacy on'], array_column($public, 'label'));
+        $this->assertSame(['Rail only', 'Footer only'], array_column($public, 'label'));
     }
 
     public function test_a_contact_address_that_is_not_an_email_is_rejected(): void
@@ -588,7 +587,7 @@ class PortfolioContentTest extends TestCase
             ->assertOk();
 
         // The button that reads this hides itself rather than mailing nowhere.
-        $this->assertNull(PortfolioProfile::where('is_active', true)->first()->contact_email);
+        $this->assertNull(PortfolioProfile::query()->first()->contact_email);
     }
 
     /**
@@ -632,7 +631,7 @@ class PortfolioContentTest extends TestCase
 
         $this->assertSame(
             'https://cdn.example.com/card.png',
-            PortfolioProfile::where('is_active', true)->first()->social_image_url,
+            PortfolioProfile::query()->first()->social_image_url,
         );
     }
 }

@@ -76,16 +76,18 @@ class UpdatePortfolioRequest extends FormRequest
             // fragments and relative paths SafeUrl exists to allow are all
             // useless here.
             'profile.social_image_url' => ['nullable', 'string', 'url:http,https', 'max:255'],
-            'profile.social_links' => ['nullable', 'array'],
-            'profile.social_links.*.label' => ['nullable', 'string', 'max:60'],
-            'profile.social_links.*.url' => ['required', 'string', 'max:255', new SafeUrl],
+
+            // A child collection like the four below it, not a field on the
+            // profile — see the portfolio_social_links migration.
+            'social_links' => ['array'],
+            'social_links.*.label' => ['nullable', 'string', 'max:60'],
+            'social_links.*.url' => ['required', 'string', 'max:255', new SafeUrl],
             // Resolved via iconMap; an unknown key renders nothing.
-            'profile.social_links.*.icon' => ['nullable', 'string', 'max:60'],
-            // is_visible is the single switch the two placements replaced,
-            // still accepted from older payloads.
-            'profile.social_links.*.in_rail' => ['sometimes', 'boolean'],
-            'profile.social_links.*.in_footer' => ['sometimes', 'boolean'],
-            'profile.social_links.*.is_visible' => ['sometimes', 'boolean'],
+            'social_links.*.icon' => ['nullable', 'string', 'max:60'],
+            // The two placements are independent. is_visible is derived from
+            // them by the database and is neither sent nor accepted.
+            'social_links.*.in_rail' => ['sometimes', 'boolean'],
+            'social_links.*.in_footer' => ['sometimes', 'boolean'],
 
             'metrics' => ['array'],
             // Required because the column is NOT NULL and a cleared field

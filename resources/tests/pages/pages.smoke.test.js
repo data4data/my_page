@@ -28,13 +28,14 @@ const payload = {
         summary: { en: 'Summary', nl: 'Samenvatting' },
         default_language: 'en',
         show_language_toggle: true,
-        social_links: [
-            { label: 'Both', url: 'https://both.test', icon: 'github', in_rail: true, in_footer: true },
-            { label: 'Rail only', url: 'https://rail.test', icon: 'link', in_rail: true, in_footer: false },
-            { label: 'Footer only', url: 'https://footer.test', icon: 'link', in_rail: false, in_footer: true },
-            { label: 'Hidden', url: 'https://hidden.test', icon: 'link', in_rail: false, in_footer: false },
-        ],
     },
+    // A child collection, like the four below it.
+    social_links: [
+        { label: 'Both', url: 'https://both.test', icon: 'github', in_rail: true, in_footer: true },
+        { label: 'Rail only', url: 'https://rail.test', icon: 'link', in_rail: true, in_footer: false },
+        { label: 'Footer only', url: 'https://footer.test', icon: 'link', in_rail: false, in_footer: true },
+        { label: 'Hidden', url: 'https://hidden.test', icon: 'link', in_rail: false, in_footer: false },
+    ],
     metrics: [],
     expertise_items: [],
     projects: [],
@@ -97,7 +98,7 @@ describe('page smoke tests', () => {
 
     it('PublicPage drops each place independently', async () => {
         const railOnly = structuredClone(payload);
-        railOnly.profile.social_links = [
+        railOnly.social_links = [
             { label: 'Rail only', url: 'https://rail.test', icon: 'link', in_rail: true, in_footer: false },
         ];
         global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(railOnly) }));
@@ -118,7 +119,7 @@ describe('page smoke tests', () => {
             ok: true,
             json: () => Promise.resolve({
                 ...structuredClone(payload),
-                profile: { ...structuredClone(payload).profile, social_links: [] },
+                social_links: [],
             }),
         }));
 

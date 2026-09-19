@@ -12,8 +12,8 @@ What is left to do, worst first. How to do the work is in
 
 ## Code with no tests
 
-2. **`showsIn()` is copied in two places and tested in one.** PHP is covered,
-   `shared/portfolio.js` is not.
+2. **`showsIn()` has no test.** The PHP half is gone with the JSON column;
+   what is left in `shared/portfolio.js` guards a half-built editor object.
 3. **`planning.js` has no tests.** 251 lines holding every planner request.
 4. **`theme.js` has no test.** `holdTheme()`'s holder counting decides whether
    the public page stays out of dark mode.
@@ -72,55 +72,9 @@ summary — inside `#app` in Blade. Vue wipes `#app` when it mounts, so a browse
 never sees it twice and a crawler reads the part that matters. Full server
 rendering is Inertia with SSR, and a Node process beside PHP.
 
-## A. What is left of the database work
+## B. Interfaces, actions, and who creates what
 
-The squash and the schema changes landed on 2026-09-19 — see the Migrations
-section of `CLAUDE.md`. One item remains.
-
-9. **Make `social_links` a child table.** It is a JSON array of
-   `{label, url, icon, in_rail, in_footer}` on the profile — a repeating group
-   with its own fields, its own ordering and its own visibility. Every other
-   repeating group on the page is already a table; this one is a table in a
-   JSON costume.
-
-   `portfolio_social_links` with `sort_order`, `in_rail` and `in_footer` as
-   real columns removes `withVisibleSocialLinks()` and the clone it works on,
-   because the `is_visible` filtering `payload()` already applies to the child
-   collections would reach it like everything else. It also lets
-   `UpdatePortfolioRequest` validate a row as a row, and lets a link be
-   reordered without rewriting the whole column.
-
-   The `showsIn()` pair in PHP and JS stays either way — the fallback for a
-   link saved before the two placements existed is about old data, not about
-   where it is stored.
-
-10. **Decide whether `is_active` earns its place.** Nothing in the app can
-    create a second profile: the only path is `updateOrCreate(['slug' =>
-    self::SLUG])`. So `is_active`, `activate()`,
-    `test_only_one_profile_stays_active` and the `where('is_active', true)` in
-    three query paths are all machinery for a feature that does not exist. A
-    UNIQUE index on a generated `only_active` column would work, but it
-    defends a state nothing can reach — and would break that test. If
-    multi-profile is ever built, the column and the index come back together.
-
-**Leave denormalised, on purpose.** So the question is not reopened every six
-months.
-
-- **`{en, nl}` JSON columns.** A translations table turns every read into a
-  join and a pivot, for two languages on a page always read whole. Revisit if a
-  translated value must be sorted or filtered in SQL.
-- **`projects.tags`.** Free text, never shared, never queried.
-- **`headline_highlights`.** A short list tied to one string.
-- **`portfolio_revisions.payload`.** The snapshot is what makes `restore()` the
-  same code path as `save()`.
-- **Four child tables staying four tables.** One table with a `type` and a JSON
-  blob would be *less* relational.
-- **`tasks.status` and `source` as strings.** A DB enum needs an `ALTER TABLE`
-  to gain a case.
-
-## B. When something asks for it
-
-11. **Three kinds of row, three owners.** *Roles are code* — `admin` is a name
+9. **Three kinds of row, three owners.** *Roles are code* — `admin` is a name
     the middleware refers to, so it stays seeded and idempotent. *The admin
     user and the profile are this install's identity* — they move to
     `php artisan app:install`, which asks for email, password and initials.
@@ -133,11 +87,11 @@ months.
     workspace would throw rather than say so. **Has a reason already — item
     24.**
 
-12. **Mail providers need no work.** `config/mail.php` plus `MAIL_MAILER`
+10. **Mail providers need no work.** `config/mail.php` plus `MAIL_MAILER`
     already switches SMTP, SES, Postmark, Resend. Do not write an interface
     over Laravel's.
 
-13. **Calendar sync is the one interface that earns its place.** Google,
+11. **Calendar sync is the one interface that earns its place.** Google,
     Microsoft 365 and CalDAV are three implementations of one idea:
     `CalendarProvider` with `pull()` and `push()`. Providers speak a plain
     readonly `CalendarEvent`; one mapper turns that into a `Task`. `TaskSource`
@@ -148,7 +102,7 @@ months.
     deletion means here, and what happens when both sides changed the same
     event.
 
-14. **No `Task` subclasses.** Eloquent has no single-table inheritance, so
+12. **No `Task` subclasses.** Eloquent has no single-table inheritance, so
     `ManualTask`/`SyncedTask` means `newFromBuilder()` or `tighten/parental`,
     and `$timeLog->task` silently returns the base class wherever it is missed.
     The differences are guard rules — remote owns the schedule, deleting
@@ -160,25 +114,25 @@ months.
     rule, attendees or a meeting link, that is a one-to-one
     `task_calendar_details` table.
 
-15. **The other two interfaces.** `TwoFactorService` → a `TwoFactorProvider`
+13. **The other two interfaces.** `TwoFactorService` → a `TwoFactorProvider`
     contract (TOTP now, passkeys later). `DefaultPortfolioContent` → a contract
     for where the seeded page comes from, so a fork ships its own. Nothing
     else: an interface with one class behind it is a file and an indirection.
 
-16. **Split `PortfolioContentService`.** 273 lines with five reasons to change
+14. **Split `PortfolioContentService`.** 273 lines with five reasons to change
     — reading, writing, history, activation, seeding. An interface in front
     would preserve the problem. The one transaction and one write path must
     survive the split.
 
-17. **Put one-off jobs in `app/Actions/`.** Fortify and Jetstream set the
+15. **Put one-off jobs in `app/Actions/`.** Fortify and Jetstream set the
     precedent; prefer it to `lorisleiva/laravel-actions`. First candidates:
     restore a revision, reset to defaults, enrol a second factor, start and
     stop a timer.
 
-18. **Raise events for what something else reacts to.** `PortfolioSaved` /
+16. **Raise events for what something else reacts to.** `PortfolioSaved` /
     `PortfolioRestored`, `InquiryReceived` to email you when the connect form
     is used, `TimerStarted` / `TimerStopped` so calendar sync can react without
     `TimerService` growing a branch. Move the inline `Login` / `Failed`
     listeners to `app/Listeners/` when a third appears.
 
-19. **Update the "no bindings" note in `CLAUDE.md`** once 13 and 15 land.
+17. **Update the "no bindings" note in `CLAUDE.md`** once 11 and 13 land.

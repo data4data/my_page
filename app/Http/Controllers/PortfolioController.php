@@ -20,7 +20,7 @@ class PortfolioController extends Controller
     {
         // Not activeProfile(), which throws: every page must still render on
         // a fresh install before anything is seeded.
-        $profile = PortfolioProfile::query()->where('is_active', true)->first();
+        $profile = PortfolioProfile::query()->first();
         $inWorkspace = $this->insideWorkspace($request);
         $default = $profile->default_language ?? 'en';
 

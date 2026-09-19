@@ -10,11 +10,10 @@ return new class extends Migration
     {
         Schema::create('portfolio_profiles', function (Blueprint $table) {
             $table->id();
-            // The seeder's idempotency key — it is what updateOrCreate()
-            // matches on. Nothing reads it at request time; is_active picks
-            // the live profile.
+            // The seeder's idempotency key — what updateOrCreate() matches
+            // on, and the only thing that identifies a profile. There is one
+            // row: nothing in the app can create a second.
             $table->string('slug')->unique();
-            $table->boolean('is_active')->default(true);
             // A placeholder. This project is meant to be forked, so nothing
             // seeded names a particular person.
             $table->string('initials', 12)->default('AB');
@@ -38,10 +37,6 @@ return new class extends Migration
             $table->json('availability_note')->nullable();
             $table->json('quote')->nullable();
             $table->json('quote_author')->nullable();
-            // A JSON array of {label, url, icon, in_rail, in_footer}. The two
-            // placements are independent: a link can sit in the side rail, in
-            // the footer, in both, or in neither.
-            $table->json('social_links')->nullable();
             // Which language owns the bare URL, and whether the EN/NL switch
             // renders at all. See "One URL per language" in CLAUDE.md.
             $table->string('default_language', 2)->default('en');

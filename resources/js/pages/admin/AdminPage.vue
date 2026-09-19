@@ -40,6 +40,7 @@ const {
     expertise,
     projects,
     processSteps,
+    socialLinks,
 } = usePortfolioSource(adminUrl('/portfolio'));
 
 const saving = ref(false);
@@ -337,7 +338,7 @@ const updateTags = (project, value) => {
             <ExpertiseTab v-else-if="tab === 'expertise'" :expertise="expertise" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :profile="profile" />
             <ProcessTab v-else-if="tab === 'process'" :process-steps="processSteps" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :profile="profile" />
             <ProjectsTab v-else-if="tab === 'projects'" :projects="projects" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :update-tags="updateTags" :profile="profile" />
-            <SocialLinksTab v-else-if="tab === 'social'" :profile="profile" />
+            <SocialLinksTab v-else-if="tab === 'social'" :links="socialLinks" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
             <SharedTab v-else-if="tab === 'shared'" :profile="profile" />
 
             <template #status>{{ saveStatus }}</template>

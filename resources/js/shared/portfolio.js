@@ -21,17 +21,16 @@ export const translatableItemFields = {
 };
 
 /**
- * Where a social link shows. The rail and the footer are independent.
+ * Where a social link shows. The rail and the footer are independent, so each
+ * place draws its own set and each disappears on its own when nothing wants
+ * it.
  *
- * Links saved before the split carry only is_visible, so it stands in for a
- * missing placement — otherwise both places would empty on every install that
- * already had links. Mirrored by showsIn() in PortfolioContentService.
+ * A missing placement reads as shown. It used to stand in for the `is_visible`
+ * switch the two placements replaced, back when links were a JSON column on
+ * the profile; they are rows now, with real defaults, so this is only a guard
+ * against a half-built object in an editor.
  */
-export const showsIn = (link, place) => {
-    const explicit = link?.[place === 'rail' ? 'in_rail' : 'in_footer'];
-
-    return explicit ?? (link?.is_visible !== false);
-};
+export const showsIn = (link, place) => link?.[place === 'rail' ? 'in_rail' : 'in_footer'] ?? true;
 
 export const linksFor = (links, place) => (Array.isArray(links) ? links : [])
     .filter((link) => link?.url && showsIn(link, place));
@@ -53,7 +52,7 @@ const asTranslation = (value) => {
 // PortfolioProfileResource now and carries the profile's own fields only, so
 // there is one place to read each collection from.
 export function normalizePortfolio(payload) {
-    ['metrics', 'expertise_items', 'projects', 'process_steps'].forEach((collection) => {
+    ['social_links', 'metrics', 'expertise_items', 'projects', 'process_steps'].forEach((collection) => {
         if (!Array.isArray(payload[collection])) {
             payload[collection] = [];
         }
@@ -96,10 +95,13 @@ export function usePortfolioSource(endpoint) {
     const expertise = computed(() => data.value?.expertise_items ?? []);
     const projects = computed(() => data.value?.projects ?? []);
     const processSteps = computed(() => data.value?.process_steps ?? []);
-    // The public endpoint drops links shown nowhere but still sends both
-    // placements, and the admin reads the unfiltered payload through here too.
-    const railLinks = computed(() => linksFor(profile.value.social_links, 'rail'));
-    const footerLinks = computed(() => linksFor(profile.value.social_links, 'footer'));
+    // The public endpoint drops links shown in neither place — is_visible on
+    // the row is generated from the two — and the admin reads the unfiltered
+    // payload through here too.
+    // A child collection like the four above, not a field on the profile.
+    const socialLinks = computed(() => data.value?.social_links ?? []);
+    const railLinks = computed(() => linksFor(socialLinks.value, 'rail'));
+    const footerLinks = computed(() => linksFor(socialLinks.value, 'footer'));
 
     return {
         data,
@@ -110,6 +112,7 @@ export function usePortfolioSource(endpoint) {
         expertise,
         projects,
         processSteps,
+        socialLinks,
         railLinks,
         footerLinks,
     };

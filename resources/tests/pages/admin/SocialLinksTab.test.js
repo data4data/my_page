@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import SocialLinksTab from '../../../js/pages/admin/SocialLinksTab.vue';
 
 const stubs = {
@@ -17,109 +17,78 @@ const stubs = {
     Plus: true,
 };
 
-const mountTab = (profile) => mount(SocialLinksTab, { props: { profile }, global: { stubs } });
+const link = (label, extra = {}) => ({
+    label,
+    url: `https://${label.toLowerCase()}.test`,
+    icon: 'link',
+    in_rail: true,
+    in_footer: true,
+    ...extra,
+});
+
+const mountTab = (links = []) => {
+    const handlers = { addItem: vi.fn(), removeItem: vi.fn(), moveItem: vi.fn() };
+    const wrapper = mount(SocialLinksTab, { props: { links, ...handlers }, global: { stubs } });
+
+    return { wrapper, ...handlers };
+};
 
 const cards = (wrapper) => wrapper.findAll('.item-card');
 const addButton = (wrapper) => wrapper.findAll('button').at(-1);
 
 describe('SocialLinksTab', () => {
     it('lists one card per link, ones shown nowhere included', () => {
-        const profile = {
-            social_links: [
-                { label: 'GitHub', url: 'https://github.test', icon: 'github', in_rail: true, in_footer: true },
-                { label: 'Old', url: 'https://old.test', icon: 'link', in_rail: false, in_footer: false },
-            ],
-        };
+        const { wrapper } = mountTab([
+            link('GitHub'),
+            link('Nowhere', { in_rail: false, in_footer: false }),
+        ]);
 
         // Both, or one switched off everywhere could never come back.
-        expect(cards(mountTab(profile))).toHaveLength(2);
+        expect(cards(wrapper)).toHaveLength(2);
     });
 
-    it('copes with a profile that has never had links', async () => {
-        const profile = {};
-        const wrapper = mountTab(profile);
+    it('renders no cards when there are none', () => {
+        expect(cards(mountTab().wrapper)).toHaveLength(0);
+    });
 
-        expect(cards(wrapper)).toHaveLength(0);
+    // A child collection now, so the tab asks AdminPage rather than editing an
+    // array on the profile in place.
+    it('adds through the shared helper, shown in both places', async () => {
+        const { wrapper, addItem } = mountTab([]);
 
         await addButton(wrapper).trigger('click');
 
-        expect(profile.social_links).toEqual([{ label: '', url: '', icon: 'link', in_rail: true, in_footer: true }]);
-    });
-
-    it('adds links shown in both places, so a new one is not silently invisible', async () => {
-        const profile = { social_links: [] };
-        const wrapper = mountTab(profile);
-
-        await addButton(wrapper).trigger('click');
-
-        expect(profile.social_links[0].in_rail).toBe(true);
-        expect(profile.social_links[0].in_footer).toBe(true);
+        expect(addItem).toHaveBeenCalledWith('social_links', {
+            label: '', url: '', icon: 'link', in_rail: true, in_footer: true,
+        });
     });
 
     it('toggles the two places independently', async () => {
-        const profile = {
-            social_links: [{ label: 'One', url: 'https://one.test', icon: 'link', in_rail: true, in_footer: true }],
-        };
-        const wrapper = mountTab(profile);
+        const links = [link('One')];
+        const { wrapper } = mountTab(links);
 
         const boxes = () => cards(wrapper)[0].findAllComponents({ name: 'AppCheckbox' });
 
         await boxes()[0].vm.$emit('update:modelValue', false);
 
-        expect(profile.social_links[0].in_rail).toBe(false);
+        expect(links[0].in_rail).toBe(false);
         // Turning one off must leave the other alone.
-        expect(profile.social_links[0].in_footer).toBe(true);
+        expect(links[0].in_footer).toBe(true);
 
         await boxes()[1].vm.$emit('update:modelValue', false);
-        expect(profile.social_links[0].in_footer).toBe(false);
+        expect(links[0].in_footer).toBe(false);
     });
 
-    // A link saved before the split carries only is_visible; an unticked box
-    // would misreport a link that is on show.
-    it('shows a link from before the split as ticked in both places', () => {
-        const profile = {
-            social_links: [{ label: 'Legacy', url: 'https://legacy.test', icon: 'link', is_visible: true }],
-        };
-        const wrapper = mountTab(profile);
-
-        const boxes = cards(wrapper)[0].findAllComponents({ name: 'AppCheckbox' });
-
-        expect(boxes[0].props('modelValue')).toBe(true);
-        expect(boxes[1].props('modelValue')).toBe(true);
-    });
-
-    it('reorders and removes in place, since these live on the profile', async () => {
-        const profile = {
-            social_links: [
-                { label: 'One', url: 'https://one.test', icon: 'link', is_visible: true },
-                { label: 'Two', url: 'https://two.test', icon: 'link', is_visible: true },
-                { label: 'Three', url: 'https://three.test', icon: 'link', is_visible: true },
-            ],
-        };
-        const wrapper = mountTab(profile);
+    it('hands reordering and removal to the shared helpers', async () => {
+        const { wrapper, moveItem, removeItem } = mountTab([link('One'), link('Two'), link('Three')]);
 
         // Each card header carries move up, move down, then remove.
         const buttonsOf = (index) => cards(wrapper)[index].findAll('header button');
 
         await buttonsOf(0)[1].trigger('click');
-        expect(profile.social_links.map((l) => l.label)).toEqual(['Two', 'One', 'Three']);
+        expect(moveItem).toHaveBeenCalledWith('social_links', 0, 1);
 
         await buttonsOf(2)[2].trigger('click');
-        expect(profile.social_links.map((l) => l.label)).toEqual(['Two', 'One']);
-    });
-
-    it('refuses to move the first link up or the last one down', async () => {
-        const profile = {
-            social_links: [
-                { label: 'One', url: 'https://one.test', icon: 'link', is_visible: true },
-                { label: 'Two', url: 'https://two.test', icon: 'link', is_visible: true },
-            ],
-        };
-        const wrapper = mountTab(profile);
-
-        await cards(wrapper)[0].findAll('header button')[0].trigger('click');
-        await cards(wrapper)[1].findAll('header button')[1].trigger('click');
-
-        expect(profile.social_links.map((l) => l.label)).toEqual(['One', 'Two']);
+        expect(removeItem).toHaveBeenCalledWith('social_links', 2);
     });
 });

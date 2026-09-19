@@ -85,10 +85,10 @@ class PortfolioPayloadShapeTest extends TestCase
     }
 
     #[DataProvider('bothEndpoints')]
-    public function test_the_payload_has_exactly_the_five_documented_sections(bool $asAdmin): void
+    public function test_the_payload_has_exactly_the_documented_sections(bool $asAdmin): void
     {
         $this->assertSame(
-            ['profile', 'metrics', 'expertise_items', 'projects', 'process_steps'],
+            ['profile', 'metrics', 'expertise_items', 'projects', 'process_steps', 'social_links'],
             array_keys($this->fetch($asAdmin)),
         );
     }
@@ -116,6 +116,7 @@ class PortfolioPayloadShapeTest extends TestCase
             'expertise_items' => 'expertiseItems',
             'projects' => 'projects',
             'process_steps' => 'processSteps',
+            'social_links' => 'socialLinks',
         ];
 
         foreach ($relations as $payloadKey => $relation) {
@@ -139,6 +140,7 @@ class PortfolioPayloadShapeTest extends TestCase
 
         $rows = array_merge(
             [$payload['profile']],
+            $payload['social_links'],
             $payload['metrics'],
             $payload['expertise_items'],
             $payload['projects'],
@@ -161,13 +163,15 @@ class PortfolioPayloadShapeTest extends TestCase
     {
         $payload = $this->fetch(asAdmin: false);
 
-        foreach (['initials', 'headline', 'summary', 'default_language', 'show_language_toggle', 'social_links'] as $key) {
+        foreach (['initials', 'headline', 'summary', 'default_language', 'show_language_toggle'] as $key) {
             $this->assertArrayHasKey($key, $payload['profile']);
         }
 
-        $this->assertNotEmpty($payload['profile']['social_links']);
-        $this->assertArrayHasKey('in_rail', $payload['profile']['social_links'][0]);
-        $this->assertArrayHasKey('in_footer', $payload['profile']['social_links'][0]);
+        // Social links are their own collection now, and each carries both
+        // placements so the page can pick per place.
+        $this->assertNotEmpty($payload['social_links']);
+        $this->assertArrayHasKey('in_rail', $payload['social_links'][0]);
+        $this->assertArrayHasKey('in_footer', $payload['social_links'][0]);
     }
 
     /**

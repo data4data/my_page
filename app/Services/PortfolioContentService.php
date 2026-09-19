@@ -44,7 +44,6 @@ class PortfolioContentService
         'availability_note',
         'quote',
         'quote_author',
-        'social_links',
         'default_language',
         'show_language_toggle',
     ];
@@ -59,6 +58,10 @@ class PortfolioContentService
         'expertiseItems' => ['title', 'description', 'icon', 'category', 'is_visible'],
         'projects' => ['title', 'summary', 'result', 'tags', 'visual_style', 'is_visible'],
         'processSteps' => ['group', 'title', 'description', 'icon', 'is_visible'],
+        // No is_visible: it is generated from the two placements, so it is
+        // neither written nor published. payload() still filters on it, which
+        // is how a link shown in neither place stays off the public page.
+        'socialLinks' => ['label', 'url', 'icon', 'in_rail', 'in_footer'],
     ];
 
     // Payload keys (snake_case) -> relation names on PortfolioProfile.
@@ -67,17 +70,23 @@ class PortfolioContentService
         'expertise_items' => 'expertiseItems',
         'projects' => 'projects',
         'process_steps' => 'processSteps',
+        'social_links' => 'socialLinks',
     ];
 
     public function __construct(private DefaultPortfolioContent $defaults) {}
 
+    /**
+     * The profile. There is one — DefaultPortfolioContent::seed() is the only
+     * thing that creates it, and it matches on a fixed slug — so this is
+     * "the first row" rather than a choice between rows.
+     */
     public function activeProfile(): PortfolioProfile
     {
         return PortfolioProfile::query()
-            ->where('is_active', true)
             ->with([
                 'metrics' => fn ($query) => $query->orderBy('sort_order'),
                 'expertiseItems' => fn ($query) => $query->orderBy('sort_order'),
+                'socialLinks' => fn ($query) => $query->orderBy('sort_order'),
                 'projects' => fn ($query) => $query->orderBy('sort_order'),
                 'processSteps' => fn ($query) => $query->orderBy('sort_order'),
             ])
@@ -98,51 +107,13 @@ class PortfolioContentService
     {
         $visible = fn ($items) => $publicOnly ? $items->where('is_visible', true)->values() : $items->values();
 
-        $payload = [
-            'profile' => PortfolioProfileResource::make(
-                $publicOnly ? $this->withVisibleSocialLinks($profile) : $profile
-            )->resolve(),
-        ];
+        $payload = ['profile' => PortfolioProfileResource::make($profile)->resolve()];
 
         foreach (self::PAYLOAD_TO_RELATION as $payloadKey => $relation) {
             $payload[$payloadKey] = PortfolioItemResource::forRelation($visible($profile->{$relation}), $relation);
         }
 
         return $payload;
-    }
-
-    /**
-     * Social links are a JSON column, not a child table, so the filtering
-     * above misses them. Drops a link only when it shows in neither place;
-     * both flags still travel, because the page picks per place.
-     *
-     * Cloned, not filtered in place: the caller's instance also builds
-     * revision snapshots, which must keep every link.
-     */
-    private function withVisibleSocialLinks(PortfolioProfile $profile): PortfolioProfile
-    {
-        $copy = clone $profile;
-
-        $copy->social_links = collect($profile->social_links ?? [])
-            ->filter(fn (array $link) => self::showsIn($link, 'in_rail') || self::showsIn($link, 'in_footer'))
-            ->values()
-            ->all();
-
-        return $copy;
-    }
-
-    /**
-     * Links saved before the two placements existed carry only is_visible, so
-     * it stands in for a missing placement. Without that, the rail and footer
-     * would empty on every install that already had links.
-     *
-     * Mirrored by showsIn() in resources/js/shared/portfolio.js — keep in step.
-     *
-     * @param  array<string, mixed>  $link
-     */
-    private static function showsIn(array $link, string $placement): bool
-    {
-        return (bool) ($link[$placement] ?? ($link['is_visible'] ?? true));
     }
 
     /**
@@ -174,7 +145,7 @@ class PortfolioContentService
         return DB::transaction(function () use ($author): PortfolioProfile {
             // Soft lookup: on a fresh install there is nothing to take a
             // baseline of yet, and activeProfile()'s firstOrFail would throw.
-            $existing = PortfolioProfile::query()->where('is_active', true)->first();
+            $existing = PortfolioProfile::query()->first();
 
             if ($existing) {
                 $this->recordBaseline($this->activeProfile());
@@ -182,32 +153,10 @@ class PortfolioContentService
 
             $this->defaults->seed();
 
-            $this->activate($this->activeProfile());
-
             $fresh = $this->activeProfile();
             $this->recordRevision($fresh, $author);
 
             return $fresh;
-        });
-    }
-
-    /**
-     * Exactly one profile is live. activeProfile() takes the first is_active
-     * row, so a second would not error, it would just decide the public page.
-     *
-     * Done here, not as a partial unique index: MySQL has no such thing.
-     */
-    public function activate(PortfolioProfile $profile): PortfolioProfile
-    {
-        return DB::transaction(function () use ($profile): PortfolioProfile {
-            PortfolioProfile::query()
-                ->whereKeyNot($profile->id)
-                ->where('is_active', true)
-                ->update(['is_active' => false]);
-
-            $profile->update(['is_active' => true]);
-
-            return $profile;
         });
     }
 
@@ -224,7 +173,13 @@ class PortfolioContentService
         foreach (array_values($items) as $index => $item) {
             $payload = Arr::only($item, $keys);
             $payload['sort_order'] = $index + 1;
-            $payload['is_visible'] = $item['is_visible'] ?? true;
+
+            // Only where the relation actually has the column. Social links
+            // derive theirs from the two placements, and MySQL rejects an
+            // INSERT that names a generated column.
+            if (in_array('is_visible', $keys, true)) {
+                $payload['is_visible'] = $item['is_visible'] ?? true;
+            }
 
             $profile->{$relation}()->create($payload);
         }

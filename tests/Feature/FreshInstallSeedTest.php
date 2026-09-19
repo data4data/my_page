@@ -20,7 +20,7 @@ class FreshInstallSeedTest extends TestCase
     {
         app(DefaultPortfolioContent::class)->seed();
 
-        $this->assertSame('AB', PortfolioProfile::where('is_active', true)->value('initials'));
+        $this->assertSame('AB', PortfolioProfile::query()->value('initials'));
     }
 
     public function test_the_column_default_is_a_placeholder_too(): void
