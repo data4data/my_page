@@ -388,6 +388,8 @@ Send datetimes back with `formatForApi()`.
 
 Weeks are Monday-based everywhere: Carbon's default `startOfWeek()` server-side, `startOfWeek()` in `planning.js`, and `locale: { firstDayOfWeek: 1 }` in the PrimeVue config so the DatePicker agrees.
 
+`addMonths()` **clamps** to the last day of the target month. `setMonth()` alone overflows — 31 January plus a month is 31 February, which JavaScript rolls into March, so a "previous month" step from a 31st would skip February entirely. Both callers normalise to the 1st first, so the clamp changes nothing today; it is there so the next caller need not know to.
+
 ## Design system
 
 `resources/js/components/ui/` wraps PrimeVue — installed **unstyled** and pinned to the **MIT-licensed v4 line** (v5 moved to a commercial licence requiring a key) — with this app's look, styled once in the `resources/css/` partials (see below).
