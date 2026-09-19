@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import SharedTab from '../SharedTab.vue';
-import { copy } from '../../../shared/i18n';
+import SharedTab from '../../../js/pages/admin/SharedTab.vue';
+import { copy } from '../../../js/shared/i18n';
 
 // The accent word lists moved here with the rest of the untranslated
 // profile values. Stored as one flat [{text, tone}] list, edited as two

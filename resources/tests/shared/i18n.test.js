@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const loadI18n = async () => {
     vi.resetModules();
 
-    return import('./i18n.js');
+    return import('../../js/shared/i18n.js');
 };
 
 beforeEach(() => {
@@ -93,20 +93,43 @@ describe('setLang', () => {
 // Dutch, so a dropped or mistyped Dutch key ships silently and simply reads in
 // the wrong language. These two check what the fallback would otherwise hide.
 describe('the en and nl dictionaries agree', () => {
-    it('holds the same keys in both languages', async () => {
-        const { ui } = await loadI18n();
+    // Each file on its own, not the merged `ui`. The entry points register
+    // one half each now (see i18n.js), so a merged dictionary in a test would
+    // only ever hold whatever that test happened to register — and a missing
+    // Dutch key in the half it did not would pass unnoticed.
+    const dictionaries = async () => {
+        vi.resetModules();
 
-        expect(Object.keys(ui.nl).sort()).toEqual(Object.keys(ui.en).sort());
+        return [
+            ['shared', (await import('../../js/shared/i18n.js')).ui],
+            ['public', (await import('../../js/shared/i18n-public.js')).publicUi],
+            ['admin', (await import('../../js/shared/i18n-admin.js')).adminUi],
+        ];
+    };
+
+    it('holds the same keys in both languages', async () => {
+        for (const [name, dictionary] of await dictionaries()) {
+            expect(Object.keys(dictionary.nl).sort(), name)
+                .toEqual(Object.keys(dictionary.en).sort());
+        }
     });
 
     it('leaves no string empty', async () => {
-        const { ui } = await loadI18n();
-
-        for (const language of ['en', 'nl']) {
-            for (const [key, value] of Object.entries(ui[language])) {
-                expect(value, `${language}.${key}`).not.toBe('');
+        for (const [name, dictionary] of await dictionaries()) {
+            for (const language of ['en', 'nl']) {
+                for (const [key, value] of Object.entries(dictionary[language])) {
+                    expect(value, `${name}.${language}.${key}`).not.toBe('');
+                }
             }
         }
+    });
+
+    // The split is what keeps 493 workspace strings out of the public bundle.
+    // A key drifting back into the shared file would quietly undo it.
+    it('keeps the shared file to strings both halves really use', async () => {
+        const [[, shared]] = await dictionaries();
+
+        expect(Object.keys(shared.en).length).toBeLessThan(20);
     });
 });
 

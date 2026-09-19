@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import TaskCard from '../agenda/TaskCard.vue';
-import { TASK_STATUSES } from '../../../shared/planning';
+import TaskCard from '../../../js/pages/admin/agenda/TaskCard.vue';
+import { TASK_STATUSES } from '../../../js/shared/planning';
 
 const task = {
     id: 1,

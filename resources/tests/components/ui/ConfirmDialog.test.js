@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import ConfirmDialog from './ConfirmDialog.vue';
-import { useConfirm } from '../../shared/confirm';
+import ConfirmDialog from '../../../js/components/ui/ConfirmDialog.vue';
+import { useConfirm } from '../../../js/shared/confirm';
 
 const { confirm, respond } = useConfirm();
 

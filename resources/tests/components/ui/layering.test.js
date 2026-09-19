@@ -2,8 +2,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import ToastStack from './ToastStack.vue';
-import AdminLayout from '../admin/AdminLayout.vue';
+import ToastStack from '../../../js/components/ui/ToastStack.vue';
+import AdminLayout from '../../../js/components/admin/AdminLayout.vue';
 
 const cssDir = join(process.cwd(), 'resources/css');
 

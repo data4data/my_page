@@ -1,15 +1,17 @@
 import { ref } from 'vue';
-import { publicUi } from './i18n-public';
-import { adminUi } from './i18n-admin';
 
 /* The dictionary is split by audience, the same way pages/ is: i18n-public.js
    for the visit card, i18n-admin.js for the workspace. Only the few strings
-   both halves use are left here.
+   both halves use live here.
 
-   They are merged back into one `ui`, so copy() and t() work exactly as before
-   and no component knows about the split. A key in the "wrong" file still
-   resolves — the split decides where you go to edit a word, not how it is
-   looked up. i18n.test.js checks that en and nl hold the same keys. */
+   Neither is imported from this file. They are handed in by the entry point —
+   app-public.js registers one, app-admin.js the other — because importing
+   both would put all 493 workspace strings in the public bundle, where a
+   visitor can read "Two-step sign-in" and "Recovery codes" out of it. That is
+   the same leak the two bundles exist to close (see vite.config.js).
+
+   Once registered, copy() and t() work exactly as before and no component
+   knows about the split. */
 const sharedUi = {
     en: {
         loading: 'Loading...',
@@ -39,8 +41,20 @@ const sharedUi = {
 };
 
 export const ui = {
-    en: { ...sharedUi.en, ...publicUi.en, ...adminUi.en },
-    nl: { ...sharedUi.nl, ...publicUi.nl, ...adminUi.nl },
+    en: { ...sharedUi.en },
+    nl: { ...sharedUi.nl },
+};
+
+/**
+ * Adds one half's strings to the dictionary. Called by the entry point before
+ * the app mounts, so every copy() during render already sees them.
+ *
+ * Tests get both halves from resources/tests/setup.js, which mounts
+ * components directly and so never runs an entry point.
+ */
+export const registerUi = (dictionary) => {
+    Object.assign(ui.en, dictionary.en);
+    Object.assign(ui.nl, dictionary.nl);
 };
 
 

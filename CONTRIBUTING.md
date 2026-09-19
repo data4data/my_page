@@ -55,7 +55,7 @@ Each of these fails **silently**, not loudly:
 
 | Change | Also update |
 |---|---|
-| A new UI string | **both** `en` and `nl` in `resources/js/shared/i18n.js` |
+| A new UI string | **both** `en` and `nl`, in whichever of `i18n.js`, `i18n-public.js` or `i18n-admin.js` its half belongs to |
 | A new `icon` value in DB or seed data | `iconMap` in `resources/js/shared/icons.js`, or it renders nothing |
 | A new `TaskStatus` case | `TASK_STATUSES` in `resources/js/shared/planning.js` |
 | Social-link placement rules | **both** `PortfolioContentService::showsIn()` and `showsIn()` in `resources/js/shared/portfolio.js` |
@@ -70,8 +70,11 @@ section) and **never write a raw `z-index`** (see its Design system section).
 Check EN/NL parity:
 
 ```bash
-node -e "const s=require('fs').readFileSync('resources/js/shared/i18n.js','utf8'),h=s.indexOf('    nl: {'),k=t=>new Set([...t.matchAll(/^        (\w+):/gm)].map(m=>m[1])),en=k(s.slice(0,h)),nl=k(s.slice(h));console.log(en.size,nl.size,[...en].filter(x=>!nl.has(x)),[...nl].filter(x=>!en.has(x)))"
+npx vitest run resources/tests/shared/i18n.test.js
 ```
+
+It checks each dictionary file on its own, so a Dutch key missing from the
+workspace half fails even though the visit card's half is complete.
 
 ## 4. Run the gate
 

@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import SocialLinksTab from '../SocialLinksTab.vue';
+import SocialLinksTab from '../../../js/pages/admin/SocialLinksTab.vue';
 
 const stubs = {
     AppInput: {

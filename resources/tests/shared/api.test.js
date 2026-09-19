@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, apiFetch } from './api';
+import { ApiError, apiFetch } from '../../js/shared/api';
 
 const jsonResponse = (status, body) => ({
     ok: status >= 200 && status < 300,

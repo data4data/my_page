@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
-import ContentVersionsTab from '../ContentVersionsTab.vue';
+import ContentVersionsTab from '../../../js/pages/admin/ContentVersionsTab.vue';
 
 const revisions = [
     { id: 7, created_at: '2026-08-27T14:05:00.000000Z', author: 'Alex Blake' },

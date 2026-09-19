@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import AppDatePicker from './AppDatePicker.vue';
+import AppDatePicker from '../../../js/components/ui/AppDatePicker.vue';
 
 const mountPicker = () => mount(AppDatePicker, {
     global: {

@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { markRaw } from 'vue';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import AdminLayout from './AdminLayout.vue';
+import AdminLayout from '../../../js/components/admin/AdminLayout.vue';
 
 // markRaw: a bare component object handed in as a prop gets made reactive,
 // which Vue warns about and which costs a deep walk of the definition.

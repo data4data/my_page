@@ -19,19 +19,15 @@ What is left to do, worst first. How to do the work is in
    the public page stays out of dark mode.
 5. **`TaskModal` and `ReportView` have no tests.** 242 and 270 lines.
 
-## Rebuild the public page
+## Accessibility
 
-6. **The page text is drawn by JavaScript, so the HTML comes back empty.**
-   Render the six sections in Blade from the same data `payload()` returns;
-   keep Vue for the carousel, scroll-spy, language toggle and connect modal.
-   Splits `PublicPage.vue` as a side effect. **Probably not worth doing — see item 10.**
-7. **There is no skip link.** A keyboard user tabs through the whole nav and
+6. **There is no skip link.** A keyboard user tabs through the whole nav and
    side rail first.
 
 ## Never built
 
-8. **Tasks cannot be dragged between days** in Week and Month view.
-9. **`TaskSource::AiChat` is unused.** Build it or remove the case.
+7. **Tasks cannot be dragged between days** in Week and Month view.
+8. **`TaskSource::AiChat` is unused.** Build it or remove the case.
 
 ## The architecture, decided
 
@@ -60,53 +56,21 @@ choose when *starting* an app of this shape. This workspace already works and
 has tests behind it, so moving it now is a rewrite that changes nothing a user
 sees. The signal to reconsider is item 1 becoming a chore on every new screen.
 
-## Do this next
+## Decided, not doing
 
-10. **Probably drop item 6. Read this before deciding.**
+**The public page stays drawn by JavaScript.** A request for `/` returns a full
+`<head>` — 2,387 bytes of title, description, Open Graph, Twitter card and
+schema.org — and an empty body. That is enough for the link previews a
+portfolio is actually reached through, and Google indexes JavaScript pages
+anyway. Rendering the six sections in Blade would buy only being *found* by a
+search engine rather than *sent* to; it would cost two files that both know how
+to draw a project card, and it would save 13 KB of a 252 KB bundle, because the
+connect form keeps Vue and PrimeVue either way.
 
-    **What happens today.** When anything asks your server for `/`, the server
-    sends back a page with a full `<head>` and an empty `<body>` — literally
-    `<div id="app"></div>`. The words arrive a moment later, drawn by
-    JavaScript in the browser.
-
-    **Who that affects:**
-
-    - **A person visiting** — not at all. Their browser runs the JavaScript
-      and they see the page.
-    - **Link previews** (LinkedIn, WhatsApp, Slack, iMessage) — not at all.
-      They only read the `<head>`, and the `<head>` is already full. Measured:
-      2,387 bytes of title, description, Open Graph, Twitter card and
-      schema.org. **This already works. Nothing to fix.**
-    - **Google** — it does run JavaScript, so the page gets indexed. Just on a
-      second visit, later, and less reliably than plain HTML.
-    - **Bing, DuckDuckGo, AI crawlers** — worse at JavaScript. They may see
-      nothing.
-
-    **So there is exactly one question.** Do people *find* this page by
-    searching, or do you *send* them the link — CV, email, LinkedIn profile?
-
-    Send the link, which is how a portfolio is normally reached: **item 6
-    buys nothing. Delete it.**
-
-    **What it would cost.** Two files would know how to draw a project card, a
-    Blade one and a Vue one. Change one, forget the other, and they drift —
-    the failure this project keeps writing comments to prevent.
-
-    **What it would not buy: speed.** Measured: the public bundle is 270 KB,
-    of which `PublicPage.vue` is 13 KB. The other 243 KB is Vue, vue-router
-    and PrimeVue, and the connect form needs all of it either way.
-
-    **A cheap middle, if you want the words in the HTML without the drift.**
-    Put only the hero — role, headline, summary — inside `#app` in Blade. Vue
-    wipes whatever is in `#app` when it mounts, so a browser never sees it
-    twice and a crawler reads the part that matters. About ten lines, and no
-    project-card duplication.
-
-    **Full server rendering, if search really matters.** Then the option worth
-    weighing is Inertia with server-side rendering: one set of Vue components,
-    rendered to HTML by a Node process beside PHP. It keeps a single renderer,
-    which is exactly what item 6 gives up — at the cost of a second process to
-    run and deploy.
+If search ever matters, the cheap version is to put the hero — role, headline,
+summary — inside `#app` in Blade. Vue wipes `#app` when it mounts, so a browser
+never sees it twice and a crawler reads the part that matters. Full server
+rendering is Inertia with SSR, and a Node process beside PHP.
 
 ## A. One migration per entity, and the schema fixes that ride with it
 
@@ -114,17 +78,17 @@ sees. The signal to reconsider is item 1 becoming a chore on every new screen.
 Squash to one `create_` per table — and since every create is being rewritten,
 change the schema in the same pass rather than as an alter each.
 
-11. **Fold the four profile alters into the create.** `add_quote_author`,
+9. **Fold the four profile alters into the create.** `add_quote_author`,
     `add_language_settings`, `add_headline_highlights`,
     `add_contact_email_and_social_image`.
-12. **Fold the rest.** `drop_gear_size` becomes "do not create the column";
+10. **Fold the rest.** `drop_gear_size` becomes "do not create the column";
     `add_two_factor_columns` moves into the skeleton users table;
     `neutralise_default_initials` is a default, so put `default('AB')` on the
     column; `add_missing_indexes` splits back to the table each index belongs
     to.
-13. **Leave vendor and skeleton alone.** `create_permission_tables` is
+11. **Leave vendor and skeleton alone.** `create_permission_tables` is
     Spatie's; `create_cache_table` and `create_jobs_table` are Laravel's.
-14. **After it lands:** everyone runs `migrate:fresh --seed`, there is no
+12. **After it lands:** everyone runs `migrate:fresh --seed`, there is no
     upgrade path and there need not be one, and `CLAUDE.md` notes the cut-off.
     Not `schema:dump` — it pins the repo to one MySQL version and hides the
     schema from review.
@@ -134,37 +98,37 @@ were tried against this project's MySQL 8.4 first. A constraint is worth adding
 when it defends against *concurrency* — one admin still means double clicks,
 retries and second tabs — and not when it defends a state nothing can create.
 
-15. **Make `social_links` a child table.** A repeating group with its own
+13. **Make `social_links` a child table.** A repeating group with its own
     fields, ordering and visibility is a table, not a JSON column. Removes
     `withVisibleSocialLinks()` and its clone, and lets rows be validated as
     rows.
-16. **Let the database hold "one timer at a time".** Add `user_id` to
+14. **Let the database hold "one timer at a time".** Add `user_id` to
     `time_logs`, a stored `running_user_id AS (IF(ended_at IS NULL, user_id,
     NULL))`, and a UNIQUE index on it. Keep `TimerService`'s lock — it turns a
     violation into an orderly pause; the constraint catches the path that
     forgets to lock.
-17. **Make `duration_minutes` a generated column.** `TIMESTAMPDIFF(MINUTE,
+15. **Make `duration_minutes` a generated column.** `TIMESTAMPDIFF(MINUTE,
     started_at, ended_at)` STORED. Removes `TimeLog::booted()` and the trap
     that a builder `update()` silently skips it. Still stored, so totals stay
     one `SUM()`.
-18. **Do not add a one-active-profile index.** It works, but nothing in the app
+16. **Do not add a one-active-profile index.** It works, but nothing in the app
     can create a second profile — the only path is
     `updateOrCreate(['slug' => 'oa'])` — and the index would break
     `test_only_one_profile_stays_active`. The real question is whether
     `is_active` and `activate()` earn their place at all.
-19. **One remote event, one task.** UNIQUE on
+17. **One remote event, one task.** UNIQUE on
     `(user_id, source, external_ref)`, so an overlapping calendar sync or a
     retry cannot import the same event twice. Manual tasks have a NULL
     `external_ref` and a unique index does not compare NULLs.
-20. **`portfolio_profiles.type` is dead.** Seeded `person`, never read —
+18. **`portfolio_profiles.type` is dead.** Seeded `person`, never read —
     `personSchema()` hardcodes it. Wire it up or drop it.
-21. **The seeded slug still names the author.** `seed()` matches on
+19. **The seeded slug still names the author.** `seed()` matches on
     `['slug' => 'oa']`; `initials` was neutralised to `AB` and the slug was
     not. Also decide what `slug` is *for* — nothing reads it.
-22. **`reflections.period_end` can disagree with itself.** Derivable from
+20. **`reflections.period_end` can disagree with itself.** Derivable from
     `period_type` + `period_start`. Make it generated (the unique index uses
     it, so that is the smaller change).
-23. **Say what `categories.user_id = NULL` means** in the migration, next to
+21. **Say what `categories.user_id = NULL` means** in the migration, next to
     the self-referencing key — and that one level of nesting is enforced only
     in PHP, because a CHECK cannot see another row.
 
@@ -185,7 +149,7 @@ months.
 
 ## B. When something asks for it
 
-24. **Three kinds of row, three owners.** *Roles are code* — `admin` is a name
+22. **Three kinds of row, three owners.** *Roles are code* — `admin` is a name
     the middleware refers to, so it stays seeded and idempotent. *The admin
     user and the profile are this install's identity* — they move to
     `php artisan app:install`, which asks for email, password and initials.
@@ -198,11 +162,11 @@ months.
     workspace would throw rather than say so. **Has a reason already — item
     24.**
 
-25. **Mail providers need no work.** `config/mail.php` plus `MAIL_MAILER`
+23. **Mail providers need no work.** `config/mail.php` plus `MAIL_MAILER`
     already switches SMTP, SES, Postmark, Resend. Do not write an interface
     over Laravel's.
 
-26. **Calendar sync is the one interface that earns its place.** Google,
+24. **Calendar sync is the one interface that earns its place.** Google,
     Microsoft 365 and CalDAV are three implementations of one idea:
     `CalendarProvider` with `pull()` and `push()`. Providers speak a plain
     readonly `CalendarEvent`; one mapper turns that into a `Task`. `TaskSource`
@@ -213,7 +177,7 @@ months.
     deletion means here, and what happens when both sides changed the same
     event.
 
-27. **No `Task` subclasses.** Eloquent has no single-table inheritance, so
+25. **No `Task` subclasses.** Eloquent has no single-table inheritance, so
     `ManualTask`/`SyncedTask` means `newFromBuilder()` or `tighten/parental`,
     and `$timeLog->task` silently returns the base class wherever it is missed.
     The differences are guard rules — remote owns the schedule, deleting
@@ -225,25 +189,25 @@ months.
     rule, attendees or a meeting link, that is a one-to-one
     `task_calendar_details` table.
 
-28. **The other two interfaces.** `TwoFactorService` → a `TwoFactorProvider`
+26. **The other two interfaces.** `TwoFactorService` → a `TwoFactorProvider`
     contract (TOTP now, passkeys later). `DefaultPortfolioContent` → a contract
     for where the seeded page comes from, so a fork ships its own. Nothing
     else: an interface with one class behind it is a file and an indirection.
 
-29. **Split `PortfolioContentService`.** 273 lines with five reasons to change
+27. **Split `PortfolioContentService`.** 273 lines with five reasons to change
     — reading, writing, history, activation, seeding. An interface in front
     would preserve the problem. The one transaction and one write path must
     survive the split.
 
-30. **Put one-off jobs in `app/Actions/`.** Fortify and Jetstream set the
+28. **Put one-off jobs in `app/Actions/`.** Fortify and Jetstream set the
     precedent; prefer it to `lorisleiva/laravel-actions`. First candidates:
     restore a revision, reset to defaults, enrol a second factor, start and
     stop a timer.
 
-31. **Raise events for what something else reacts to.** `PortfolioSaved` /
+29. **Raise events for what something else reacts to.** `PortfolioSaved` /
     `PortfolioRestored`, `InquiryReceived` to email you when the connect form
     is used, `TimerStarted` / `TimerStopped` so calendar sync can react without
     `TimerService` growing a branch. Move the inline `Login` / `Failed`
     listeners to `app/Listeners/` when a third appears.
 
-32. **Update the "no bindings" note in `CLAUDE.md`** once 26 and 28 land.
+30. **Update the "no bindings" note in `CLAUDE.md`** once 24 and 26 land.

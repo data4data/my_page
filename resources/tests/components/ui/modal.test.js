@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import AdminModal from './AdminModal.vue';
-import PublicModal from './PublicModal.vue';
+import AdminModal from '../../../js/components/ui/AdminModal.vue';
+import PublicModal from '../../../js/components/ui/PublicModal.vue';
 
 const stubs = { X: true };
 

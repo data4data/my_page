@@ -1,8 +1,8 @@
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PrimeVue from 'primevue/config';
-import PublicPage from './public/PublicPage.vue';
-import AdminPage from './admin/AdminPage.vue';
+import PublicPage from '../../js/pages/public/PublicPage.vue';
+import AdminPage from '../../js/pages/admin/AdminPage.vue';
 
 // Nothing else mounts these two, so a broken import or a template referring
 // to something gone would only surface in a browser. `npm run build` proves

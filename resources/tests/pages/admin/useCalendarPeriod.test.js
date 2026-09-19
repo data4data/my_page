@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useCalendarPeriod, periodStartFor } from '../agenda/useCalendarPeriod';
+import { useCalendarPeriod, periodStartFor } from '../../../js/pages/admin/agenda/useCalendarPeriod';
 
 // Wed 12 Aug 2026, 14:30. The Monday of that week is the 10th, which is what
 // the week view should anchor on.

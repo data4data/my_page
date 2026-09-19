@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest';
  */
 const root = resolve(process.cwd(), 'resources/js');
 
-// Static `from './x'` and lazy `import('./x')` alike — a route component is
+// Static `from '../js/x'` and lazy `import('../js/x')` alike — a route component is
 // loaded the second way, which is exactly the case that matters here.
 const importsIn = (source) => [
     ...source.matchAll(/(?:from|import)\s*\(?\s*['"](\.[^'"]+)['"]/g),
@@ -69,6 +69,10 @@ describe('bundle split', () => {
         expect(reachable.filter((file) => file.startsWith('components/admin/'))).toEqual([]);
         // Every planner request lives here, and only the workspace makes them.
         expect(reachable).not.toContain('shared/planning.js');
+        // 493 strings naming what the workspace contains — "Two-step sign-in",
+        // "Recovery codes". i18n.js used to import both halves, so they
+        // shipped to every visitor even after the bundles were split.
+        expect(reachable).not.toContain('shared/i18n-admin.js');
     });
 
     it('reaches the workspace from the admin entry point', () => {
@@ -76,6 +80,7 @@ describe('bundle split', () => {
 
         expect(reachable).toContain('pages/admin/AdminPage.vue');
         expect(reachable).toContain('pages/admin/LoginPage.vue');
+        expect(reachable).toContain('shared/i18n-admin.js');
     });
 
     // The two entries would otherwise drift on PrimeVue options or the router

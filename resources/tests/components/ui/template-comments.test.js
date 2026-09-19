@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import ToastStack from './ToastStack.vue';
-import AppPillSwitch from './AppPillSwitch.vue';
+import ToastStack from '../../../js/components/ui/ToastStack.vue';
+import AppPillSwitch from '../../../js/components/ui/AppPillSwitch.vue';
 
 /**
  * A <template> comment is markup: Vue compiles it into a real DOM node unless

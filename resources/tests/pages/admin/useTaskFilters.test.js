@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 import { describe, expect, it } from 'vitest';
-import { useTaskFilters } from '../agenda/useTaskFilters';
+import { useTaskFilters } from '../../../js/pages/admin/agenda/useTaskFilters';
 
 // One parent with two children, plus a standalone parent — the one level of
 // nesting the category tree allows.

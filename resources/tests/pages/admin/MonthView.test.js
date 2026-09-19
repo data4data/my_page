@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import MonthView from '../agenda/MonthView.vue';
+import MonthView from '../../../js/pages/admin/agenda/MonthView.vue';
 
 const monthStart = new Date(2026, 7, 1); // 1 Aug 2026
 

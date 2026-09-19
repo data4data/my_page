@@ -10,7 +10,9 @@ export default defineConfig({
     test: {
         environment: 'jsdom',
         globals: true,
-        include: ['resources/js/**/*.test.js'],
+        include: ['resources/tests/**/*.test.js'],
+        // The dictionary halves the entry points would have registered.
+        setupFiles: ['resources/tests/setup.js'],
         restoreMocks: true,
     },
 });
