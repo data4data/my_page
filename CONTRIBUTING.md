@@ -102,6 +102,14 @@ editor — Profile, Experience, Expertise, Process, Projects, Language.
 `UpdatePortfolioRequest` can reject a payload the editor legitimately produces,
 and nothing automated will tell you.
 
+**`--env=testing` does not mean the test database.** There is no
+`.env.testing`, so `--env=testing` falls back to `.env` — which points at your
+development database. The test database name lives in `phpunit.xml`, which the
+artisan CLI never reads. So `php artisan migrate:fresh --env=testing` drops
+your development data while looking like it is being careful. Let
+`php artisan test` manage the test database; it uses `RefreshDatabase` and
+reads `phpunit.xml`.
+
 If a dev server is already running, reuse it rather than starting a second one on
 the same port. Touching real local content? Back the database up first:
 

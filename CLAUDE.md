@@ -48,6 +48,14 @@ Its rules are **not** repeated here or in `.claude/skills/ship/`, on purpose: a 
 
 This file covers the other half — what the project *is*. Architecture, the aggregates, time handling, the design system.
 
+## Migrations
+
+**One `create_` per table, and no alters.** The history was squashed on 2026-09-19, while nothing was deployed: every column, index and default lives in the migration that creates its table. Anyone with an older database runs `migrate:fresh --seed`; there is no upgrade path and there does not need to be one.
+
+`create_permission_tables` is published by `spatie/laravel-permission` and `create_cache_table`/`create_jobs_table` are Laravel's own — all three stay as those packages wrote them.
+
+Not `php artisan schema:dump`: it squashes to a MySQL dump, which pins the repo to one server version and hides the schema from review. One readable `create_` per table is the point.
+
 ## Seeding
 
 `DatabaseSeeder` runs `DefaultPortfolioContent::seed()`, `AdminUserSeeder`, `CategorySeeder`, and — **only when `app()->environment('local')`** — `DemoWeekSeeder`. That guard is deliberate: a `git pull` + `migrate --seed` on a live instance must never bury real planning data under sample rows.
@@ -74,10 +82,10 @@ Both planner seeders are re-runnable: `CategorySeeder` uses `updateOrCreate`; `D
 
 Separate from the portfolio, all scoped to the signed-in user:
 
-- `Task` — `title`, `start_datetime`, optional `end_datetime`, `planned_duration_minutes`, `status`, `result_notes`, `source`, `external_ref`, optional `category_id`.
+- `Task` — `title`, `start_datetime`, optional `end_datetime`, `planned_duration_minutes`, `status`, `result_notes`, `source`, `external_ref`, optional `category_id`. UNIQUE on `(user_id, source, external_ref)`, so an overlapping calendar sync or a retry cannot import one remote event twice; manual tasks hold a NULL `external_ref` and NULLs never collide.
 - `Category` — self-referencing `parent_id` for **exactly one** level of nesting (a child never has children). `user_id` null = a shared/global seeded category.
-- `TimeLog` — `started_at` / `ended_at` per task. `duration_minutes` is computed in `TimeLog::booted()`'s `saving` hook and **stored**, so report totals are one `SUM()` rather than per-row PHP date-diffing.
-- `Reflection` — one note per (user, period_type, period_start, period_end), enforced by a unique index.
+- `TimeLog` — `started_at` / `ended_at` per task, plus a `user_id` denormalised from it. `duration_minutes` and `running_user_id` are generated columns; see *Two rules worth knowing* below.
+- `Reflection` — one note per (user, period_type, period_start). `period_end` is a **generated** column derived from the type and the start, so the two cannot disagree; `scopeForPeriod()` therefore looks up on the first three and the controller neither writes nor matches on the fourth.
 
 Enums in `app/Enums/`: `TaskStatus` (planned, in_progress, paused, done, skipped), `TaskSource` (manual, seeder, ai_chat — the last reserved for future AI-assisted task creation), `ReflectionPeriodType` (week, month). Statuses are plain string columns validated against the enum, not DB enums, because adding a case to a DB enum needs an `ALTER TABLE`. **`TASK_STATUSES` in `resources/js/shared/planning.js` mirrors `TaskStatus` — keep them in step.**
 
@@ -193,7 +201,13 @@ Controllers validate, authorize, delegate, and return JSON. Rules that outlive a
 
 **Only one timer runs at a time.** `TimerService::start()` calls `pauseOtherRunningTasks()`, which closes any other open log for that user and sets those tasks to `paused`. Without it the same minutes count against several tasks and every report total overstates the day. Those logs are closed **one model at a time** (`$log->update(...)`), not via a mass query update — a builder `update()` bypasses `TimeLog::booted()` and would silently skip computing `duration_minutes`. `TimerServiceTest` calls the service directly, with no HTTP involved.
 
-**That rule is a read followed by a write, so it is held by a lock.** "Is anything running?" then "insert a log" is a race: two clicks landing together both read *no* and both insert, leaving two timers running and double-counting every minute after. `start()` and `stop()` each run in a `DB::transaction()` that opens by taking `lockForUpdate()` on the **user** row. The user, not the task — the rule is per-user, so two *different* tasks started at the same instant would take two different task locks and both still open a log. The user row is the one row every timer change for that owner has in common, and it always exists: `lockForUpdate()` on a query matching nothing takes no row lock, only an index gap lock, which is a much subtler thing to rest an invariant on. `TimerServiceTest` asserts the lock is taken *before* the insert rather than trying to stage two connections.
+**That rule is a read followed by a write, so it is held twice — by a lock and by the database.** "Is anything running?" then "insert a log" is a race: two clicks landing together both read *no* and both insert. `start()` and `stop()` each run in a `DB::transaction()` that opens by taking `lockForUpdate()` on the **user** row. The user, not the task — the rule is per-user, so two *different* tasks started at the same instant would take two different task locks and both still open a log. The user row is the one row every timer change for that owner has in common, and it always exists: `lockForUpdate()` on a query matching nothing takes no row lock, only an index gap lock.
+
+Underneath it, `time_logs` carries a **virtual generated column** `running_user_id AS (IF(ended_at IS NULL, user_id, NULL))` with a UNIQUE index on it, so a second open log for one user is refused outright. Closed logs hold NULL, and a unique index does not compare NULLs, so any number of finished logs coexist. The lock stays because it turns the race into an orderly *pause* of the other task, which is the behaviour the app wants; the constraint catches the path that forgets to take it.
+
+`running_user_id` is **virtual, not stored**: MySQL refuses `ON DELETE CASCADE` on a column a stored generated column is built from, and the cascade on `user_id` is worth more than storing a value only ever read through the index. `time_logs.user_id` is itself denormalised from the task — filled by a `creating` hook on `TimeLog`, not at each call site, so it cannot disagree with `tasks.user_id`.
+
+**`duration_minutes` is generated too**, `GREATEST(TIMESTAMPDIFF(MINUTE, started_at, ended_at), 0)` STORED. It used to be computed in a `saving` hook, which a builder `update()` bypassed — so a mass update silently left it null and every report total was short. Derived by the database it cannot disagree with its own timestamps by any path. Still stored, so report totals stay one `SUM()`. The catch: **the model that did the insert does not know the value** — read it back with `->refresh()`. Nothing in the app needs to; reports sum it in SQL.
 
 `Carbon::now()` is called directly here on purpose — `Carbon::setTestNow()` already makes it controllable, so a Clock abstraction would solve a problem the framework has solved.
 

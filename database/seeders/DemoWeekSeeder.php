@@ -134,6 +134,9 @@ class DemoWeekSeeder extends Seeder
 
             if ($task['logged_minutes'] !== null) {
                 $record->timeLogs()->create([
+                    // user_id as well as task_id: the database's
+                    // one-running-timer index is built on it.
+                    'user_id' => $user->id,
                     'started_at' => $start,
                     'ended_at' => $start->copy()->addMinutes($task['logged_minutes']),
                 ]);

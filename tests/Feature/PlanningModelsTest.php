@@ -49,7 +49,13 @@ class PlanningModelsTest extends TestCase
         $this->assertTrue($task->start_datetime->isSameMinute('2026-08-17 09:00:00'));
     }
 
-    public function test_time_log_computes_duration_minutes_on_save(): void
+    /**
+     * duration_minutes is a generated column now, so the database fills it
+     * and the model instance that did the insert does not know it yet —
+     * ->refresh() is what reads it back. Nothing in the app needs it in
+     * memory: reports sum it in SQL.
+     */
+    public function test_the_database_derives_duration_minutes(): void
     {
         $user = User::factory()->create();
         $task = Task::create([
@@ -66,7 +72,7 @@ class PlanningModelsTest extends TestCase
             'ended_at' => '2026-08-17 09:37:00',
         ]);
 
-        $this->assertSame(37, $log->duration_minutes);
+        $this->assertSame(37, $log->refresh()->duration_minutes);
     }
 
     public function test_time_log_leaves_duration_null_until_stopped(): void
@@ -88,7 +94,7 @@ class PlanningModelsTest extends TestCase
         $this->assertNull($log->duration_minutes);
     }
 
-    // duration_minutes is an unsignedInteger column: a backwards pair would be
+    // GREATEST(..., 0) in the generated expression: a backwards pair would be
     // rejected by MySQL in strict mode.
     public function test_a_backwards_time_log_never_stores_a_negative_duration(): void
     {
@@ -105,7 +111,7 @@ class PlanningModelsTest extends TestCase
             'ended_at' => '2026-06-10 09:00:00',
         ]);
 
-        $this->assertSame(0, $log->duration_minutes);
+        $this->assertSame(0, $log->refresh()->duration_minutes);
     }
 
     public function test_reopening_a_log_clears_its_duration(): void
@@ -122,7 +128,7 @@ class PlanningModelsTest extends TestCase
             'started_at' => '2026-06-10 09:00:00',
             'ended_at' => '2026-06-10 09:30:00',
         ]);
-        $this->assertSame(30, $log->duration_minutes);
+        $this->assertSame(30, $log->refresh()->duration_minutes);
 
         $log->update(['ended_at' => null]);
 

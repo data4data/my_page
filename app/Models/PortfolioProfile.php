@@ -9,7 +9,6 @@ class PortfolioProfile extends Model
 {
     protected $fillable = [
         'slug',
-        'type',
         'is_active',
         'initials',
         'role',

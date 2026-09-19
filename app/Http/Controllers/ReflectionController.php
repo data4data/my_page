@@ -19,8 +19,10 @@ class ReflectionController extends Controller
     }
 
     /**
-     * Upsert by (user, period_type, period_start, period_end), the tuple the
-     * unique index uses. Both halves find the row via scopeForPeriod().
+     * Upsert by (user, period_type, period_start). `period_end` is generated
+     * from the type and the start, so it is neither written nor looked up —
+     * see the reflections migration. Both halves find the row the same way,
+     * through scopeForPeriod().
      */
     public function upsert(Request $request): JsonResponse
     {
@@ -37,7 +39,6 @@ class ReflectionController extends Controller
                 'user_id' => $request->user()->id,
                 'period_type' => $data['period_type'],
                 'period_start' => $data['period_start'],
-                'period_end' => $data['period_end'],
                 'notes' => $data['notes'] ?? null,
             ]);
         }
@@ -54,7 +55,10 @@ class ReflectionController extends Controller
         return [
             'period_type' => ['required', Rule::enum(ReflectionPeriodType::class)],
             'period_start' => ['required', 'date'],
-            'period_end' => ['required', 'date', 'after_or_equal:period_start'],
+            // Still accepted so the frontend need not change, and still
+            // checked for sense — but the column is derived, so the value is
+            // not stored and not looked up.
+            'period_end' => ['sometimes', 'date', 'after_or_equal:period_start'],
             ...$extra,
         ];
     }
@@ -66,7 +70,6 @@ class ReflectionController extends Controller
             $request->user()->id,
             $data['period_type'],
             $data['period_start'],
-            $data['period_end'],
         );
     }
 }

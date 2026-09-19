@@ -28,6 +28,14 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['user_id', 'start_datetime']);
+
+            // Pulling from a calendar means the same event arriving twice —
+            // two syncs overlapping, a retry, a provider resending. This
+            // makes a duplicate impossible rather than something the sync
+            // code has to remember. Manual tasks are unaffected: their
+            // external_ref is NULL, and a unique index does not compare
+            // NULLs, so there can be any number of them.
+            $table->unique(['user_id', 'source', 'external_ref'], 'tasks_one_row_per_remote_event');
         });
     }
 

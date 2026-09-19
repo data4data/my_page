@@ -27,7 +27,12 @@ class TimerService
                 // day. Paused, not done: it was handed over, not finished.
                 $this->pauseOtherRunningTasks($task->user_id, $task->id);
 
-                $task->timeLogs()->create(['started_at' => Carbon::now()]);
+                // user_id as well as the relation's task_id: it is what
+                // the database's one-running-timer index is built on.
+                $task->timeLogs()->create([
+                    'user_id' => $task->user_id,
+                    'started_at' => Carbon::now(),
+                ]);
                 $task->update(['status' => TaskStatus::InProgress]);
             }
 
@@ -82,11 +87,14 @@ class TimerService
             ->with(['timeLogs' => fn ($query) => $query->whereNull('ended_at')])
             ->get();
 
+        $now = Carbon::now();
+
         foreach ($others as $other) {
-            // One model at a time: a mass update would skip TimeLog's saving
-            // hook, which is what computes duration_minutes.
+            // A mass update would do here now that duration_minutes is a
+            // generated column, but one at a time keeps each log's updated_at
+            // honest and the loop is over at most a handful of rows.
             foreach ($other->timeLogs as $log) {
-                $log->update(['ended_at' => Carbon::now()]);
+                $log->update(['ended_at' => $now]);
             }
 
             $other->update(['status' => TaskStatus::Paused]);

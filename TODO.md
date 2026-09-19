@@ -72,65 +72,36 @@ summary — inside `#app` in Blade. Vue wipes `#app` when it mounts, so a browse
 never sees it twice and a crawler reads the part that matters. Full server
 rendering is Inertia with SSR, and a Node process beside PHP.
 
-## A. One migration per entity, and the schema fixes that ride with it
+## A. What is left of the database work
 
-24 migration files record a private development log and nothing is deployed.
-Squash to one `create_` per table — and since every create is being rewritten,
-change the schema in the same pass rather than as an alter each.
+The squash and the schema changes landed on 2026-09-19 — see the Migrations
+section of `CLAUDE.md`. One item remains.
 
-9. **Fold the four profile alters into the create.** `add_quote_author`,
-    `add_language_settings`, `add_headline_highlights`,
-    `add_contact_email_and_social_image`.
-10. **Fold the rest.** `drop_gear_size` becomes "do not create the column";
-    `add_two_factor_columns` moves into the skeleton users table;
-    `neutralise_default_initials` is a default, so put `default('AB')` on the
-    column; `add_missing_indexes` splits back to the table each index belongs
-    to.
-11. **Leave vendor and skeleton alone.** `create_permission_tables` is
-    Spatie's; `create_cache_table` and `create_jobs_table` are Laravel's.
-12. **After it lands:** everyone runs `migrate:fresh --seed`, there is no
-    upgrade path and there need not be one, and `CLAUDE.md` notes the cut-off.
-    Not `schema:dump` — it pins the repo to one MySQL version and hides the
-    schema from review.
+9. **Make `social_links` a child table.** It is a JSON array of
+   `{label, url, icon, in_rail, in_footer}` on the profile — a repeating group
+   with its own fields, its own ordering and its own visibility. Every other
+   repeating group on the page is already a table; this one is a table in a
+   JSON costume.
 
-**Schema changes.** Two of these move a rule from PHP into the database. Both
-were tried against this project's MySQL 8.4 first. A constraint is worth adding
-when it defends against *concurrency* — one admin still means double clicks,
-retries and second tabs — and not when it defends a state nothing can create.
+   `portfolio_social_links` with `sort_order`, `in_rail` and `in_footer` as
+   real columns removes `withVisibleSocialLinks()` and the clone it works on,
+   because the `is_visible` filtering `payload()` already applies to the child
+   collections would reach it like everything else. It also lets
+   `UpdatePortfolioRequest` validate a row as a row, and lets a link be
+   reordered without rewriting the whole column.
 
-13. **Make `social_links` a child table.** A repeating group with its own
-    fields, ordering and visibility is a table, not a JSON column. Removes
-    `withVisibleSocialLinks()` and its clone, and lets rows be validated as
-    rows.
-14. **Let the database hold "one timer at a time".** Add `user_id` to
-    `time_logs`, a stored `running_user_id AS (IF(ended_at IS NULL, user_id,
-    NULL))`, and a UNIQUE index on it. Keep `TimerService`'s lock — it turns a
-    violation into an orderly pause; the constraint catches the path that
-    forgets to lock.
-15. **Make `duration_minutes` a generated column.** `TIMESTAMPDIFF(MINUTE,
-    started_at, ended_at)` STORED. Removes `TimeLog::booted()` and the trap
-    that a builder `update()` silently skips it. Still stored, so totals stay
-    one `SUM()`.
-16. **Do not add a one-active-profile index.** It works, but nothing in the app
-    can create a second profile — the only path is
-    `updateOrCreate(['slug' => 'oa'])` — and the index would break
-    `test_only_one_profile_stays_active`. The real question is whether
-    `is_active` and `activate()` earn their place at all.
-17. **One remote event, one task.** UNIQUE on
-    `(user_id, source, external_ref)`, so an overlapping calendar sync or a
-    retry cannot import the same event twice. Manual tasks have a NULL
-    `external_ref` and a unique index does not compare NULLs.
-18. **`portfolio_profiles.type` is dead.** Seeded `person`, never read —
-    `personSchema()` hardcodes it. Wire it up or drop it.
-19. **The seeded slug still names the author.** `seed()` matches on
-    `['slug' => 'oa']`; `initials` was neutralised to `AB` and the slug was
-    not. Also decide what `slug` is *for* — nothing reads it.
-20. **`reflections.period_end` can disagree with itself.** Derivable from
-    `period_type` + `period_start`. Make it generated (the unique index uses
-    it, so that is the smaller change).
-21. **Say what `categories.user_id = NULL` means** in the migration, next to
-    the self-referencing key — and that one level of nesting is enforced only
-    in PHP, because a CHECK cannot see another row.
+   The `showsIn()` pair in PHP and JS stays either way — the fallback for a
+   link saved before the two placements existed is about old data, not about
+   where it is stored.
+
+10. **Decide whether `is_active` earns its place.** Nothing in the app can
+    create a second profile: the only path is `updateOrCreate(['slug' =>
+    self::SLUG])`. So `is_active`, `activate()`,
+    `test_only_one_profile_stays_active` and the `where('is_active', true)` in
+    three query paths are all machinery for a feature that does not exist. A
+    UNIQUE index on a generated `only_active` column would work, but it
+    defends a state nothing can reach — and would break that test. If
+    multi-profile is ever built, the column and the index come back together.
 
 **Leave denormalised, on purpose.** So the question is not reopened every six
 months.
@@ -149,7 +120,7 @@ months.
 
 ## B. When something asks for it
 
-22. **Three kinds of row, three owners.** *Roles are code* — `admin` is a name
+11. **Three kinds of row, three owners.** *Roles are code* — `admin` is a name
     the middleware refers to, so it stays seeded and idempotent. *The admin
     user and the profile are this install's identity* — they move to
     `php artisan app:install`, which asks for email, password and initials.
@@ -162,11 +133,11 @@ months.
     workspace would throw rather than say so. **Has a reason already — item
     24.**
 
-23. **Mail providers need no work.** `config/mail.php` plus `MAIL_MAILER`
+12. **Mail providers need no work.** `config/mail.php` plus `MAIL_MAILER`
     already switches SMTP, SES, Postmark, Resend. Do not write an interface
     over Laravel's.
 
-24. **Calendar sync is the one interface that earns its place.** Google,
+13. **Calendar sync is the one interface that earns its place.** Google,
     Microsoft 365 and CalDAV are three implementations of one idea:
     `CalendarProvider` with `pull()` and `push()`. Providers speak a plain
     readonly `CalendarEvent`; one mapper turns that into a `Task`. `TaskSource`
@@ -177,7 +148,7 @@ months.
     deletion means here, and what happens when both sides changed the same
     event.
 
-25. **No `Task` subclasses.** Eloquent has no single-table inheritance, so
+14. **No `Task` subclasses.** Eloquent has no single-table inheritance, so
     `ManualTask`/`SyncedTask` means `newFromBuilder()` or `tighten/parental`,
     and `$timeLog->task` silently returns the base class wherever it is missed.
     The differences are guard rules — remote owns the schedule, deleting
@@ -189,25 +160,25 @@ months.
     rule, attendees or a meeting link, that is a one-to-one
     `task_calendar_details` table.
 
-26. **The other two interfaces.** `TwoFactorService` → a `TwoFactorProvider`
+15. **The other two interfaces.** `TwoFactorService` → a `TwoFactorProvider`
     contract (TOTP now, passkeys later). `DefaultPortfolioContent` → a contract
     for where the seeded page comes from, so a fork ships its own. Nothing
     else: an interface with one class behind it is a file and an indirection.
 
-27. **Split `PortfolioContentService`.** 273 lines with five reasons to change
+16. **Split `PortfolioContentService`.** 273 lines with five reasons to change
     — reading, writing, history, activation, seeding. An interface in front
     would preserve the problem. The one transaction and one write path must
     survive the split.
 
-28. **Put one-off jobs in `app/Actions/`.** Fortify and Jetstream set the
+17. **Put one-off jobs in `app/Actions/`.** Fortify and Jetstream set the
     precedent; prefer it to `lorisleiva/laravel-actions`. First candidates:
     restore a revision, reset to defaults, enrol a second factor, start and
     stop a timer.
 
-29. **Raise events for what something else reacts to.** `PortfolioSaved` /
+18. **Raise events for what something else reacts to.** `PortfolioSaved` /
     `PortfolioRestored`, `InquiryReceived` to email you when the connect form
     is used, `TimerStarted` / `TimerStopped` so calendar sync can react without
     `TimerService` growing a branch. Move the inline `Login` / `Failed`
     listeners to `app/Listeners/` when a third appears.
 
-30. **Update the "no bindings" note in `CLAUDE.md`** once 24 and 26 land.
+19. **Update the "no bindings" note in `CLAUDE.md`** once 13 and 15 land.

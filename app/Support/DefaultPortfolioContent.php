@@ -7,13 +7,20 @@ use Illuminate\Support\Facades\DB;
 
 class DefaultPortfolioContent
 {
+    /**
+     * The row this seeds is matched on, and the only thing that identifies a
+     * profile in the table. Deliberately not anybody's initials: this project
+     * is meant to be forked, and the seeded slug used to be the author's.
+     */
+    public const SLUG = 'default';
+
     public function seed(): PortfolioProfile
     {
         return DB::transaction(function (): PortfolioProfile {
             $content = $this->content();
 
             $profile = PortfolioProfile::updateOrCreate(
-                ['slug' => 'oa'],
+                ['slug' => self::SLUG],
                 $content['profile'],
             );
 
@@ -30,7 +37,6 @@ class DefaultPortfolioContent
     {
         return [
             'profile' => [
-                'type' => 'person',
                 'is_active' => true,
                 // A placeholder. Change it in the workspace.
                 'initials' => 'AB',
