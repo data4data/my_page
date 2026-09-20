@@ -1,12 +1,14 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowRight, ChevronLeft, ChevronRight } from '@lucide/vue';
+import { ArrowRight, ChevronLeft, ChevronRight, Moon, Sun } from '@lucide/vue';
 import AppButton from '../../components/ui/AppButton.vue';
+import AppPillSwitch from '../../components/ui/AppPillSwitch.vue';
 import DeveloperConnectModal from '../../components/DeveloperConnectModal.vue';
 import { resolveIcon } from '../../shared/icons';
 import { applyLanguagePolicy, copy, lang, LANGUAGES, languageSwitcherShown, localeFromPath, pathForLocale, preferredPath, setLang, t } from '../../shared/i18n';
 import { usePortfolioSource } from '../../shared/portfolio';
+import { holdTheme, releaseTheme, setTheme, theme } from '../../shared/theme';
 
 const route = useRoute();
 // Both connect routes carry this flag — the bare one and the prefixed one.
@@ -107,6 +109,18 @@ const updateActiveSection = () => {
 // Off in Settings means the site runs in the default language only.
 const showLanguageSwitcher = computed(() => languageSwitcherShown(profile.value));
 
+// The same two options the workspace rail offers, and the same stored
+// preference: one browser, one pair of eyes.
+const themeOptions = computed(() => [
+    { value: 'light', icon: Sun, ariaLabel: copy('themeLight') },
+    { value: 'dark', icon: Moon, ariaLabel: copy('themeDark') },
+]);
+
+// Held rather than set, so the attribute comes off if this page ever
+// unmounts into something that does not want it. See shared/theme.js.
+onMounted(holdTheme);
+onBeforeUnmount(releaseTheme);
+
 onMounted(async () => {
     await fetchPortfolio();
     applyLanguagePolicy(profile.value);
@@ -161,6 +175,10 @@ const scrollExpertise = (direction) => {
     <!-- No bg-cream: body paints it, and an opaque background here would
          cover the body::before wash, which sits at a negative z-index. -->
     <main v-else class="page-grid min-h-screen text-ink">
+        <!-- First thing in the tab order. Without it a keyboard user walks
+             the whole nav and the social rail before reaching any content. -->
+        <a href="#main-content" class="skip-link u-full">{{ copy('skipToContent') }}</a>
+
         <header class="site-header u-full" :class="{ scrolled: headerScrolled }">
             <div class="site-header-inner">
                 <a href="#" class="site-logo">{{ profile.initials }}</a>
@@ -171,6 +189,14 @@ const scrollExpertise = (direction) => {
                     <a href="#contact" :class="{ active: activeSection === 'contact' }">{{ copy('contact') }}</a>
                 </nav>
                 <div class="site-actions">
+                    <AppPillSwitch
+                        class="site-theme-switch"
+                        :options="themeOptions"
+                        :model-value="theme"
+                        :aria-label="copy('themeSwitch')"
+                        @update:model-value="setTheme"
+                    />
+
                     <template v-if="showLanguageSwitcher">
                         <AppButton
                             v-for="language in LANGUAGES"
@@ -189,7 +215,7 @@ const scrollExpertise = (direction) => {
             </div>
         </header>
 
-        <section class="hero-shell u-full">
+        <section id="main-content" tabindex="-1" class="hero-shell u-full">
             <div class="hero-visual" aria-hidden="true">
                 <img class="hero-photo" :src="'/images/header-hero.png'" alt="">
                 <div class="hero-photo-shade"></div>

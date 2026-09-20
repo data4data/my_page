@@ -22,9 +22,22 @@ export const addDays = (date, amount) => {
 // Safe against month-end overflow only when `date` is the 1st (which is how
 // CalendarView always calls it for month view) — Date.setMonth on the 1st
 // can never roll into the following month the way e.g. Jan 31 would.
+// Clamped to the last day of the target month, which is what every date
+// library does and what the name promises. setMonth() alone overflows: the
+// 31st of January plus one month is the 31st of February, which JavaScript
+// rolls forward into March — so a "previous month" step from a 31st would
+// skip February entirely. Both callers normalise to the 1st first, so this
+// changes nothing today; it is here so the next one need not know to.
 export const addMonths = (date, amount) => {
     const result = new Date(date);
+    const day = result.getDate();
+
+    result.setDate(1);
     result.setMonth(result.getMonth() + amount);
+
+    const lastDayOfTarget = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+    result.setDate(Math.min(day, lastDayOfTarget));
+
     return result;
 };
 

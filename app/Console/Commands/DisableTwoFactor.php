@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Contracts\TwoFactorProvider;
 use App\Models\User;
-use App\Services\TwoFactorService;
 use Illuminate\Console\Command;
 
 /**
@@ -17,7 +17,7 @@ class DisableTwoFactor extends Command
 
     protected $description = 'Turn off two-factor authentication for an account';
 
-    public function handle(TwoFactorService $twoFactor): int
+    public function handle(TwoFactorProvider $twoFactor): int
     {
         $user = User::where('email', $this->argument('email'))->first();
 

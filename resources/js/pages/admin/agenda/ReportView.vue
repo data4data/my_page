@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from '@lucide/vue';
 import AppButton from '../../../components/ui/AppButton.vue';
 import AppTextarea from '../../../components/ui/AppTextarea.vue';
 import AppPillSwitch from '../../../components/ui/AppPillSwitch.vue';
+import { reportError } from '../../../shared/api';
 import { useToast } from '../../../shared/toast';
 import {
     usePlanning,
@@ -55,10 +56,13 @@ const load = async () => {
         // reflection is always keyed to exactly the range being summarised.
         const reflection = await fetchReflection(periodType.value, report.value.period_start, report.value.period_end);
         reflectionNotes.value = reflection?.notes ?? '';
-    } catch {
+    } catch (error) {
         report.value = null;
         reflectionNotes.value = '';
         failed.value = true;
+        // The panel shows its own "could not load" state, so this adds the
+        // reason rather than repeating that something went wrong.
+        reportError(error, copy('reportError'));
     } finally {
         loading.value = false;
     }
@@ -75,8 +79,8 @@ const storeReflection = async () => {
             notes: reflectionNotes.value || null,
         });
         toast.success(copy('reflectionSaved'));
-    } catch {
-        toast.error(copy('reflectionError'));
+    } catch (error) {
+        reportError(error, copy('reflectionError'));
     } finally {
         savingReflection.value = false;
     }

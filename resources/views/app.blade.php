@@ -74,7 +74,11 @@
             @endif
         @endif
 
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        {{-- Two bundles. The workspace's JavaScript is loaded only inside
+             the workspace prefix, so the public page never serves it and its
+             endpoint names cannot be read out of a chunk fetched from the
+             public site. The login page counts as inside: it is the door. --}}
+        @vite(['resources/css/app.css', $inWorkspace ? 'resources/js/app-admin.js' : 'resources/js/app-public.js'])
     </head>
     <body>
         <div id="app"></div>

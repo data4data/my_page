@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\InquiryReceived;
 use App\Models\DeveloperInquiry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,7 +35,8 @@ class DeveloperInquiryController extends Controller
             'linkedin_url' => ['nullable', 'string', 'url:http,https', 'max:255'],
         ]);
 
-        DeveloperInquiry::create($data);
+        // The event is what mails it on; the row is what Insights reads.
+        InquiryReceived::dispatch(DeveloperInquiry::create($data));
 
         return $this->accepted();
     }

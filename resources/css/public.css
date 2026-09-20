@@ -13,8 +13,8 @@
     }
 
     .site-header.scrolled {
-        background: rgba(248,244,237,0.92);
-        border-bottom-color: rgba(216,203,187,0.72);
+        background: var(--veil-92);
+        border-bottom-color: var(--color-sand);
         backdrop-filter: blur(18px);
         box-shadow: 0 10px 34px rgba(44,34,24,0.06);
     }
@@ -27,6 +27,18 @@
         grid-template-columns: 120px 1fr auto;
         align-items: center;
         gap: 24px;
+    }
+
+    /* The header floats over the hero photograph, so the switcher takes the
+       same frosted treatment as the buttons beside it rather than the rail's
+       --pill-* tokens. */
+    .site-theme-switch {
+        --pill-track: var(--glass);
+        --pill-text: var(--color-ink);
+        --pill-active: var(--glass-strong-hover);
+        --pill-active-text: var(--color-ink);
+        border: 1px solid var(--glass-border);
+        backdrop-filter: blur(12px);
     }
 
     .site-logo {
@@ -85,8 +97,8 @@
         padding: 112px 20px 0;
         overflow: hidden;
         background:
-            linear-gradient(90deg, rgba(248,244,237,0.98) 0%, rgba(248,244,237,0.94) 39%, rgba(17,31,43,0.18) 68%, rgba(7,21,35,0.18) 100%),
-            radial-gradient(circle at 22% 24%, rgba(255,255,255,0.95), transparent 30%),
+            linear-gradient(90deg, var(--veil-98) 0%, var(--veil-94) 39%, rgba(17,31,43,0.18) 68%, rgba(7,21,35,0.18) 100%),
+            radial-gradient(circle at 22% 24%, var(--glow-bloom), transparent 30%),
             linear-gradient(110deg, var(--color-hero-glow-1) 0%, var(--color-hero-glow-2) 45%, var(--color-hero-glow-3) 100%);
     }
 
@@ -103,7 +115,9 @@
 
     .hero-photo-shade {
         @apply absolute inset-0;
-        background: linear-gradient(90deg, rgba(248,244,237,0.99) 0%, rgba(248,244,237,0.93) 31%, rgba(248,244,237,0.24) 52%, rgba(7,21,35,0.04) 100%);
+        background:
+            linear-gradient(90deg, var(--veil-99) 0%, var(--veil-93) 31%, var(--veil-24) 52%, rgba(7,21,35,0.04) 100%),
+            var(--photo-dim);
     }
 
     .hero-copy {
@@ -163,7 +177,7 @@
         background: transparent;
         padding-left: 14px;
         padding-right: 10px;
-        text-shadow: 0 1px 18px rgba(255,255,255,0.45);
+        text-shadow: 0 1px 18px var(--glow-halo);
     }
 
     .hero-stats .metric:first-child {
@@ -211,7 +225,7 @@
     }
 
     .social-rail a {
-        @apply grid h-9 w-9 place-items-center rounded-full transition hover:bg-white/70;
+        @apply grid h-9 w-9 place-items-center rounded-full transition hover:bg-surface-chip;
     }
 
     .metric {
@@ -254,7 +268,7 @@
     }
 
     .expertise-card {
-        @apply flex min-h-56 shrink-0 flex-col rounded-lg border border-transparent bg-white/78 p-7 shadow-[0_18px_34px_-24px_rgba(44,34,24,0.18),0_1px_0_rgba(255,255,255,0.85)_inset] backdrop-blur-sm transition duration-200 hover:-translate-y-1 hover:bg-white/90 hover:shadow-[0_24px_44px_-26px_rgba(44,34,24,0.22),0_1px_0_rgba(255,255,255,0.9)_inset];
+        @apply flex min-h-56 shrink-0 flex-col rounded-lg border border-transparent bg-surface-card p-7 shadow-[0_18px_34px_-24px_rgba(44,34,24,0.18),0_1px_0_var(--glow-edge)_inset] backdrop-blur-sm transition duration-200 hover:-translate-y-1 hover:bg-surface-card-hover hover:shadow-[0_24px_44px_-26px_rgba(44,34,24,0.22),0_1px_0_var(--glow-edge-strong)_inset];
         width: calc((100% - (var(--card-gap) * (var(--cards) - 1))) / var(--cards));
         scroll-snap-align: start;
     }
@@ -289,7 +303,7 @@
 
 
     .process-panel {
-        @apply grid items-start gap-6 rounded-lg border border-sand bg-white/35 p-5 shadow-[0_24px_80px_rgba(44,34,24,0.05)] md:grid-cols-[0.95fr_1.05fr] lg:p-6;
+        @apply grid items-start gap-6 rounded-lg border border-sand bg-surface-panel-soft p-5 shadow-[0_24px_80px_rgba(44,34,24,0.05)] md:grid-cols-[0.95fr_1.05fr] lg:p-6;
     }
 
     .process-visual {
@@ -370,7 +384,7 @@
     }
 
     .process-expertise-grid article {
-        @apply flex min-h-[86px] items-start gap-3 rounded-md border border-tan bg-white/62 p-4;
+        @apply flex min-h-[86px] items-start gap-3 rounded-md border border-tan bg-surface-note p-4;
     }
 
     .process-expertise-grid svg {
@@ -398,7 +412,7 @@
     }
 
     .project-card {
-        @apply grid min-h-[280px] overflow-hidden rounded-lg border border-sand bg-white/45 shadow-[0_20px_60px_rgba(44,34,24,0.07)] sm:grid-cols-[0.95fr_1fr];
+        @apply grid min-h-[280px] overflow-hidden rounded-lg border border-sand bg-surface-panel shadow-[0_20px_60px_rgba(44,34,24,0.07)] sm:grid-cols-[0.95fr_1fr];
     }
 
     .project-copy {
@@ -426,7 +440,7 @@
     }
 
     .tags span {
-        @apply rounded-full border border-sand bg-white/70 px-3 py-1 text-xs;
+        @apply rounded-full border border-sand bg-surface-chip px-3 py-1 text-xs;
     }
 
     .project-visual {
@@ -435,7 +449,7 @@
 
     .project-visual.dashboard {
         background:
-            linear-gradient(90deg, rgba(255,255,255,0.75) 0 28%, transparent 28%),
+            linear-gradient(90deg, var(--glow-stripe) 0 28%, transparent 28%),
             linear-gradient(135deg, var(--color-parchment), var(--color-visual-blue));
     }
 
@@ -447,12 +461,12 @@
 
     .project-visual.cms {
         background:
-            linear-gradient(90deg, rgba(255,255,255,0.75) 0 34%, transparent 34%),
+            linear-gradient(90deg, var(--glow-stripe) 0 34%, transparent 34%),
             linear-gradient(135deg, var(--color-visual-mist), var(--color-visual-blush));
     }
 
     .project-visual span {
-        @apply absolute h-9 w-9 rounded-lg bg-white shadow;
+        @apply absolute h-9 w-9 rounded-lg bg-paper shadow;
         left: calc(18% + (var(--tw-translate-x, 0) * 1px));
     }
 
@@ -475,9 +489,9 @@
     }
 
     .quote-card {
-        @apply relative isolate min-h-[300px] overflow-hidden bg-white/45 p-10;
+        @apply relative isolate min-h-[300px] overflow-hidden bg-surface-panel p-10;
         background-image:
-            linear-gradient(90deg, rgba(248,244,237,0.72) 0%, rgba(248,244,237,0.46) 42%, rgba(248,244,237,0.08) 100%),
+            linear-gradient(90deg, var(--veil-72) 0%, var(--veil-46) 42%, var(--veil-08) 100%),
             url('../images/quote-da-vinci.png');
         background-size: cover;
         background-position: center;
@@ -500,7 +514,8 @@
     }
 
     .contact-band {
-        @apply relative grid min-h-[300px] overflow-hidden bg-ink p-10 text-white;
+        @apply relative grid min-h-[300px] overflow-hidden p-10 text-white;
+        background-color: #071523;
         background-image:
             linear-gradient(90deg, rgba(7,21,35,0.78) 0%, rgba(7,21,35,0.55) 44%, rgba(7,21,35,0.12) 100%),
             url('../images/contact-still-life.png');
@@ -575,7 +590,7 @@
     /* Icon only, like the rail: names would outweigh the notes either side.
        The name is still the accessible name and the tooltip. */
     .social-footer a {
-        @apply grid place-items-center rounded-full border border-transparent text-ink transition hover:border-sand hover:bg-white/70 hover:text-accent;
+        @apply grid place-items-center rounded-full border border-transparent text-ink transition hover:border-sand hover:bg-surface-chip hover:text-accent;
         /* On a phone this is the only copy, so size the target, not the glyph. */
         min-width: 2.75rem;
         min-height: 2.75rem;

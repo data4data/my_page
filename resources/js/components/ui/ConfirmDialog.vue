@@ -40,23 +40,32 @@ watch(pending, async (value) => {
          cancel, so the awaiting caller is never left hanging. -->
     <!-- layer-confirm: a confirm is usually raised *from* another modal, so it
          has to sit above it. See the --z-* scale in resources/css/base.css. -->
-    <div v-if="pending" class="connect-overlay layer-confirm" @click.self="respond(false)">
-        <div ref="dialog" class="connect-modal connect-modal-narrow" role="alertdialog" aria-modal="true" tabindex="-1">
-            <button type="button" class="connect-close" :aria-label="copy('confirmCancel')" @click="respond(false)">
-                <X :size="18" />
-            </button>
+    <div v-if="pending" class="modal-overlay admin-modal-overlay layer-confirm" @click.self="respond(false)">
+        <div ref="dialog" class="admin-modal admin-modal-narrow" role="alertdialog" aria-modal="true" tabindex="-1">
+            <header class="admin-modal-head">
+                <div class="admin-modal-heading">
+                    <h2 class="admin-modal-title">{{ copy('confirmTitle') }}</h2>
+                </div>
 
-            <p class="eyebrow">{{ copy('confirmTitle') }}</p>
-            <p class="mt-3 text-sm leading-6 text-ink">{{ pending.message }}</p>
+                <button type="button" class="admin-modal-close" :aria-label="copy('confirmCancel')" @click="respond(false)">
+                    <X :size="18" />
+                </button>
+            </header>
 
-            <div class="mt-6 flex items-center justify-end gap-2">
-                <AppButton variant="secondary" size="sm" @click="respond(false)">
-                    {{ pending.cancelLabel ?? copy('confirmCancel') }}
-                </AppButton>
-                <AppButton variant="primary" size="sm" @click="respond(true)">
-                    {{ pending.confirmLabel ?? copy('confirmAccept') }}
-                </AppButton>
+            <div class="admin-modal-body">
+                <p class="text-sm leading-6 text-body">{{ pending.message }}</p>
             </div>
+
+            <footer class="admin-modal-bar">
+                <div class="admin-modal-actions">
+                    <AppButton variant="outline" @click="respond(false)">
+                        {{ pending.cancelLabel ?? copy('confirmCancel') }}
+                    </AppButton>
+                    <AppButton variant="solid" @click="respond(true)">
+                        {{ pending.confirmLabel ?? copy('confirmAccept') }}
+                    </AppButton>
+                </div>
+            </footer>
         </div>
     </div>
 </template>

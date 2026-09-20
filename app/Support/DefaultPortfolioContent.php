@@ -2,36 +2,14 @@
 
 namespace App\Support;
 
-use App\Models\PortfolioProfile;
-use Illuminate\Support\Facades\DB;
+use App\Contracts\PortfolioSeedContent;
 
-class DefaultPortfolioContent
+class DefaultPortfolioContent implements PortfolioSeedContent
 {
-    public function seed(): PortfolioProfile
-    {
-        return DB::transaction(function (): PortfolioProfile {
-            $content = $this->content();
-
-            $profile = PortfolioProfile::updateOrCreate(
-                ['slug' => 'oa'],
-                $content['profile'],
-            );
-
-            $this->replace($profile, 'metrics', $content['metrics']);
-            $this->replace($profile, 'expertiseItems', $content['expertise_items']);
-            $this->replace($profile, 'projects', $content['projects']);
-            $this->replace($profile, 'processSteps', $content['process_steps']);
-
-            return $profile;
-        });
-    }
-
     public function content(): array
     {
         return [
             'profile' => [
-                'type' => 'person',
-                'is_active' => true,
                 // A placeholder. Change it in the workspace.
                 'initials' => 'AB',
                 'role' => ['en' => 'Full-Stack Developer', 'nl' => 'Full-stack ontwikkelaar'],
@@ -73,12 +51,12 @@ class DefaultPortfolioContent
                     'en' => 'Leonardo da Vinci',
                     'nl' => 'Leonardo da Vinci',
                 ],
-                // Placeholders. Edited under Edit page -> Social links.
-                'social_links' => [
-                    ['label' => 'GitHub', 'url' => 'https://github.com/', 'icon' => 'github', 'in_rail' => true, 'in_footer' => true],
-                    ['label' => 'LinkedIn', 'url' => 'https://www.linkedin.com/', 'icon' => 'linkedin', 'in_rail' => true, 'in_footer' => true],
-                    ['label' => 'Email', 'url' => 'mailto:hello@example.com', 'icon' => 'mail', 'in_rail' => true, 'in_footer' => true],
-                ],
+            ],
+            // Placeholders. Edited under Edit page -> Social links.
+            'social_links' => [
+                ['label' => 'GitHub', 'url' => 'https://github.com/', 'icon' => 'github', 'in_rail' => true, 'in_footer' => true],
+                ['label' => 'LinkedIn', 'url' => 'https://www.linkedin.com/', 'icon' => 'linkedin', 'in_rail' => true, 'in_footer' => true],
+                ['label' => 'Email', 'url' => 'mailto:hello@example.com', 'icon' => 'mail', 'in_rail' => true, 'in_footer' => true],
             ],
             'metrics' => [
                 ['value' => '10+', 'label' => ['en' => 'Years of experience', 'nl' => 'Jaren ervaring']],
@@ -163,17 +141,5 @@ class DefaultPortfolioContent
                 ['group' => 'output', 'title' => ['en' => 'Real Impact', 'nl' => 'Echte impact'], 'description' => ['en' => 'Measurable outcomes', 'nl' => 'Meetbare resultaten'], 'icon' => 'sparkles'],
             ],
         ];
-    }
-
-    private function replace(PortfolioProfile $profile, string $relation, array $items): void
-    {
-        $profile->{$relation}()->delete();
-
-        foreach (array_values($items) as $index => $item) {
-            $profile->{$relation}()->create($item + [
-                'sort_order' => $index + 1,
-                'is_visible' => true,
-            ]);
-        }
     }
 }

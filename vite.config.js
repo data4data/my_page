@@ -2,12 +2,20 @@ import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
 import tailwindcss from '@tailwindcss/vite';
-import vue from '@vitejs/plugin-vue';
+import { vuePlugin } from './vue-plugin';
 
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            // Two bundles, not one. The workspace's JavaScript is never
+            // served to the public page, so nobody can read the shape of the
+            // private API out of a chunk fetched from the public site.
+            // app.blade.php picks which pair to load.
+            input: [
+                'resources/css/app.css',
+                'resources/js/app-public.js',
+                'resources/js/app-admin.js',
+            ],
             refresh: true,
             fonts: [
                 bunny('Instrument Sans', {
@@ -16,7 +24,7 @@ export default defineConfig({
             ],
         }),
         tailwindcss(),
-        vue(),
+        vuePlugin(),
     ],
     server: {
         // A name, not whatever address Vite picks. Left to itself it binds to

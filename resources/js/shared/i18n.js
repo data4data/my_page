@@ -1,24 +1,32 @@
 import { ref } from 'vue';
-import { publicUi } from './i18n-public';
-import { adminUi } from './i18n-admin';
 
 /* The dictionary is split by audience, the same way pages/ is: i18n-public.js
    for the visit card, i18n-admin.js for the workspace. Only the few strings
-   both halves use are left here.
+   both halves use live here.
 
-   They are merged back into one `ui`, so copy() and t() work exactly as before
-   and no component knows about the split. A key in the "wrong" file still
-   resolves — the split decides where you go to edit a word, not how it is
-   looked up. i18n.test.js checks that en and nl hold the same keys. */
+   Neither is imported from this file. They are handed in by the entry point —
+   app-public.js registers one, app-admin.js the other — because importing
+   both would put all 493 workspace strings in the public bundle, where a
+   visitor can read "Two-step sign-in" and "Recovery codes" out of it. That is
+   the same leak the two bundles exist to close (see vite.config.js).
+
+   Once registered, copy() and t() work exactly as before and no component
+   knows about the split. */
 const sharedUi = {
     en: {
         loading: 'Loading...',
         admin: 'Admin',
         expertise: 'Expertise',
         error: 'Could not save changes. Please check the fields and try again.',
+        errorOffline: 'Could not reach the server. Check your connection and try again.',
+        errorSessionExpired: 'Your session expired. Sign in again and retry.',
         sharedInfo: 'These values are the same in both languages, so they are edited once here rather than twice on every other tab.',
         sharedHighlightsHint: 'Words from the headline to accent, comma separated. Put both languages\u2019 spellings in one list — only the words in the headline currently on screen can match.',
         preview: 'Preview',
+        skipToContent: 'Skip to content',
+        themeSwitch: 'Theme',
+        themeLight: 'Light',
+        themeDark: 'Dark',
     },
 
     nl: {
@@ -26,15 +34,33 @@ const sharedUi = {
         admin: 'Admin',
         expertise: 'Expertise',
         error: 'Opslaan is niet gelukt. Controleer de velden en probeer opnieuw.',
+        errorOffline: 'De server is niet bereikbaar. Controleer je verbinding en probeer opnieuw.',
+        errorSessionExpired: 'Je sessie is verlopen. Log opnieuw in en probeer het nog eens.',
         sharedInfo: 'Deze waarden zijn in beide talen hetzelfde en worden daarom hier \u00e9\u00e9n keer ingesteld in plaats van op elk ander tabblad twee keer.',
         sharedHighlightsHint: 'Woorden uit de kop die een accentkleur krijgen, gescheiden door komma\u2019s. Zet de spelling van beide talen in \u00e9\u00e9n lijst — alleen woorden uit de kop die nu op het scherm staat kunnen matchen.',
         preview: 'Voorbeeld',
+        skipToContent: 'Naar de inhoud',
+        themeSwitch: 'Thema',
+        themeLight: 'Licht',
+        themeDark: 'Donker',
     },
 };
 
 export const ui = {
-    en: { ...sharedUi.en, ...publicUi.en, ...adminUi.en },
-    nl: { ...sharedUi.nl, ...publicUi.nl, ...adminUi.nl },
+    en: { ...sharedUi.en },
+    nl: { ...sharedUi.nl },
+};
+
+/**
+ * Adds one half's strings to the dictionary. Called by the entry point before
+ * the app mounts, so every copy() during render already sees them.
+ *
+ * Tests get both halves from resources/tests/setup.js, which mounts
+ * components directly and so never runs an entry point.
+ */
+export const registerUi = (dictionary) => {
+    Object.assign(ui.en, dictionary.en);
+    Object.assign(ui.nl, dictionary.nl);
 };
 
 

@@ -39,8 +39,6 @@ defineEmits(['move', 'remove', 'update:visible']);
 <template>
     <section class="item-card">
         <header class="item-card-head">
-            <!-- Optional preview of whatever identifies the item at a
-                 glance — the social link's icon, say. -->
             <slot name="lead" />
 
             <strong class="item-card-title">{{ title }}</strong>

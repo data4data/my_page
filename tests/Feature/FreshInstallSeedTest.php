@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\PortfolioProfile;
-use App\Support\DefaultPortfolioContent;
+use App\Services\PortfolioSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -18,9 +18,9 @@ class FreshInstallSeedTest extends TestCase
      */
     public function test_a_fresh_install_seeds_placeholder_initials(): void
     {
-        app(DefaultPortfolioContent::class)->seed();
+        app(PortfolioSeeder::class)->seed();
 
-        $this->assertSame('AB', PortfolioProfile::where('is_active', true)->value('initials'));
+        $this->assertSame('AB', PortfolioProfile::query()->value('initials'));
     }
 
     public function test_the_column_default_is_a_placeholder_too(): void

@@ -21,7 +21,8 @@ never hardcoded.
 ```bash
 composer install && npm install
 cp .env.example .env && php artisan key:generate
-php artisan migrate --seed        # set ADMIN_EMAIL/ADMIN_PASSWORD first
+php artisan migrate --seed        # placeholder content and categories
+php artisan app:install           # the admin account and the profile — asks for them
 composer run dev                  # serve + queue + logs + vite
 ```
 
@@ -55,7 +56,7 @@ Each of these fails **silently**, not loudly:
 
 | Change | Also update |
 |---|---|
-| A new UI string | **both** `en` and `nl` in `resources/js/shared/i18n.js` |
+| A new UI string | **both** `en` and `nl`, in whichever of `i18n.js`, `i18n-public.js` or `i18n-admin.js` its half belongs to |
 | A new `icon` value in DB or seed data | `iconMap` in `resources/js/shared/icons.js`, or it renders nothing |
 | A new `TaskStatus` case | `TASK_STATUSES` in `resources/js/shared/planning.js` |
 | Social-link placement rules | **both** `PortfolioContentService::showsIn()` and `showsIn()` in `resources/js/shared/portfolio.js` |
@@ -70,8 +71,11 @@ section) and **never write a raw `z-index`** (see its Design system section).
 Check EN/NL parity:
 
 ```bash
-node -e "const s=require('fs').readFileSync('resources/js/shared/i18n.js','utf8'),h=s.indexOf('    nl: {'),k=t=>new Set([...t.matchAll(/^        (\w+):/gm)].map(m=>m[1])),en=k(s.slice(0,h)),nl=k(s.slice(h));console.log(en.size,nl.size,[...en].filter(x=>!nl.has(x)),[...nl].filter(x=>!en.has(x)))"
+npx vitest run resources/tests/shared/i18n.test.js
 ```
+
+It checks each dictionary file on its own, so a Dutch key missing from the
+workspace half fails even though the visit card's half is complete.
 
 ## 4. Run the gate
 
@@ -98,6 +102,14 @@ Green is not enough for these two. Both have produced real bugs here.
 editor — Profile, Experience, Expertise, Process, Projects, Language.
 `UpdatePortfolioRequest` can reject a payload the editor legitimately produces,
 and nothing automated will tell you.
+
+**`--env=testing` does not mean the test database.** There is no
+`.env.testing`, so `--env=testing` falls back to `.env` — which points at your
+development database. The test database name lives in `phpunit.xml`, which the
+artisan CLI never reads. So `php artisan migrate:fresh --env=testing` drops
+your development data while looking like it is being careful. Let
+`php artisan test` manage the test database; it uses `RefreshDatabase` and
+reads `phpunit.xml`.
 
 If a dev server is already running, reuse it rather than starting a second one on
 the same port. Touching real local content? Back the database up first:

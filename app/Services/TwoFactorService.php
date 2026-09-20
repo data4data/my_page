@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\TwoFactorProvider;
 use App\Models\User;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
@@ -15,7 +16,7 @@ use PragmaRX\Google2FA\Google2FA;
  * Time-based one-time passwords. Off until the owner turns it on, so a fresh
  * install never needs an authenticator app to sign in.
  */
-class TwoFactorService
+class TwoFactorService implements TwoFactorProvider
 {
     private const RECOVERY_CODE_COUNT = 8;
 
@@ -106,6 +107,21 @@ class TwoFactorService
     }
 
     /** The otpauth:// URI, as a QR code. */
+    /**
+     * TOTP's answer to "what does the enrolment screen show": the QR to scan
+     * and the same secret typed out, for an authenticator that cannot use a
+     * camera. Both come off the user, so this reads rather than writes.
+     *
+     * @return array<string, mixed>
+     */
+    public function enrolmentDetails(User $user): array
+    {
+        return [
+            'qr_data_uri' => 'data:image/svg+xml;base64,'.base64_encode($this->qrCodeSvg($user)),
+            'setup_key' => $user->two_factor_secret,
+        ];
+    }
+
     public function qrCodeSvg(User $user): string
     {
         $renderer = new ImageRenderer(new RendererStyle(228, 0), new SvgImageBackEnd);

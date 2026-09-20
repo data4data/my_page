@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue';
 import AppInput from '../../components/ui/AppInput.vue';
 import AppButton from '../../components/ui/AppButton.vue';
 import AppCheckbox from '../../components/ui/AppCheckbox.vue';
-import { apiFetch } from '../../shared/api';
+import { apiFetch, errorMessage } from '../../shared/api';
 import { adminUrl } from '../../shared/admin-path';
 import { copy } from '../../shared/i18n';
 
@@ -50,7 +50,7 @@ const submit = async () => {
     } catch (failure) {
         // apiFetch already prefers the field-level message, which for a bad
         // password is the one AuthController attaches to `email`.
-        error.value = failure.message;
+        error.value = errorMessage(failure, copy('error'));
         submitting.value = false;
         return;
     }
@@ -78,7 +78,7 @@ const verify = async () => {
             message: 'Could not verify that code. Please try again.',
         }));
     } catch (failure) {
-        error.value = failure.message;
+        error.value = errorMessage(failure, copy('error'));
         submitting.value = false;
     }
 };

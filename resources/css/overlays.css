@@ -1,51 +1,146 @@
 /* Imported by app.css. Part of the split described there. */
 
 @layer components {
-    .connect-overlay {
-        @apply fixed inset-0 flex items-center justify-center bg-ink/60 px-5 py-10 backdrop-blur-sm;
+    /* ---------------------------------------------------------------
+       Shared geometry. The two shells differ in palette and in the bands
+       inside the card, not in where the card sits — so position lives here
+       once and each shell supplies its own --modal-scrim.
+       --------------------------------------------------------------- */
+    .modal-overlay {
+        @apply fixed inset-0 flex items-center justify-center px-4 py-6 backdrop-blur-sm sm:px-6 sm:py-10;
         z-index: var(--z-overlay);
+        background: var(--modal-scrim);
     }
 
-    .connect-modal {
-        @apply relative w-full max-w-md rounded-lg border border-sand bg-cream p-6 text-ink shadow-[0_30px_90px_rgba(7,21,35,0.35)] md:p-8;
-        max-height: calc(100vh - 5rem);
-        overflow-y: auto;
+    /* ---------------------------------------------------------------
+       The workspace modal: head, scrolling body, action bar — the same three
+       bands as .admin-sheet, drawn from the surface tokens so it follows
+       light and dark. A literal colour here is the bug the tokens exist to
+       prevent.
+       --------------------------------------------------------------- */
+    .admin-modal-overlay {
+        --modal-scrim: var(--color-scrim);
     }
 
-    /* Task editor: more fields than the connect form, so it gets more room.
-       Same single-class specificity as .connect-modal's max-w-md, and defined
-       after it, so this width wins. */
-    .connect-modal-wide {
-        @apply max-w-2xl;
+    .admin-modal {
+        @apply relative flex w-full max-w-lg flex-col overflow-hidden rounded-xl;
+        /* The body scrolls, not the card, so the action bar stays put. */
+        max-height: calc(100dvh - 3rem);
+        border: 1px solid var(--color-hairline);
+        background: var(--color-sheet);
+        color: var(--color-body);
+        box-shadow: var(--shadow-modal);
     }
 
-    /* Confirm dialog: one short question, so narrower than the connect form. */
-    .connect-modal-narrow {
+    /* Task editor: more fields than a category, so it gets more room. */
+    .admin-modal-wide {
+        @apply max-w-3xl;
+    }
+
+    /* Confirm dialog: one short question. */
+    .admin-modal-narrow {
         @apply max-w-sm;
     }
 
-    .connect-close {
-        @apply absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full border border-sand bg-white transition hover:bg-ink hover:text-white;
+    .admin-modal-head {
+        @apply flex flex-none items-start gap-3 px-5 pb-4 pt-5 md:px-7;
+        border-bottom: 1px solid var(--color-hairline-soft);
     }
 
-    /* forms.css is shared: the workspace's fields and the public connect
-       modal's fields are the same rules on the same surface tokens. The
-       workspace wants the neutral greys the redesign specifies; the visit card
-       wants its own sand-and-ink palette, which it had before those tokens
-       existed.
+    .admin-modal-heading {
+        @apply min-w-0 flex-1;
+    }
 
-       Keyed to the absence of data-theme — written onto <html> only while
-       AdminLayout is mounted (shared/theme.js) — so this remaps the tokens for
-       the one modal the public page opens, and leaves TaskModal and
-       CategoryModal, which share .connect-modal, on the workspace palette. */
-    :root:not([data-theme]) .connect-modal {
-        --color-field: #ffffff;
+    .admin-modal-eyebrow {
+        @apply mb-1 text-[0.6875rem] font-semibold uppercase;
+        letter-spacing: 0.14em;
+        color: var(--color-faint);
+    }
+
+    .admin-modal-title {
+        @apply text-[1.0625rem] font-medium tracking-[-0.01em];
+        color: var(--color-body);
+    }
+
+    .admin-modal-subtitle {
+        @apply mt-1 text-[0.8125rem] leading-5;
+        color: var(--color-faint);
+    }
+
+    /* min-h-0: without it the flex child refuses to shrink and the card grows
+       past max-height instead of scrolling. */
+    .admin-modal-body {
+        @apply min-h-0 flex-1 overflow-y-auto px-5 py-5 md:px-7;
+    }
+
+    .admin-modal-bar {
+        @apply flex flex-none flex-wrap items-center gap-2 px-5 py-3 md:px-7;
+        border-top: 1px solid var(--color-hairline);
+        background: var(--color-bar);
+    }
+
+    /* Pushes a group to the right of the bar, leaving anything before it —
+       the task editor's delete — on the left. */
+    .admin-modal-actions {
+        @apply ml-auto flex flex-wrap items-center gap-2;
+    }
+
+    .admin-modal-close {
+        @apply grid h-8 w-8 flex-none place-items-center rounded-lg transition;
+        color: var(--color-faint);
+    }
+
+    .admin-modal-close:hover {
+        background: var(--color-raised);
+        color: var(--color-body);
+    }
+
+    /* ---------------------------------------------------------------
+       The visit card's modal. Brand palette, light only: the public page has
+       no dark mode, and this is the one card that could drag it into one.
+       --------------------------------------------------------------- */
+    .public-modal-overlay {
+        --modal-scrim: light-dark(rgba(7, 21, 35, 0.6), rgba(0, 0, 0, 0.72));
+    }
+
+    .public-modal {
+        @apply relative flex w-full max-w-md flex-col rounded-lg border border-sand bg-cream text-ink;
+        max-height: calc(100dvh - 3rem);
+        box-shadow: light-dark(0 30px 90px rgba(7, 21, 35, 0.35), 0 30px 90px rgba(0, 0, 0, 0.6));
+
+        /* forms.css is shared: the workspace's fields and this card's fields
+           are the same rules on the same surface tokens. The workspace wants
+           the neutral greys the redesign specifies; the visit card wants its
+           own sand-and-ink palette, which it had before those tokens existed.
+
+           Set on the card itself rather than keyed to the absence of
+           data-theme, as it used to be: only the public page renders this
+           shell, so the remap does not need a condition to tell it apart from
+           TaskModal and CategoryModal any more — those are a different
+           component now. */
+        --color-field: var(--color-paper);
         --color-ring: var(--color-sand);
         --color-raised: var(--color-cream);
         --color-body: var(--color-ink);
         --color-mute: var(--color-graphite);
         --color-marker: var(--color-accent);
         --color-solid: var(--color-ink);
-        --color-solid-text: #ffffff;
+        --color-solid-text: var(--color-ink-text);
+    }
+
+    /* One band, not three: the connect form supplies its own heading and
+       swaps the whole thing for the thank-you. */
+    .public-modal-body {
+        @apply min-h-0 flex-1 overflow-y-auto p-6 md:p-8;
+    }
+
+    .public-modal-close {
+        @apply absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full border border-sand transition;
+        background: var(--color-paper);
+    }
+
+    .public-modal-close:hover {
+        background: var(--color-ink);
+        color: var(--color-ink-text);
     }
 }

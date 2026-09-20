@@ -20,6 +20,47 @@
         --z-confirm: 60;
         --z-toast: 70;
 
+        /* The page ground at the alphas the hero and section washes fade
+           through. Light fades cream into a photograph; dark fades the same
+           near-black into it. Named by alpha rather than by job because the
+           gradients were hand-tuned and the light values must not move.
+
+           Not in @theme: they are only ever used inside gradients, never as a
+           utility class, so they would add nothing to the colour namespace.
+           The dark half is a little more opaque throughout — a photograph
+           needs more covering to read as part of a dark page than a light one. */
+        --veil-99: light-dark(rgba(248, 244, 237, 0.99), rgba(20, 18, 15, 0.99));
+        --veil-98: light-dark(rgba(248, 244, 237, 0.98), rgba(20, 18, 15, 0.98));
+        --veil-94: light-dark(rgba(248, 244, 237, 0.94), rgba(20, 18, 15, 0.96));
+        --veil-93: light-dark(rgba(248, 244, 237, 0.93), rgba(20, 18, 15, 0.95));
+        --veil-92: light-dark(rgba(248, 244, 237, 0.92), rgba(20, 18, 15, 0.94));
+        --veil-72: light-dark(rgba(248, 244, 237, 0.72), rgba(20, 18, 15, 0.82));
+        --veil-46: light-dark(rgba(248, 244, 237, 0.46), rgba(20, 18, 15, 0.62));
+        --veil-24: light-dark(rgba(248, 244, 237, 0.24), rgba(20, 18, 15, 0.42));
+        --veil-08: light-dark(rgba(248, 244, 237, 0.08), rgba(20, 18, 15, 0.22));
+
+        /* Highlights that only exist because the light design is lit from
+           above: a white bloom, a top edge, the stripes in the project
+           tiles. All far weaker in dark, where a white bloom reads as glare. */
+        --glow-bloom: light-dark(rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.07));
+        --glow-edge: light-dark(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.055));
+        --glow-edge-strong: light-dark(rgba(255, 255, 255, 0.90), rgba(255, 255, 255, 0.075));
+        --glow-stripe: light-dark(rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.10));
+        --glow-halo: light-dark(rgba(255, 255, 255, 0.45), rgba(0, 0, 0, 0.55));
+
+        /* The photographs do not change with the theme, so dark mode lays a
+           dim over them. Without it, light text sits on a daylight photo. */
+        --photo-dim: light-dark(transparent, rgba(12, 10, 8, 0.52));
+
+        /* The frosted controls in the header, which float over a photograph
+           rather than over the page. */
+        --glass: light-dark(rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.10));
+        --glass-hover: light-dark(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.18));
+        --glass-strong: light-dark(rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0.14));
+        --glass-strong-hover: light-dark(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.24));
+        --glass-border: light-dark(rgba(255, 255, 255, 0.60), rgba(255, 255, 255, 0.22));
+        --glass-border-soft: light-dark(rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0.16));
+
         /* The workspace rail, in its three widths. `--admin-rail` is what the
            layout reserves in the flex row and what the fixed panel is drawn
            at, so overriding that one token at a breakpoint moves both halves
@@ -93,5 +134,40 @@
     textarea,
     select {
         font: inherit;
+    }
+}
+
+@layer components {
+    /* Off-screen until focused, not display:none — a hidden link is not in
+       the tab order at all, and this one has to be the first thing in it.
+       Both halves use it: the public page skips the nav and the social rail,
+       the workspace skips the rail's destinations. */
+    .skip-link {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        z-index: var(--z-header);
+        transform: translate(-50%, -150%);
+        padding: 0.65rem 1.25rem;
+        border-radius: 0 0 0.5rem 0.5rem;
+        background: var(--color-ink);
+        color: var(--color-ink-text);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        transition: transform 150ms ease;
+    }
+
+    .skip-link:focus-visible {
+        transform: translate(-50%, 0);
+        outline: 2px solid var(--color-accent);
+        outline-offset: 2px;
+    }
+
+    /* The target takes focus so the next Tab continues from the content, not
+       from the top of the document again. It is only focusable by being
+       jumped to, so it must not draw a ring of its own. */
+    [id='main-content']:focus,
+    [id='workspace-content']:focus {
+        outline: none;
     }
 }

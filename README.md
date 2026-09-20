@@ -67,18 +67,19 @@ php -r "echo 'workspace-'.bin2hex(random_bytes(4)).PHP_EOL;"
 ```env
 DB_DATABASE=your_database
 ADMIN_PATH=the-value-you-just-generated
-ADMIN_EMAIL=you@example.com
-ADMIN_PASSWORD=choose-a-real-password
 ```
 
-`ADMIN_PATH` is where the whole workspace lives, login page included. Nothing in the code hardcodes it and the public page never mentions it, so its only job is to be unguessable. Do not build it from anything a visitor can see, such as the initials on the page. The admin password must be at least 12 characters outside local development, or the seeder refuses to create the account.
+`ADMIN_PATH` is where the whole workspace lives, login page included. Nothing in the code hardcodes it and the public page never mentions it, so its only job is to be unguessable. Do not build it from anything a visitor can see, such as the initials on the page.
 
-Then:
+There is no `ADMIN_EMAIL` or `ADMIN_PASSWORD`. The account is created by a command that asks, so your real password never has to sit in a file:
 
 ```bash
 php artisan migrate --seed
+php artisan app:install
 composer run dev
 ```
+
+`app:install` prompts for the email, the password and the initials. It is safe to run twice — it updates the password rather than making a second account, and leaves content you have already edited alone.
 
 Sign in at `http://127.0.0.1:8000/<ADMIN_PATH>/login`.
 
@@ -86,10 +87,11 @@ Change `ADMIN_PATH` later and you will need `php artisan route:clear && php arti
 
 ## What gets seeded
 
+Seeders create **samples**. Your admin account and your profile are created by `php artisan app:install`, not by a seeder — a seeder runs unattended and would have to read a password out of a file.
+
 | Seeder | Creates | In production |
 | --- | --- | --- |
 | `DefaultPortfolioContent` | Placeholder public page content | Yes |
-| `AdminUserSeeder` | The one admin account | Yes |
 | `CategorySeeder` | Nine task categories, six subcategories | Yes |
 | `DemoWeekSeeder` | A sample week of tasks | No, local only |
 

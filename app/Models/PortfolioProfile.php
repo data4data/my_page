@@ -9,8 +9,6 @@ class PortfolioProfile extends Model
 {
     protected $fillable = [
         'slug',
-        'type',
-        'is_active',
         'initials',
         'role',
         'headline',
@@ -26,13 +24,11 @@ class PortfolioProfile extends Model
         'availability_note',
         'quote',
         'quote_author',
-        'social_links',
         'default_language',
         'show_language_toggle',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
         'role' => 'array',
         'headline' => 'array',
         'headline_highlights' => 'array',
@@ -43,9 +39,14 @@ class PortfolioProfile extends Model
         'availability_note' => 'array',
         'quote' => 'array',
         'quote_author' => 'array',
-        'social_links' => 'array',
         'show_language_toggle' => 'boolean',
     ];
+
+    /** @return HasMany<PortfolioSocialLink, $this> */
+    public function socialLinks(): HasMany
+    {
+        return $this->hasMany(PortfolioSocialLink::class);
+    }
 
     /** @return HasMany<PortfolioMetric, $this> */
     public function metrics(): HasMany

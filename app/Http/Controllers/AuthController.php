@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\TwoFactorProvider;
 use App\Enums\SecurityEventType;
 use App\Models\User;
 use App\Services\SecurityEventRecorder;
-use App\Services\TwoFactorService;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -22,7 +22,7 @@ class AuthController extends Controller
     private const PENDING_REMEMBER_KEY = 'two_factor.remember';
 
     public function __construct(
-        private TwoFactorService $twoFactor,
+        private TwoFactorProvider $twoFactor,
         private SecurityEventRecorder $recorder,
     ) {}
 

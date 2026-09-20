@@ -30,9 +30,13 @@
         grid-column: 1 / -1;
     }
 
+    /* The same quiet caption .field-label gives every other editor in the
+       workspace. The two modal forms were the last tracked-uppercase labels
+       left, which is why a task editor used to read louder than the page
+       editor behind it. */
     .admin-grid label {
-        @apply grid gap-2 text-xs font-semibold uppercase text-mute;
-        letter-spacing: 0.08em;
+        @apply grid gap-1.5 text-xs;
+        color: var(--color-mute);
     }
 
     /* Shared field look for AppInput/AppTextarea/AppSelect/AppCheckbox (resources/js/components/ui/) — change it once, here. */

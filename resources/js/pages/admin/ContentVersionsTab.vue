@@ -43,7 +43,6 @@ const formatDate = (value) => new Date(value).toLocaleString(undefined, {
 
 <template>
     <div class="flex flex-col gap-2.5">
-        <!-- No heading: the tab strip above already reads "Content versions". -->
         <p class="admin-note">{{ copy('historyHint') }}</p>
 
         <ul class="flex list-none flex-col gap-2.5 p-0">

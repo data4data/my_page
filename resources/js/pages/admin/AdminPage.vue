@@ -22,7 +22,7 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog.vue';
 import { copy } from '../../shared/i18n';
 import { adminUrl } from '../../shared/admin-path';
 import { usePortfolioSource } from '../../shared/portfolio';
-import { apiFetch } from '../../shared/api';
+import { apiFetch, reportError } from '../../shared/api';
 import { useToast } from '../../shared/toast';
 import { useConfirm } from '../../shared/confirm';
 
@@ -40,6 +40,7 @@ const {
     expertise,
     projects,
     processSteps,
+    socialLinks,
 } = usePortfolioSource(adminUrl('/portfolio'));
 
 const saving = ref(false);
@@ -113,7 +114,6 @@ const savedPayload = ref('');
 const dirty = computed(() => Boolean(savedPayload.value) && savedPayload.value !== JSON.stringify(data.value));
 const saveStatus = computed(() => (dirty.value ? copy('unsavedChanges') : copy('allSaved')));
 
-// One subtitle per tab, under the page title.
 const EDIT_SUBTITLES = {
     profile: 'subtitleEditProfile',
     metrics: 'subtitleEditMetrics',
@@ -142,7 +142,6 @@ const fetchInquiries = async (page = 1) => {
         const body = await apiFetch(`${adminUrl('/inquiries')}?page=${page}`);
         const rows = body.inquiries ?? [];
 
-        // Page one replaces, later pages append.
         inquiries.value = page === 1 ? rows : [...inquiries.value, ...rows];
         inquiriesHasMore.value = body.has_more ?? false;
         inquiriesPage.value = body.page ?? page;
@@ -161,8 +160,6 @@ const fetchRevisions = async () => {
     }
 };
 
-const reportFailure = (error) => toast.error(error.message || copy('error'));
-
 const fetchSecurityEvents = async () => {
     securityLoading.value = true;
 
@@ -173,17 +170,17 @@ const fetchSecurityEvents = async () => {
     }
 };
 
-const loadMoreInquiries = () => fetchInquiries(inquiriesPage.value + 1).catch(reportFailure);
+const loadMoreInquiries = () => fetchInquiries(inquiriesPage.value + 1).catch(reportError);
 
 // Snapshot once the payload lands, so `dirty` has something to compare to.
 const loadPortfolio = () => fetchPortfolio().then(() => {
     savedPayload.value = JSON.stringify(data.value);
 });
 
-loadPortfolio().catch(reportFailure);
-fetchInquiries().catch(reportFailure);
-fetchRevisions().catch(reportFailure);
-fetchSecurityEvents().catch(reportFailure);
+loadPortfolio().catch(reportError);
+fetchInquiries().catch(reportError);
+fetchRevisions().catch(reportError);
+fetchSecurityEvents().catch(reportError);
 
 const savePortfolio = async () => {
     saving.value = true;
@@ -201,7 +198,7 @@ const savePortfolio = async () => {
         await fetchRevisions();
         toast.success(copy('saved'));
     } catch (error) {
-        reportFailure(error);
+        reportError(error);
     } finally {
         saving.value = false;
     }
@@ -223,7 +220,7 @@ const restoreDefaults = async () => {
         await fetchRevisions();
         toast.success(copy('restored'));
     } catch (error) {
-        reportFailure(error);
+        reportError(error);
     } finally {
         restoring.value = false;
     }
@@ -244,7 +241,7 @@ const restoreRevision = async (id) => {
         await fetchRevisions();
         toast.success(copy('historyRestored'));
     } catch (error) {
-        reportFailure(error);
+        reportError(error);
     } finally {
         restoringId.value = null;
     }
@@ -318,7 +315,7 @@ const updateTags = (project, value) => {
             <template v-if="showSaveButton" #status>{{ saveStatus }}</template>
 
             <template v-if="showSaveButton" #actions>
-                <AppButton variant="outline" :disabled="!dirty || saving" @click="loadPortfolio().catch(reportFailure)">
+                <AppButton variant="outline" :disabled="!dirty || saving" @click="loadPortfolio().catch(reportError)">
                     {{ copy('cancel') }}
                 </AppButton>
                 <AppButton variant="solid" :disabled="saving" @click="savePortfolio">
@@ -339,13 +336,13 @@ const updateTags = (project, value) => {
             <ExpertiseTab v-else-if="tab === 'expertise'" :expertise="expertise" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :profile="profile" />
             <ProcessTab v-else-if="tab === 'process'" :process-steps="processSteps" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :profile="profile" />
             <ProjectsTab v-else-if="tab === 'projects'" :projects="projects" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" :update-tags="updateTags" :profile="profile" />
-            <SocialLinksTab v-else-if="tab === 'social'" :profile="profile" />
+            <SocialLinksTab v-else-if="tab === 'social'" :links="socialLinks" :add-item="addItem" :remove-item="removeItem" :move-item="moveItem" />
             <SharedTab v-else-if="tab === 'shared'" :profile="profile" />
 
             <template #status>{{ saveStatus }}</template>
 
             <template #actions>
-                <AppButton variant="outline" :disabled="!dirty || saving" @click="loadPortfolio().catch(reportFailure)">
+                <AppButton variant="outline" :disabled="!dirty || saving" @click="loadPortfolio().catch(reportError)">
                     {{ copy('cancel') }}
                 </AppButton>
                 <AppButton variant="solid" :disabled="saving" @click="savePortfolio">

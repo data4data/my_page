@@ -17,6 +17,13 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            // Opt-in second factor. Both are `encrypted` casts on the model
+            // and in its #[Hidden] list, so neither ever serialises.
+            $table->text('two_factor_secret')->nullable();
+            $table->text('two_factor_recovery_codes')->nullable();
+            // Set only once a real code has been checked: a secret alone is
+            // never enforced, so a mis-scanned QR is a retry, not a lockout.
+            $table->timestamp('two_factor_confirmed_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

@@ -1,12 +1,12 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import AppModal from './ui/AppModal.vue';
+import PublicModal from './ui/PublicModal.vue';
 import AppInput from './ui/AppInput.vue';
 import AppTextarea from './ui/AppTextarea.vue';
 import AppButton from './ui/AppButton.vue';
 import { copy } from '../shared/i18n';
-import { apiFetch } from '../shared/api';
+import { apiFetch, errorMessage } from '../shared/api';
 import { barePath, localeFromPath } from '../shared/i18n';
 
 const router = useRouter();
@@ -65,7 +65,7 @@ const submit = async () => {
 
         submitted.value = true;
     } catch (failure) {
-        error.value = failure.message;
+        error.value = errorMessage(failure, copy('connectError'));
     } finally {
         submitting.value = false;
     }
@@ -73,7 +73,7 @@ const submit = async () => {
 </script>
 
 <template>
-    <AppModal :label="copy('connectTitle')" @close="close">
+    <PublicModal :label="copy('connectTitle')" @close="close">
         <template v-if="submitted">
             <p class="eyebrow">{{ copy('forDevelopers') }}</p>
             <h2 class="mt-3 font-serif text-2xl leading-tight">{{ copy('connectSuccess') }}</h2>
@@ -128,5 +128,5 @@ const submit = async () => {
                 </AppButton>
             </form>
         </template>
-    </AppModal>
+    </PublicModal>
 </template>
