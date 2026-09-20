@@ -58,8 +58,7 @@ class DeveloperInquiryTest extends TestCase
         $response->assertOk()->assertJsonCount(1, 'inquiries');
     }
 
-    // The public form feeding this table is rate-limited per minute, not in
-    // total, so the admin list has to be bounded.
+    // The public form is throttled per minute, not in total, so the list is paged.
     public function test_the_inquiry_list_is_paginated(): void
     {
         Role::findOrCreate('admin', 'web');
@@ -92,11 +91,7 @@ class DeveloperInquiryTest extends TestCase
         $this->assertSame($ids, array_unique($ids));
     }
 
-    /**
-     * The honeypot field is off-screen and hidden from assistive tech, so only
-     * a bot filling every input reaches this. It gets the same response a real
-     * submission would: telling it otherwise just helps whoever tunes it.
-     */
+    // A filled honeypot gets the same response a real submission does.
     public function test_a_filled_honeypot_is_accepted_and_discarded(): void
     {
         $this->postJson('/hi-developer', [
@@ -121,8 +116,7 @@ class DeveloperInquiryTest extends TestCase
         $this->assertDatabaseCount('developer_inquiries', 1);
     }
 
-    // A submission with no honeypot key at all still works, so an older cached
-    // page does not start silently failing.
+    // An older cached page sends no honeypot key at all, and must still work.
     public function test_a_submission_without_the_field_still_works(): void
     {
         $this->postJson('/hi-developer', [
@@ -134,8 +128,7 @@ class DeveloperInquiryTest extends TestCase
         $this->assertDatabaseCount('developer_inquiries', 1);
     }
 
-    // Caught before validation, so a bot cannot tell the two apart by probing
-    // with a deliberately invalid payload.
+    // Caught before validation, so probing with an invalid payload tells nothing.
     public function test_the_honeypot_wins_over_validation_errors(): void
     {
         $this->postJson('/hi-developer', ['website' => 'http://spam.example'])

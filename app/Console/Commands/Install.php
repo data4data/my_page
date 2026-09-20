@@ -15,16 +15,9 @@ use function Laravel\Prompts\password;
 use function Laravel\Prompts\text;
 
 /**
- * Creates this install's identity: the one admin account, and the profile the
- * public page is drawn from.
- *
- * Deliberately a command rather than a seeder. Seeders are for *samples* —
- * placeholder page content and the demo week — and they run unattended, which
- * is why AdminUserSeeder had to read credentials from .env and then spend
- * sixty lines refusing the weak ones it might be handed. A command can simply
- * ask, and a password typed at a prompt never lands in a file.
- *
- * Safe to run twice: it updates rather than duplicating, and says which.
+ * This install's identity: the one admin account and the profile the public
+ * page is drawn from. A command rather than a seeder so the password is typed
+ * rather than read from a file. Safe to run twice — it updates, not duplicates.
  */
 class Install extends Command
 {
@@ -36,20 +29,15 @@ class Install extends Command
 
     public function handle(PortfolioSeeder $seeder): int
     {
-        // Prompts throws a raw NonInteractiveValidationException when there
-        // is no terminal to answer with, which is a stack trace where an
-        // instruction belongs. There is deliberately no --password: the whole
-        // point of a command over a seeder is that the password is typed, not
-        // stored in a file or a shell history.
+        // Prompts throws a raw exception with no terminal to answer with.
+        // There is deliberately no --password option.
         if (! $this->hasATerminal()) {
             $this->components->error('app:install asks for a password, so it needs a terminal. Run it without piping input.');
 
             return self::FAILURE;
         }
 
-        // A name the role middleware refers to, not anybody's data — so it is
-        // created here rather than asked for, and findOrCreate makes rerunning
-        // harmless.
+        // A name the middleware refers to, not anybody's data: never asked for.
         Role::findOrCreate('admin', 'web');
 
         $email = $this->resolveEmail();
@@ -75,11 +63,8 @@ class Install extends Command
     }
 
     /**
-     * Symfony's isInteractive() only reports the --no-interaction flag, so it
-     * is still true when input is piped or redirected. stream_isatty is what
-     * actually answers "is there someone to type".
-     *
-     * Skipped under the test runner, where PHPUnit answers the prompts.
+     * Not isInteractive(), which only reports --no-interaction and stays true
+     * for piped input. Skipped under the test runner, which answers the prompts.
      */
     private function hasATerminal(): bool
     {
@@ -106,8 +91,6 @@ class Install extends Command
 
     private function createOrUpdateAdmin(string $email, ?User $existing): void
     {
-        // Never defaulted and never read from a file: the whole reason this
-        // is a command is that a password can be asked for.
         $secret = password(
             label: 'Password for that account',
             required: true,

@@ -11,17 +11,9 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The single write path for the public page.
- *
- * save(), seedDefaults() and restore() share one transaction and one write
- * path, so a restored version can never be built differently from a saved
- * one, and all three record history without any of them remembering to.
- * **That property is why this class exists** — anything that splits it apart
- * has to keep it.
- *
- * What it is not: it does not decide the shape of a read (PortfolioPayload),
- * does not manage the undo history (PortfolioHistory), and does not hold the
- * list of what a profile is made of (PortfolioFields).
+ * The single write path for the public page: save(), seedDefaults() and
+ * restore() share one transaction, so a restored version cannot be built
+ * differently from a saved one and all three record history.
  */
 class PortfolioContentService
 {
@@ -31,18 +23,11 @@ class PortfolioContentService
         private PortfolioHistory $history,
     ) {}
 
-    /**
-     * The profile. There is one — PortfolioSeeder::seed() is the only
-     * thing that creates it, and it matches on a fixed slug — so this is
-     * "the first row" rather than a choice between rows.
-     */
+    /** There is exactly one profile row, so this is the first row, not a choice. */
     public function activeProfile(): PortfolioProfile
     {
-        // Self-healing rather than a 404. There is normally a profile by the
-        // time anyone reaches the workspace — `app:install` creates one, and
-        // so does `migrate --seed` — but `migrate` alone leaves none, and an
-        // editor that answers "not found" is a worse answer than an editor
-        // full of the placeholder content the reset button would give you.
+        // `migrate` without --seed leaves no profile; seed rather than 404,
+        // so the editor opens on placeholder content.
         if (! PortfolioProfile::query()->exists()) {
             $this->seeder->seed();
         }
@@ -67,11 +52,6 @@ class PortfolioContentService
      * Replace-on-save: the admin always submits complete collection state,
      * so each child relation is deleted and recreated from the payload.
      *
-     * One event for all three write paths, with a flag, rather than a
-     * separate PortfolioRestored: a restore *is* a save through this method —
-     * that is the property the class exists for — so two classes would be two
-     * wrappers over the same boolean.
-     *
      * @param  array<string, mixed>  $data
      */
     public function save(array $data, ?User $author, bool $restored = false): PortfolioProfile
@@ -93,8 +73,7 @@ class PortfolioContentService
             return $fresh;
         });
 
-        // After the commit, never inside it: a listener that reads the page
-        // must not see a version a rollback is about to undo.
+        // After the commit: a listener must not read a version a rollback undoes.
         PortfolioSaved::dispatch($profile, $author, $restored);
 
         return $profile;
@@ -103,9 +82,8 @@ class PortfolioContentService
     public function seedDefaults(?User $author): PortfolioProfile
     {
         $profile = DB::transaction(function () use ($author): PortfolioProfile {
-            // Soft lookup: on a fresh install there is nothing to take a
-            // baseline of yet, and activeProfile() would seed the very
-            // content this is about to write.
+            // Soft lookup: activeProfile() would seed the very content this
+            // is about to write.
             if (PortfolioProfile::query()->exists()) {
                 $this->history->recordBaseline($this->activeProfile());
             }
@@ -141,9 +119,8 @@ class PortfolioContentService
             $payload = Arr::only($item, $keys);
             $payload['sort_order'] = $index + 1;
 
-            // Only where the relation actually has the column. Social links
-            // derive theirs from the two placements, and MySQL rejects an
-            // INSERT that names a generated column.
+            // Social links derive is_visible, and MySQL rejects an INSERT
+            // naming a generated column.
             if (in_array('is_visible', $keys, true)) {
                 $payload['is_visible'] = $item['is_visible'] ?? true;
             }

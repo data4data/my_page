@@ -9,11 +9,6 @@ use App\Models\User;
 /**
  * The public page's undo history: one row per save holding the complete
  * payload as a JSON snapshot, plus who saved it and when.
- *
- * Snapshots rather than soft deletes, because a save *updates* the profile
- * row rather than deleting it — soft-deleted child rows would leave the
- * profile's own fields with no history at all, and carry nothing that groups
- * them into a version.
  */
 class PortfolioHistory
 {
@@ -22,10 +17,7 @@ class PortfolioHistory
 
     public function __construct(private PortfolioPayload $payload) {}
 
-    /**
-     * Snapshots the starting state so the very first save can be undone.
-     * No author, because nobody made this state.
-     */
+    /** Snapshots the starting state so the very first save can be undone. */
     public function recordBaseline(PortfolioProfile $profile): void
     {
         if ($profile->revisions()->exists()) {
@@ -48,8 +40,7 @@ class PortfolioHistory
 
     private function prune(PortfolioProfile $profile): void
     {
-        // Select the ones to keep, then delete the rest. An OFFSET with no
-        // LIMIT is a MySQL syntax error, so the newest-N cannot be skipped.
+        // Keep-then-delete: an OFFSET with no LIMIT is a MySQL syntax error.
         // By id, not created_at: several saves can share a second.
         $keep = PortfolioRevision::query()
             ->where('portfolio_profile_id', $profile->id)

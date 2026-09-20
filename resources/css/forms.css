@@ -30,10 +30,7 @@
         grid-column: 1 / -1;
     }
 
-    /* The same quiet caption .field-label gives every other editor in the
-       workspace. The two modal forms were the last tracked-uppercase labels
-       left, which is why a task editor used to read louder than the page
-       editor behind it. */
+    /* The same quiet caption .field-label gives every other editor. */
     .admin-grid label {
         @apply grid gap-1.5 text-xs;
         color: var(--color-mute);
@@ -60,10 +57,8 @@
         @apply text-danger;
     }
 
-    /* PrimeVue DatePicker (unstyled) — replaces the native datetime-local
-       input, which rendered with browser chrome and the OS locale rather
-       than this app's. Reuses .field-input for the text box so it sits
-       flush with every other field. */
+    /* Replaces the native datetime-local input, which rendered with browser
+       chrome and the OS locale. Reuses .field-input for the text box. */
     .field-datepicker-root {
         @apply relative block w-full;
     }
@@ -215,14 +210,9 @@
         letter-spacing: 0;
     }
 
-    /*
-     * .admin-grid label { display: grid; ... } (below) targets the plain
-     * "Text<Input/>" label pattern used elsewhere in admin forms, but its
-     * (class + type) specificity beats .field-checkbox-root's (class-only)
-     * specificity — since AppCheckbox's root is also a <label> sitting
-     * inside .admin-grid, that rule was silently stacking the checkbox
-     * above its text. Restate the row layout here with higher specificity.
-     */
+    /* .admin-grid label (below) has class+type specificity, which beats
+     * .field-checkbox-root's — and AppCheckbox's root is a <label> too, so that
+     * rule was stacking the checkbox above its text. Restated higher here. */
     .admin-grid label.field-checkbox-root {
         @apply flex flex-row items-center gap-2;
     }
@@ -242,12 +232,9 @@
         @apply grid h-4 w-4 flex-none place-items-center rounded border border-ring transition;
     }
 
-    /* data-p-checked lands on Checkbox's own root (the "contents" div), not
-       on the wrapper around it. Matched on the attribute alone rather than
-       under .field-checkbox-root: AppMultiSelect reuses this same pt shape
-       for its option/select-all tickboxes, and those have no such wrapper —
-       scoping to it left every multiselect box looking permanently
-       unchecked even while its value was selected. */
+    /* data-p-checked lands on Checkbox's own root, not the wrapper. Matched on
+       the attribute alone: AppMultiSelect reuses this shape with no wrapper,
+       and scoping to one left its boxes looking permanently unchecked. */
     [data-p-checked='true'] .field-checkbox-box {
         background: var(--color-solid);
         border-color: var(--color-solid);
@@ -258,10 +245,8 @@
         color: var(--color-solid-text);
     }
 
-    /* .icon-button, .icon-button-danger and the editable card moved to
-       admin.css: they are card tools and a card, not field styling, and this
-       file loads after admin.css — a second definition here would silently
-       win over the one sitting next to the cards it belongs to. */
+    /* .icon-button and the editable card live in admin.css: they are card tools,
+       and this file loads later, so a copy here would silently win. */
 
     /* Honeypot wrapper. Off-screen rather than display:none or hidden, both of
        which a bot can check for and skip. Nothing here is announced or

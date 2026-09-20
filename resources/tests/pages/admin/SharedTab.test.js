@@ -3,9 +3,7 @@ import { describe, expect, it } from 'vitest';
 import SharedTab from '../../../js/pages/admin/SharedTab.vue';
 import { copy } from '../../../js/shared/i18n';
 
-// The accent word lists moved here with the rest of the untranslated
-// profile values. Stored as one flat [{text, tone}] list, edited as two
-// comma-separated fields; a save writes whatever this produces to the profile.
+// One flat [{text, tone}] list, edited as two comma-separated fields.
 const stubs = {
     AppInput: {
         name: 'AppInput',
@@ -17,9 +15,8 @@ const stubs = {
 
 const mountTab = (profile) => mount(SharedTab, { props: { profile }, global: { stubs } });
 
-// By label, not position, so reordering the tab does not point these at the
-// CTA URL fields — and by the same string the template renders, so renaming
-// one in i18n.js fails here rather than silently selecting a different field.
+// By label, not position, so reordering the tab cannot silently point these at
+// a different field.
 const highlightInputs = (wrapper) => {
     const byLabel = (text) => wrapper.findAll('label')
         .find((label) => label.text().startsWith(text))

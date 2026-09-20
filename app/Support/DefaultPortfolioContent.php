@@ -17,8 +17,7 @@ class DefaultPortfolioContent implements PortfolioSeedContent
                     'en' => 'Building systems with precision that drive impact.',
                     'nl' => 'Systemen bouwen met precisie die impact maken.',
                 ],
-                // The accented words above. Both languages in one list; only
-                // the ones in the headline on screen match.
+                // Both languages in one list; only the words on screen match.
                 'headline_highlights' => [
                     ['text' => 'precision', 'tone' => 'blue'],
                     ['text' => 'precisie', 'tone' => 'blue'],
@@ -33,15 +32,12 @@ class DefaultPortfolioContent implements PortfolioSeedContent
                 'secondary_cta_label' => ['en' => 'About me', 'nl' => 'Over mij'],
                 'secondary_cta_url' => '#about',
 
-                // Left empty on purpose. A seeded address would either be
-                // fake — the exact problem this column was added to remove —
-                // or belong to whoever wrote the seed. The contact button
-                // hides itself until the owner fills this in.
+                // Empty on purpose: the contact button hides itself until
+                // the owner fills this in.
                 'contact_email' => null,
                 'social_image_url' => null,
                 'location_note' => ['en' => 'Based in Europe', 'nl' => 'Gevestigd in Europa'],
-                // Sits right of the social links in the footer. Free text —
-                // the column name is left over from when it held availability.
+                // Free text; the column name is left over from when it held availability.
                 'availability_note' => ['en' => 'Since 2024', 'nl' => 'Sinds 2024'],
                 'quote' => [
                     'en' => 'Simplicity is the ultimate sophistication.',
@@ -52,7 +48,6 @@ class DefaultPortfolioContent implements PortfolioSeedContent
                     'nl' => 'Leonardo da Vinci',
                 ],
             ],
-            // Placeholders. Edited under Edit page -> Social links.
             'social_links' => [
                 ['label' => 'GitHub', 'url' => 'https://github.com/', 'icon' => 'github', 'in_rail' => true, 'in_footer' => true],
                 ['label' => 'LinkedIn', 'url' => 'https://www.linkedin.com/', 'icon' => 'linkedin', 'in_rail' => true, 'in_footer' => true],

@@ -17,9 +17,6 @@ return new class extends Migration
             $table->boolean('is_visible')->default(true);
             $table->timestamps();
 
-            // Always eager-loaded and ordered by sort_order. InnoDB indexes
-            // the foreign key on its own, so this composite is the one the
-            // read actually uses.
             $table->index(['portfolio_profile_id', 'sort_order']);
         });
     }

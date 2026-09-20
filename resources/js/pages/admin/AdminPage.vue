@@ -46,10 +46,8 @@ const {
 const saving = ref(false);
 const restoring = ref(false);
 const tab = ref('profile');
-// Its own tab state, so switching sections does not carry one across.
 const settingsTab = ref('language');
 
-// Saved versions of the public page, listed on the Content versions tab.
 const revisions = ref([]);
 const revisionsLoading = ref(true);
 const restoringId = ref(null);
@@ -73,17 +71,15 @@ const inquiriesPage = ref(1);
 const securityEvents = ref(null);
 const securityLoading = ref(true);
 
-// computed so the labels re-render when the EN/NL toggle changes.
+// computed, so the labels re-render on the EN/NL toggle.
 const navItems = computed(() => [
     { key: 'agenda', label: copy('agenda'), icon: Calendar },
     { key: 'insights', label: copy('insights'), icon: Inbox },
     { key: 'edit', label: copy('editPage'), icon: Pencil },
-    // Pinned to the bottom of the rail, apart from the three destinations.
+    // Pinned to the bottom of the rail, apart from the destinations.
     { key: 'settings', label: copy('settings'), icon: Settings, foot: true },
 ]);
 
-// Edit page is the content only. Language and Content versions are in
-// Settings: neither is page copy.
 const adminTabs = computed(() => [
     { value: 'profile', label: copy('tabProfile') },
     { value: 'metrics', label: copy('tabExperience') },
@@ -91,8 +87,7 @@ const adminTabs = computed(() => [
     { value: 'process', label: copy('tabProcess') },
     { value: 'projects', label: copy('tabProjects') },
     { value: 'social', label: copy('tabSocial') },
-    // Trailing, like Insights' Security tab: values that are the same in
-    // both languages, rather than another slice of page copy.
+    // Trailing: the values that are the same in both languages.
     { value: 'shared', label: copy('tabShared'), right: true },
 ]);
 
@@ -102,14 +97,13 @@ const settingsTabs = computed(() => [
     { value: 'versions', label: copy('tabVersions') },
 ]);
 
-// Language edits the portfolio payload, so it needs the Save button. The
-// other settings save through their own endpoints as you act on them.
+// Only these put content in the unsaved payload; everything else in Settings
+// and Insights persists through its own endpoint.
 const showSaveButton = computed(() => view.value === 'edit' || (view.value === 'settings' && settingsTab.value === 'language'));
 
-// What the server last confirmed, serialised. The action bar says "Unsaved
-// changes" against this rather than against a flag set by a deep watcher: a
-// watcher also fires when fetchPortfolio() replaces the payload, so a plain
-// reload would have reported edits nobody made.
+// What the server last confirmed, serialised. Compared rather than watched: a
+// deep watcher also fires when fetchPortfolio() replaces the payload, which
+// would report edits nobody made.
 const savedPayload = ref('');
 const dirty = computed(() => Boolean(savedPayload.value) && savedPayload.value !== JSON.stringify(data.value));
 const saveStatus = computed(() => (dirty.value ? copy('unsavedChanges') : copy('allSaved')));
@@ -133,8 +127,7 @@ const SETTINGS_SUBTITLES = {
 const editSubtitle = computed(() => copy(EDIT_SUBTITLES[tab.value] ?? ''));
 const settingsSubtitle = computed(() => copy(SETTINGS_SUBTITLES[settingsTab.value] ?? ''));
 
-// Each load clears its own flag and reports its own failure, so one failing
-// leaves the others alone.
+// Each load clears its own flag, so one failing leaves the others alone.
 const fetchInquiries = async (page = 1) => {
     inquiriesLoading.value = true;
 
@@ -193,8 +186,7 @@ const savePortfolio = async () => {
         });
 
         await loadPortfolio();
-        // The save just created a new version — refresh the list so it shows up
-        // without a page reload.
+        // The save made a new version; show it without a reload.
         await fetchRevisions();
         toast.success(copy('saved'));
     } catch (error) {
@@ -204,8 +196,7 @@ const savePortfolio = async () => {
     }
 };
 
-// Asks first, like restoreRevision: it is the more destructive of the two and
-// sits one click away from the saved versions.
+// Asks first: it overwrites the live page and sits one click from the versions.
 const restoreDefaults = async () => {
     if (!await confirm({ message: copy('restoreConfirm'), confirmLabel: copy('historyRestore') })) {
         return;

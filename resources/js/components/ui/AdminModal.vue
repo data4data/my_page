@@ -4,21 +4,15 @@ import { copy } from '../../shared/i18n';
 import { useModalDialog } from '../../shared/modal';
 
 /**
- * The workspace modal: head, scrolling body, action bar — the same three
- * bands AdminSheet has, so an editor raised over the sheet reads as part of
- * it rather than as the visit card's cream popup borrowed for the job.
- *
- * Drawn entirely from the surface tokens, so it follows light and dark.
- * PublicModal is its counterpart on the brand palette; the behaviour both
- * need lives in shared/modal.js.
+ * The workspace modal: head, scrolling body, action bar — the same three bands
+ * AdminSheet has, drawn from the surface tokens so it follows light and dark.
+ * PublicModal is its counterpart; shared/modal.js holds the shared behaviour.
  */
 const props = defineProps({
-    // Task editor: more fields than a category, so it gets more room.
     size: {
         type: String,
         default: 'default', // default | wide | narrow
     },
-    // Small caps above the title — which part of the workspace this belongs to.
     eyebrow: {
         type: String,
         default: '',
@@ -64,8 +58,7 @@ const { dialog } = useModalDialog(() => emit('close'));
                     <p v-if="props.subtitle" class="admin-modal-subtitle">{{ props.subtitle }}</p>
                 </div>
 
-                <!-- Anything that belongs beside the title rather than in the
-                     body — the task editor's timer, for one. -->
+                <!-- Beside the title rather than in the body: the task timer. -->
                 <slot name="head-aside" />
 
                 <button type="button" class="admin-modal-close" :aria-label="copy('connectClose')" @click="emit('close')">

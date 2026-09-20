@@ -81,10 +81,7 @@ describe('apiFetch', () => {
 
 /**
  * One handler decides what a failure reads like, so the same kind of failure
- * says the same thing wherever it happens — and so nothing technical reaches
- * a user. Before this, seven catch blocks threw the real message away for a
- * fixed string, and the ones that did not could print a stack trace's first
- * line straight into a toast.
+ * says the same thing wherever it happens and nothing technical reaches a user.
  */
 describe('errorMessage', () => {
     it('prefers the field-level message, which names what to fix', async () => {
@@ -97,8 +94,7 @@ describe('errorMessage', () => {
         expect(errorMessage(new ApiError('That code is not valid.', { status: 422 }))).toBe('That code is not valid.');
     });
 
-    // A 500's message is the exception's own text, which with APP_DEBUG on is
-    // the first line of a stack trace.
+    // A 500's message is the exception's own text: with APP_DEBUG on, a stack trace.
     it('never shows a server error message, only the caller\u2019s words', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(500, { message: 'SQLSTATE[42S22]: Column not found' })));
 
@@ -119,9 +115,8 @@ describe('errorMessage', () => {
         expect(errorMessage(new TypeError('Failed to fetch'))).toBe(copy('errorOffline'));
     });
 
-    // Something threw that was not a response at all. Its message reads like
-    // "Cannot read properties of undefined" — the strange error this exists
-    // to keep off the screen.
+    // Not a response at all: the message reads like "Cannot read properties of
+    // undefined", which is what this exists to keep off the screen.
     it('hides a bug behind the caller\u2019s wording', () => {
         const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
 

@@ -9,18 +9,12 @@ use Illuminate\Http\Request;
 
 class DeveloperInquiryController extends Controller
 {
-    /**
-     * A field no human ever sees, so anything in it was filled by a bot
-     * working through every input on the page. Named like something a bot
-     * expects to find rather than like a trap.
-     */
+    /** A field no human sees, named like something a bot expects to find. */
     private const HONEYPOT = 'website';
 
-    // Public: submitted from the "For developers" connect form (/hi-developer).
     public function store(Request $request): JsonResponse
     {
-        // Answered exactly like a success. Telling the bot it was caught only
-        // helps whoever is tuning it.
+        // Answered exactly like a success, so probing cannot tell them apart.
         if (filled($request->input(self::HONEYPOT))) {
             return $this->accepted();
         }
@@ -35,7 +29,7 @@ class DeveloperInquiryController extends Controller
             'linkedin_url' => ['nullable', 'string', 'url:http,https', 'max:255'],
         ]);
 
-        // The event is what mails it on; the row is what Insights reads.
+        // The event mails it on; the row is what Insights reads.
         InquiryReceived::dispatch(DeveloperInquiry::create($data));
 
         return $this->accepted();
@@ -46,13 +40,12 @@ class DeveloperInquiryController extends Controller
         return response()->json(['message' => 'Thanks — your message has been sent.']);
     }
 
-    // View-only on purpose: there is no update or destroy. Paginated because
-    // the public form filling this table is throttled per minute, not in total.
+    // View-only on purpose: there is no update or destroy.
     public const PER_PAGE = 25;
 
     public function index(Request $request): JsonResponse
     {
-        // simplePaginate: a "load more" feed needs no total, so no COUNT query.
+        // A "load more" feed needs no total, so no COUNT query.
         $page = DeveloperInquiry::query()
             ->orderByDesc('created_at')
             ->orderByDesc('id')

@@ -2,14 +2,11 @@
 
 namespace App\Enums;
 
-// A plain string column validated against this, not a DB enum — same reason
-// as TaskStatus.
 enum SecurityEventType: string
 {
     case LoginSucceeded = 'login_succeeded';
     case LoginFailed = 'login_failed';
-    // The rate limiter turned the request away before it reached the
-    // controller, so no credential check happened at all.
+    // Turned away by the rate limiter: no credential check happened at all.
     case LoginBlocked = 'login_blocked';
     // Password was right, second factor was not.
     case TwoFactorFailed = 'two_factor_failed';

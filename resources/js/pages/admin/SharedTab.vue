@@ -3,9 +3,8 @@ import { computed } from 'vue';
 import AppInput from '../../components/ui/AppInput.vue';
 import { copy } from '../../shared/i18n';
 
-// The values on the profile that are the same in both languages. Split out of
-// the Profile tab, which now holds only translated copy — mixing the two meant
-// a URL field sitting between an English headline and its Dutch twin.
+// The profile values that are the same in both languages, kept off the Profile
+// tab so a URL field never sits between a headline and its twin.
 const props = defineProps({
     profile: {
         type: Object,
@@ -13,10 +12,8 @@ const props = defineProps({
     },
 });
 
-// Stored as one flat [{text, tone}] list, edited as two comma-separated
-// fields — the same shape-and-split pattern the project tags use. Both
-// languages' words live in the same list, since only the ones appearing in
-// the headline actually on screen can match.
+// Stored as one flat [{text, tone}] list, edited as two comma-separated fields.
+// Both languages' words share the list: only those on screen can match.
 const TONES = ['blue', 'gold'];
 
 const highlights = computed(() => (Array.isArray(props.profile.headline_highlights) ? props.profile.headline_highlights : []));
@@ -27,8 +24,7 @@ const setTerms = (tone, value) => {
     const kept = highlights.value.filter((item) => item?.tone !== tone);
     const added = value.split(',').map((text) => text.trim()).filter(Boolean).map((text) => ({ text, tone }));
 
-    // Rebuilt in tone order so the stored list stays stable between saves
-    // rather than reshuffling on every keystroke.
+    // Rebuilt in tone order, so the list does not reshuffle on every keystroke.
     props.profile.headline_highlights = TONES.flatMap(
         (each) => (each === tone ? added : kept.filter((item) => item.tone === each)),
     );

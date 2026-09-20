@@ -11,9 +11,8 @@ use Illuminate\Validation\Rule;
 
 class ReportController extends Controller
 {
-    // ?period_type=week|month&period_start=YYYY-MM-DD — period_start is
-    // expected to already be that period's first day (the frontend computes
-    // it client-side); the period's own end is derived here from that.
+    // period_start is expected to already be that period's first day; the
+    // end is derived from it here.
     public function show(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -31,20 +30,14 @@ class ReportController extends Controller
             ->where('user_id', $request->user()->id)
             ->whereBetween('start_datetime', [$start, $end])
             ->with('category')
-            // duration_minutes is a stored column so this is one SUM per
-            // task, instead of loading every time_logs row into PHP.
+            // duration_minutes is stored, so this sums in SQL.
             ->withSum('timeLogs as tracked_minutes', 'duration_minutes')
             ->get();
 
         $tracked = fn (Task $task) => (int) ($task->tracked_minutes ?? 0);
 
-        // By id, not name: two categories can share a name (a global one and
-        // a personal one), and grouping by label merged them into one row.
-        // `null` is the uncategorized bucket, labelled by the frontend so the
-        // report carries no untranslated English.
-        // One lookup keyed by id, rather than reaching back through a task's
-        // relation three times per row. The uncategorized bucket has no entry,
-        // hence the null handling below.
+        // Grouped by id, not name: a global and a personal category can share
+        // a name. `null` is the uncategorized bucket, labelled by the frontend.
         $categories = $tasks->pluck('category')->filter()->keyBy('id')->all();
 
         $byCategory = $tasks
@@ -55,7 +48,6 @@ class ReportController extends Controller
                 return [
                     'category_id' => $group->first()->category_id,
                     'category' => $category?->name,
-                    // No ?-> needed: ?? already short-circuits on a null left side.
                     'color' => $category->color ?? '#9b9b9b',
                     'minutes' => $group->sum($tracked),
                     'planned_minutes' => $group->sum(fn (Task $task) => $task->plannedMinutes()),

@@ -7,12 +7,8 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Checks types and lengths, not presence. The editor lets a field be cleared,
- * so `required` on free text would reject payloads it legitimately produces.
- *
- * Presence is demanded only where the column is NOT NULL, because
- * ConvertEmptyStringsToNull turns a cleared field into null and the insert
- * would fail with a 500 instead of a readable 422.
+ * Checks types and lengths, not presence: the editor lets a field be cleared.
+ * Presence is demanded only where the column is NOT NULL.
  */
 class UpdatePortfolioRequest extends FormRequest
 {
@@ -57,41 +53,31 @@ class UpdatePortfolioRequest extends FormRequest
             'profile.initials' => ['sometimes', 'string', 'max:12'],
             'profile.default_language' => ['sometimes', Rule::in(['en', 'nl'])],
             'profile.show_language_toggle' => ['sometimes', 'boolean'],
-            // Which headline words take an accent colour. `tone` is closed
-            // because each value is a CSS class (.headline-blue / -gold).
+            // `tone` is closed: each value is a CSS class (.headline-blue / -gold).
             'profile.headline_highlights' => ['nullable', 'array'],
             'profile.headline_highlights.*.text' => ['required', 'string', 'max:60'],
             'profile.headline_highlights.*.tone' => ['required', Rule::in(['blue', 'gold'])],
             // SafeUrl, not 'url': the seeded CTAs are fragments like "#work".
-            // These land in :href on the public page.
             'profile.primary_cta_url' => ['nullable', 'string', 'max:255', new SafeUrl],
             'profile.secondary_cta_url' => ['nullable', 'string', 'max:255', new SafeUrl],
 
-            // A real address, not SafeUrl: this one is turned into a mailto:
-            // by the page rather than used as the href it was typed as.
+            // The page turns this into a mailto:, so it is an address, not a URL.
             'profile.contact_email' => ['nullable', 'string', 'email', 'max:190'],
 
-            // 'url', not SafeUrl: a preview image has to be an absolute
-            // http(s) address a crawler on another host can fetch, so the
-            // fragments and relative paths SafeUrl exists to allow are all
-            // useless here.
+            // Absolute http(s): a crawler on another host has to fetch it.
             'profile.social_image_url' => ['nullable', 'string', 'url:http,https', 'max:255'],
 
-            // A child collection like the four below it, not a field on the
-            // profile — see the portfolio_social_links migration.
             'social_links' => ['array'],
             'social_links.*.label' => ['nullable', 'string', 'max:60'],
             'social_links.*.url' => ['required', 'string', 'max:255', new SafeUrl],
             // Resolved via iconMap; an unknown key renders nothing.
             'social_links.*.icon' => ['nullable', 'string', 'max:60'],
-            // The two placements are independent. is_visible is derived from
-            // them by the database and is neither sent nor accepted.
+            // Independent placements; is_visible is derived from them by the DB.
             'social_links.*.in_rail' => ['sometimes', 'boolean'],
             'social_links.*.in_footer' => ['sometimes', 'boolean'],
 
             'metrics' => ['array'],
-            // Required because the column is NOT NULL and a cleared field
-            // arrives here as null. Without this the insert 500s.
+            // NOT NULL, and a cleared field arrives as null: 422 beats a 500.
             'metrics.*.value' => ['required', 'string', 'max:24'],
             'metrics.*.is_visible' => ['sometimes', 'boolean'],
 
@@ -127,11 +113,7 @@ class UpdatePortfolioRequest extends FormRequest
         return $rules;
     }
 
-    /**
-     * Every free-text field is an {en, nl} pair in a JSON column. Each side
-     * may be empty but must be text, so a plain string or a nested object
-     * cannot be written where the frontend expects .en / .nl.
-     */
+    /** Every free-text field is an {en, nl} pair; either side may be empty. */
     private function translatedRules(string $key, bool $required): array
     {
         return [

@@ -11,7 +11,6 @@ use Illuminate\Support\Collection;
 
 class SecurityEventController extends Controller
 {
-    // Far enough back to show an overnight run of attempts.
     private const SUMMARY_HOURS = 12;
 
     // Read by eye, so capped rather than paged.
@@ -44,7 +43,7 @@ class SecurityEventController extends Controller
     }
 
     /**
-     * Grouped in SQL, not in PHP: a noisy day puts a lot of rows in here.
+     * Grouped in SQL: a noisy day puts a lot of rows in here.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -61,8 +60,7 @@ class SecurityEventController extends Controller
             ->map(fn ($group, $address) => [
                 'ip_address' => $address ?: null,
                 'attempts' => (int) $group->sum('attempts'),
-                // "failed" means a wrong password only, so the three counts
-                // add up to the row's attempts.
+                // "failed" is a wrong password only, so the three add up.
                 'succeeded' => $this->countOf($group, SecurityEventType::LoginSucceeded),
                 'failed' => $this->countOf($group, SecurityEventType::LoginFailed),
                 'blocked' => $this->countOf($group, SecurityEventType::LoginBlocked),

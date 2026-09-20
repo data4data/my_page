@@ -14,9 +14,8 @@ defineProps({
 
 const model = defineModel({ type: Array, default: () => [] });
 
-// Option rows: the <li> itself carries MultiSelect's select handler, so the
-// checkbox here is purely decorative and its input can stay screen-reader
-// only — same shape AppCheckbox uses, so it looks identical app-wide.
+// The <li> carries MultiSelect's own handler, so this checkbox is decorative
+// and its input stays screen-reader only. An overlay here would double-toggle.
 const optionCheckboxPt = {
     root: 'contents',
     input: 'field-checkbox-input',
@@ -24,11 +23,9 @@ const optionCheckboxPt = {
     icon: 'field-checkbox-icon',
 };
 
-// The "select all" checkbox has no such wrapper row, and PrimeVue's Checkbox
-// binds onChange to its <input> alone (AppCheckbox only works because its
-// root is a <label> around it). With an sr-only input there is nothing left
-// to click, which left select-all silently dead — so stretch a transparent
-// input across the box instead of hiding it.
+// "Select all" has no such row, and PrimeVue binds onChange to the <input>
+// alone — so the input is a transparent overlay rather than sr-only, which
+// would leave nothing to click.
 const headerCheckboxPt = {
     root: 'relative inline-grid place-items-center',
     input: 'field-checkbox-input-overlay',

@@ -7,9 +7,8 @@ import PublicModal from '../../../js/components/ui/PublicModal.vue';
 
 const stubs = { X: true };
 
-// The two shells look different and share their behaviour (shared/modal.js).
-// Every behaviour test below therefore runs against both, so a shell that
-// forgets to wire the composable up fails rather than passing by association.
+// Every behaviour test runs against both shells, so one that forgets to call
+// the composable fails rather than passing by association.
 const shells = [
     ['AdminModal', AdminModal, '.admin-modal', '.admin-modal-close'],
     ['PublicModal', PublicModal, '.public-modal', '.public-modal-close'],
@@ -44,8 +43,8 @@ describe.each(shells)('%s', (_name, Shell, cardSelector, closeSelector) => {
         expect(wrapper.emitted('close')).toHaveLength(1);
     });
 
-    // A PrimeVue Select inside the modal handles its own Escape; closing the
-    // whole editor out from under an open dropdown would lose the user's work.
+    // A Select inside handles its own Escape; closing the editor out from
+    // under an open dropdown would lose the user's work.
     it('ignores an Escape another component already handled', async () => {
         const wrapper = mountModal();
 
@@ -110,8 +109,7 @@ describe.each(shells)('%s', (_name, Shell, cardSelector, closeSelector) => {
     });
 });
 
-// What the split is for: the two shells are different cards, not one card
-// with a prop. These are the differences worth pinning down.
+// The differences the split exists for.
 describe('AdminModal', () => {
     const mountAdmin = (props = {}, slots = {}) => mount(AdminModal, {
         props,
@@ -152,8 +150,8 @@ describe('the split between the two shells', () => {
 
     const rule = (selector) => css.match(new RegExp(`\\${selector}\\s*\\{[^}]*\\}`))?.[0] ?? '';
 
-    // The workspace card follows the theme, so every colour on it has to come
-    // from a token with two halves. A literal here stays light in dark mode.
+    // Every colour has to come from a token with two halves: a literal stays
+    // light in dark mode.
     it('draws the workspace card from the surface tokens only', () => {
         const workspace = ['.admin-modal', '.admin-modal-head', '.admin-modal-bar', '.admin-modal-close']
             .map(rule)
@@ -164,8 +162,7 @@ describe('the split between the two shells', () => {
         expect(workspace).toContain('var(--color-sheet)');
     });
 
-    // And the public card must not follow it: the visit card has no dark mode,
-    // and this is the one card on it that renders forms.css fields.
+    // The one card on the visit card that renders forms.css fields.
     it('keeps the visit card on the brand palette', () => {
         const publicCard = rule('.public-modal');
 

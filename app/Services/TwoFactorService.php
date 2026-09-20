@@ -12,10 +12,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use PragmaRX\Google2FA\Google2FA;
 
-/**
- * Time-based one-time passwords. Off until the owner turns it on, so a fresh
- * install never needs an authenticator app to sign in.
- */
+/** Time-based one-time passwords. Off until the owner turns it on. */
 class TwoFactorService implements TwoFactorProvider
 {
     private const RECOVERY_CODE_COUNT = 8;
@@ -37,10 +34,7 @@ class TwoFactorService implements TwoFactorProvider
         return $user;
     }
 
-    /**
-     * Finishes enrolment. Returns false and enables nothing on a bad code, so
-     * a mis-scanned QR is a retry rather than a lockout.
-     */
+    /** A bad code enables nothing, so a mis-scanned QR is a retry, not a lockout. */
     public function confirm(User $user, string $code): bool
     {
         if ($user->two_factor_secret === null || ! $this->verify($user, $code)) {
@@ -106,11 +100,9 @@ class TwoFactorService implements TwoFactorProvider
         return $codes;
     }
 
-    /** The otpauth:// URI, as a QR code. */
     /**
-     * TOTP's answer to "what does the enrolment screen show": the QR to scan
-     * and the same secret typed out, for an authenticator that cannot use a
-     * camera. Both come off the user, so this reads rather than writes.
+     * The QR to scan, plus the same secret typed out for an authenticator that
+     * cannot use a camera.
      *
      * @return array<string, mixed>
      */

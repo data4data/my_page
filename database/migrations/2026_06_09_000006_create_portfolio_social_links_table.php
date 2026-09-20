@@ -6,14 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * A table, like every other repeating group on the page.
-     *
-     * These lived in a `social_links` JSON column on the profile, which meant
-     * the is_visible filtering payload() applies to the child collections
-     * could not reach them — PortfolioContentService had to filter them
-     * separately, on a clone. As rows they are ordinary children.
-     */
     public function up(): void
     {
         Schema::create('portfolio_social_links', function (Blueprint $table) {
@@ -21,19 +13,15 @@ return new class extends Migration
             $table->foreignId('portfolio_profile_id')->constrained()->cascadeOnDelete();
             $table->string('label');
             $table->string('url');
-            // Resolved through iconMap in resources/js/shared/icons.js; an
-            // unknown key renders nothing.
+            // Resolved through iconMap; an unknown key renders nothing.
             $table->string('icon')->default('link');
 
-            // The two placements are independent: a link can sit in the side
-            // rail, in the page footer, in both, or in neither.
+            // Independent: a link can sit in the rail, the footer, both, or neither.
             $table->boolean('in_rail')->default(true);
             $table->boolean('in_footer')->default(true);
 
-            // Generated, so it cannot become a third answer to the question
-            // the two placements already settle. It exists because payload()
-            // filters every child collection on is_visible, and a link shown
-            // in neither place is exactly one that should not be published.
+            // Generated, so it cannot get out of step with the two placements.
+            // payload() filters every child collection on is_visible.
             $table->boolean('is_visible')
                 ->storedAs('(in_rail OR in_footer)');
 

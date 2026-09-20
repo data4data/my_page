@@ -30,12 +30,7 @@ const fieldNamed = (wrapper, name) => wrapper.findAllComponents({ name })[0];
 const datePickers = (wrapper) => wrapper.findAllComponents({ name: 'AppDatePicker' });
 
 describe('TaskModal: keeping end time and planned duration in step', () => {
-    /*
-     * The two describe the same thing, so letting them drift leaves a task
-     * whose times say one hour and whose duration says ninety minutes — and
-     * the report trusts the duration, so it silently contradicts the
-     * calendar. Each edit has to derive the other.
-     */
+    // The report trusts the duration, so it must not contradict the times.
     it('derives the end time when a duration is typed', async () => {
         const wrapper = mountModal();
 
@@ -98,8 +93,7 @@ describe('TaskModal: what it submits', () => {
         expect(payload.end_datetime).toBe('2026-06-10 10:00:00');
     });
 
-    // Number inputs hand back strings; the API wants an integer, and null
-    // when it is blank so the report falls back to the start→end span.
+    // Blank is null, so the report falls back to the start→end span.
     it('sends the duration as a number, and blank as null', async () => {
         const wrapper = mountModal();
 

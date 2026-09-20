@@ -3,20 +3,14 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
- * The visit card has a dark mode now, which means the rule the workspace has
- * always had applies to it too: a colour with one value cannot follow the
- * theme, so a literal in a themed stylesheet stays light while everything
- * around it does not.
- *
- * The public page's palette is the brand palette, so these check the brand
- * tokens carry both halves and that public.css reaches for them rather than
- * writing cream and white by hand.
+ * A colour with one value cannot follow the theme, so a literal in a themed
+ * stylesheet stays light while everything around it does not. These check the
+ * brand tokens carry both halves and that public.css reaches for them.
  */
 const css = (file) => readFileSync(join(process.cwd(), 'resources/css', file), 'utf8');
 
 describe('the public page can go dark', () => {
-    // Every colour the visit card is built from. A new one added without a
-    // dark half is the failure this catches.
+    // A new colour added without a dark half is the failure this catches.
     const themed = [
         'ink', 'ink-hover', 'ink-text', 'accent', 'accent-hover', 'accent-text',
         'sand', 'sand-light', 'tan', 'graphite', 'charcoal', 'taupe', 'muted',
@@ -36,8 +30,7 @@ describe('the public page can go dark', () => {
         }
     });
 
-    // These are the two the visit card used to be written in: white cards on
-    // a cream page. Both stay light whatever the theme is set to.
+    // Both stay light whatever the theme is set to.
     it('writes no white or cream by hand in the visit card stylesheet', () => {
         const source = css('public.css');
 
@@ -53,11 +46,8 @@ describe('the public page can go dark', () => {
         expect(css('public.css')).toContain('var(--photo-dim)');
     });
 
-    /*
-     * The one panel that stays dark in both. It is a dark feature band over a
-     * photograph in the light design; flipping it would put a light slab on a
-     * dark page, which is the opposite of what the band is for.
-     */
+    // The one panel that stays dark in both: flipping it would put a light slab
+    // on a dark page.
     it('keeps the contact band dark in both themes', () => {
         // The painted rule, not the shape one — public.css declares
         // .contact-band twice.

@@ -7,15 +7,13 @@ import AppPillSwitch from '../../../js/components/ui/AppPillSwitch.vue';
 
 /**
  * A <template> comment is markup: Vue compiles it into a real DOM node unless
- * the compiler is told otherwise. They were turning up in the inspector on the
- * public page, so vue-plugin.js sets `comments: false` for both the app build
- * and this one. This is what says so — the option is a single line in a config
- * and easy to lose.
+ * told otherwise, which is what vue-plugin.js sets for the app and for these
+ * tests. The option is one line in a config and easy to lose.
  */
 const sourceOf = (file) => readFileSync(join(process.cwd(), 'resources/js/components/ui', file), 'utf8');
 
-// Guards against passing for the wrong reason: if someone removes the comment
-// these components carry, the render assertions below prove nothing.
+// Guards against passing for the wrong reason: with the comment gone from the
+// component, the render assertions below prove nothing.
 const templateComment = (file) => /<template>[\s\S]*<!--/.test(sourceOf(file));
 
 describe('template comments', () => {
@@ -25,9 +23,8 @@ describe('template comments', () => {
         expect(mount(ToastStack).html()).not.toContain('<!--');
     });
 
-    // The anchor Vue writes where an absent v-if branch would go is not an
-    // authored comment and cannot be turned off — it is how the framework
-    // finds the spot again when the branch comes back.
+    // Vue's own v-if anchors are not authored comments: they mark the place an
+    // absent branch would go.
     it('leaves Vue its own v-if anchors', () => {
         expect(templateComment('AppPillSwitch.vue')).toBe(true);
 

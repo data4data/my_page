@@ -1,17 +1,9 @@
 import { ref } from 'vue';
 
-/* The dictionary is split by audience, the same way pages/ is: i18n-public.js
-   for the visit card, i18n-admin.js for the workspace. Only the few strings
-   both halves use live here.
-
-   Neither is imported from this file. They are handed in by the entry point —
-   app-public.js registers one, app-admin.js the other — because importing
-   both would put all 493 workspace strings in the public bundle, where a
-   visitor can read "Two-step sign-in" and "Recovery codes" out of it. That is
-   the same leak the two bundles exist to close (see vite.config.js).
-
-   Once registered, copy() and t() work exactly as before and no component
-   knows about the split. */
+/* Split by audience, like pages/: i18n-public.js and i18n-admin.js, with only
+   the strings both halves use here. Neither is imported — each entry point
+   registers its own, or the public bundle would carry every workspace string
+   for a visitor to read. */
 const sharedUi = {
     en: {
         loading: 'Loading...',
@@ -52,11 +44,8 @@ export const ui = {
 };
 
 /**
- * Adds one half's strings to the dictionary. Called by the entry point before
- * the app mounts, so every copy() during render already sees them.
- *
- * Tests get both halves from resources/tests/setup.js, which mounts
- * components directly and so never runs an entry point.
+ * Called by the entry point before the app mounts, so every copy() during
+ * render already sees the strings. Tests register both halves in setup.js.
  */
 export const registerUi = (dictionary) => {
     Object.assign(ui.en, dictionary.en);
@@ -64,18 +53,14 @@ export const registerUi = (dictionary) => {
 };
 
 
-// Every language the app knows about, in the order they're offered.
 export const LANGUAGES = [
     { value: 'en', label: 'English' },
     { value: 'nl', label: 'Nederlands' },
 ];
 
-// Nothing in this app is tied to one person's initials — the profile is
-// seeded and then edited, so a storage key naming a particular owner would
-// survive a fork that changed everything else.
-// The public page is published at one URL per language: the default language
-// keeps the bare path and the others get a prefix. Mirrors config('app.locales')
-// and the route constraint in routes/web.php — keep the three in step.
+// One URL per language: the default keeps the bare path, the others get a
+// prefix. Mirrors config('app.locales') and the route constraint in
+// routes/web.php — keep the three in step.
 const LOCALE_PATTERN = /^\/(en|nl)(?=\/|$)/;
 
 /** The language this URL names, or null for the bare path. */
@@ -94,15 +79,11 @@ export const pathForLocale = (locale, defaultLocale, pathname = window.location.
 const STORAGE_KEY = 'site-language';
 const LEGACY_STORAGE_KEY = 'oa-language';
 
-// Reads the retired key once so a returning visitor keeps the language they
-// chose. Safe to delete once no browser can still be holding the old one.
+// Reads the retired key too, so a returning visitor keeps their language.
 const storedLanguage = () => localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
 
-// Module-level singleton: the language toggle is global site state, shared
-// by whichever page (public/admin) happens to be mounted.
-// The URL wins over a stored choice: it is what was shared, linked and
-// indexed, so a visitor opening /nl must get Dutch whatever this browser
-// happens to remember.
+// A module-level singleton. The URL wins over a stored choice: it is what was
+// shared and indexed, so /nl must be Dutch whatever this browser remembers.
 export const lang = ref(localeFromPath() || storedLanguage() || 'en');
 
 export const setLang = (value) => {
@@ -110,39 +91,30 @@ export const setLang = (value) => {
     localStorage.setItem(STORAGE_KEY, value);
 };
 
-// The switcher is one on/off setting (admin Language tab). Off means the
-// site runs in the default language only, so there is nothing to switch.
+// Off means the site runs in the default language only.
 export const languageSwitcherShown = (profile) => profile?.show_language_toggle !== false;
 
-// Settles `lang` against the profile's policy: with the switcher off the
-// default wins outright — a stored choice can't be honoured when there's no
-// control left to change it back. Otherwise a first-time visitor starts on
-// the default and a returning one keeps their choice.
+// With the switcher off the default wins outright: a stored choice cannot be
+// honoured when there is no control left to change it back.
 export const applyLanguagePolicy = (profile) => {
     const fallback = profile?.default_language || 'en';
 
-    // A language in the URL is not a preference to be overruled — it is the
-    // page that was asked for.
+    // A language in the URL is the page that was asked for, not a preference.
     if (localeFromPath()) {
         return;
     }
 
     if (!languageSwitcherShown(profile) || !storedLanguage()) {
-        // Assign rather than setLang: persisting here would make the default
-        // indistinguishable from a deliberate choice on the next visit, so a
-        // later change to default_language would never reach anyone who had
-        // already visited, and switching the toggle off then on again would
-        // have destroyed the visitor's real choice.
+        // Assign, not setLang: persisting would make the default
+        // indistinguishable from a deliberate choice on the next visit.
         lang.value = fallback;
     }
 };
 
 /**
- * Where this visitor belongs, or null when the URL is already right.
- *
- * A stored choice redirects rather than quietly painting a language the URL
- * does not claim — otherwise the server would serve English meta while the
- * body rendered Dutch, and the address bar would agree with neither.
+ * Where this visitor belongs, or null when the URL is already right. A stored
+ * choice redirects rather than painting a language the URL does not claim,
+ * which would leave the server's meta and the rendered body disagreeing.
  */
 export const preferredPath = (profile, pathname = window.location.pathname) => {
     const fallback = profile?.default_language || 'en';

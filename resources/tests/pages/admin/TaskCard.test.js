@@ -31,9 +31,8 @@ describe('TaskCard', () => {
     it('does not open the editor when the timer is activated by keyboard', async () => {
         const wrapper = mountCard();
 
-        // @click.stop guards the mouse path but not the keyboard one: keydown
-        // still bubbles to the card, so Enter would both toggle the timer and
-        // open the modal on top of it.
+        // @click.stop guards the mouse path only: a bubbling keydown would both
+        // toggle the timer and open the modal.
         await wrapper.find('.timer-button').trigger('keydown.enter');
 
         expect(wrapper.emitted('edit')).toBeUndefined();
@@ -67,9 +66,7 @@ describe('TaskCard', () => {
 });
 
 describe('TaskCard status', () => {
-    // The pill is painted by a --status-* trio hung off this class, and the
-    // report's status chips read the same one. A card that stopped emitting it
-    // would silently fall back to the neutral outline for every status.
+    // A --status-* trio hangs off this class, and the report's chips read it too.
     it('carries the status class the palette hangs off', () => {
         for (const status of TASK_STATUSES) {
             expect(mountCard({ status }).find('.task-card').classes()).toContain(`status-${status}`);
@@ -83,9 +80,7 @@ describe('TaskCard status', () => {
         expect(wrapper.find('.task-card-status').text()).not.toBe('');
     });
 
-    // A week column is a seventh of the sheet. Both children of this row are
-    // flex-none, so without a wrap the time and the badge overflowed and the
-    // badge rendered outside the card.
+    // A week column is a seventh of the sheet, and both children are flex-none.
     it('lets the time and badge row wrap', () => {
         const css = readFileSync(join(process.cwd(), 'resources/css/agenda.css'), 'utf8');
         const rule = css.match(/\.task-card-meta\s*\{[^}]*\}/);

@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * Every sign-in attempt, successful or not. Written once and never updated,
- * so there is no updated_at. Rows expire: they hold IP addresses.
+ * Every sign-in attempt. Written once, so no updated_at; rows expire, because
+ * they hold IP addresses.
  */
 class SecurityEvent extends Model
 {
@@ -19,7 +19,6 @@ class SecurityEvent extends Model
 
     const UPDATED_AT = null;
 
-    // Long enough to see a campaign play out, short enough to stay small.
     public const RETENTION_DAYS = 30;
 
     protected $fillable = [

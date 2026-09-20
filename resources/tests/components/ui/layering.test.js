@@ -26,8 +26,7 @@ describe('stacking order tokens', () => {
     });
 
     it('puts toasts above modal overlays', () => {
-        // Equal values plus DOM order once buried error toasts behind the
-        // scrim, so a failed save reported nothing the user could see.
+        // Equal values plus DOM order once buried error toasts behind the scrim.
         expect(token('toast')).toBeGreaterThan(token('overlay'));
         expect(token('toast')).toBeGreaterThan(token('confirm'));
     });
@@ -44,7 +43,7 @@ describe('stacking order tokens', () => {
     });
 
     // These panels append to <body>, so inside a modal they are siblings of
-    // the scrim. Both sat on 50, leaving the winner to DOM order.
+    // the scrim rather than its children.
     it('puts a field dropdown above the modal it opens inside, and under a confirm', () => {
         expect(token('field')).toBeGreaterThan(token('overlay'));
         expect(token('confirm')).toBeGreaterThan(token('field'));
@@ -52,8 +51,6 @@ describe('stacking order tokens', () => {
 });
 
 describe('no layer collides with another', () => {
-    // Equal z-index leaves the winner to DOM order, which is how error toasts
-    // once ended up behind the modal scrim.
     it('gives every token a distinct value', () => {
         const names = ['raised', 'section', 'rail', 'header', 'overlay', 'field', 'confirm', 'toast'];
         const values = names.map(token);
@@ -61,8 +58,7 @@ describe('no layer collides with another', () => {
         expect(new Set(values).size).toBe(names.length);
     });
 
-    // 30 (--z-rail) is the lowest layer competing in the root stacking
-    // context. Below that, a small literal is a local lift and is left alone.
+    // Below --z-rail, a small literal is a local lift and is left alone.
     it('writes nothing at that level as a bare number', () => {
         const bare = [
             ...allCss.matchAll(/z-index:\s*(\d+)/g),
@@ -81,9 +77,8 @@ describe('components use the layer classes', () => {
         expect(classes.some((name) => /^z-\d+$/.test(name))).toBe(false);
     });
 
-    // The workspace lost its header in the redesign; the rail's fixed panel
-    // is now the only workspace chrome competing in the root stacking context,
-    // and it takes the rail token rather than a number of its own.
+    // The rail's fixed panel is the only workspace chrome competing in the root
+    // stacking context.
     it('gives the rail panel the rail layer from the token, not a literal', () => {
         const rule = allCss.match(/\.admin-rail-panel\s*\{[^}]*\}/);
 

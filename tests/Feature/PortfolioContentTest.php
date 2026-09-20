@@ -11,11 +11,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
-/**
- * The portfolio save path had no test at all, despite being the most
- * destructive code in the app: it deletes every child row and recreates them
- * from the submitted payload on each save.
- */
 class PortfolioContentTest extends TestCase
 {
     use RefreshDatabase;
@@ -35,11 +30,8 @@ class PortfolioContentTest extends TestCase
     }
 
     /**
-     * A minimal payload the editor could plausibly submit.
-     *
-     * Overrides replace outright rather than merging: array_replace_recursive
-     * would merge collections index-by-index, so overriding a two-row list
-     * with one row would silently leave the second row in place.
+     * A minimal payload the editor could plausibly submit. Overrides replace
+     * outright: a recursive merge would leave rows behind.
      */
     private function payload(array $overrides = []): array
     {
@@ -61,8 +53,7 @@ class PortfolioContentTest extends TestCase
             'process_steps' => [],
         ];
 
-        // Profile merges one level deep so a test can change a single field;
-        // the collections are replaced whole.
+        // The profile merges one level deep; collections are replaced whole.
         $profile = array_replace($base['profile'], $overrides['profile'] ?? []);
 
         return array_replace($base, $overrides, ['profile' => $profile]);
@@ -81,10 +72,7 @@ class PortfolioContentTest extends TestCase
         ];
     }
 
-    /**
-     * The CTA URLs go straight into :href, so an executable scheme is stored
-     * XSS against every visitor.
-     */
+    // CTA URLs go straight into :href, so an executable scheme is stored XSS.
     #[DataProvider('dangerousUrls')]
     public function test_a_cta_url_with_an_executable_scheme_is_rejected(string $url): void
     {
@@ -146,11 +134,6 @@ class PortfolioContentTest extends TestCase
         $this->assertCount(2, $response->json('metrics'));
     }
 
-    /**
-     * The delete-and-recreate behaviour, which nothing covered before: a
-     * removed row must actually disappear, and the survivors must be
-     * renumbered from 1 rather than keeping their old positions.
-     */
     public function test_saving_a_shorter_collection_removes_the_missing_rows_and_resequences(): void
     {
         $this->seededProfile();
@@ -169,9 +152,7 @@ class PortfolioContentTest extends TestCase
         $this->assertCount(1, $metrics);
         $this->assertSame('12', $metrics[0]['value']);
         $this->assertDatabaseMissing('portfolio_metrics', ['value' => '5+']);
-        // sort_order is no longer published — the payload carries position as
-        // the order of the array — so the renumbering is checked where it is
-        // stored.
+        // sort_order is not published, so renumbering is checked in the database.
         $this->assertDatabaseHas('portfolio_metrics', ['value' => '12', 'sort_order' => 1]);
     }
 
@@ -188,8 +169,6 @@ class PortfolioContentTest extends TestCase
         ]));
 
         $response->assertOk();
-        // The order of the array is what the page reads; the column behind it
-        // is what a reload reads.
         $this->assertSame(['first', 'second', 'third'], array_column($response->json('metrics'), 'value'));
 
         foreach (['first' => 1, 'second' => 2, 'third' => 3] as $value => $position) {
@@ -235,11 +214,7 @@ class PortfolioContentTest extends TestCase
             ->assertJsonValidationErrors(['metrics.0.value']);
     }
 
-    /**
-     * The editor lets free text be cleared, so this must keep working. Note
-     * that ConvertEmptyStringsToNull rewrites '' to null on the way in, which
-     * is why the translated rules are 'nullable' rather than 'string'.
-     */
+    // ConvertEmptyStringsToNull rewrites '' to null, hence 'nullable' rules.
     public function test_cleared_free_text_is_accepted(): void
     {
         $this->seededProfile();
@@ -254,11 +229,7 @@ class PortfolioContentTest extends TestCase
             ->assertOk();
     }
 
-    /**
-     * portfolio_metrics.value is NOT NULL, and an emptied field arrives as
-     * null. Before this validation existed that null reached the insert and
-     * produced a 500; now it is a readable 422.
-     */
+    // The column is NOT NULL, so a cleared value must 422 rather than 500.
     public function test_a_cleared_metric_value_is_rejected_rather_than_hitting_the_database(): void
     {
         $this->seededProfile();
@@ -273,12 +244,7 @@ class PortfolioContentTest extends TestCase
             ->assertJsonValidationErrors(['metrics.0.value']);
     }
 
-    /**
-     * The real risk of tightening validation is rejecting a payload the editor
-     * legitimately produces. The admin UI saves by sending back exactly what it
-     * fetched, so fetching the seeded content and PUTting it straight back is
-     * the same round trip pressing Save performs.
-     */
+    // The same round trip pressing Save performs.
     public function test_the_seeded_content_can_be_saved_back_unchanged(): void
     {
         $this->seededProfile();
@@ -291,11 +257,7 @@ class PortfolioContentTest extends TestCase
             ->assertOk();
     }
 
-    /**
-     * Same round trip, but through normalizePortfolio() in
-     * resources/js/shared/portfolio.js, which fills every translated field to
-     * an {en, nl} pair — turning nulls into empty strings before they are sent.
-     */
+    // The same again, but shaped the way normalizePortfolio() sends it.
     public function test_the_frontend_normalised_payload_is_accepted(): void
     {
         $this->seededProfile();
@@ -411,10 +373,6 @@ class PortfolioContentTest extends TestCase
         $this->assertContains('precisie', $terms);
     }
 
-    /**
-     * Social links are a JSON column, not a child table, so the filtering that
-     * covers metrics and projects never reached them.
-     */
     public function test_a_hidden_social_link_is_kept_out_of_the_public_payload(): void
     {
         $admin = $this->admin();
@@ -499,10 +457,6 @@ class PortfolioContentTest extends TestCase
         $this->assertSame('Legacy', $public[0]['label']);
     }
 
-    /**
-     * Set per link, so a link can appear in one place and not the other. Both
-     * flags travel, because the page decides per place.
-     */
     public function test_a_link_can_appear_in_one_place_and_not_the_other(): void
     {
         $admin = $this->admin();
@@ -528,20 +482,8 @@ class PortfolioContentTest extends TestCase
         $this->assertTrue($public[1]['in_footer']);
     }
 
-    /**
-     * Links saved before the split carry only is_visible. Treating a missing
-     * placement as "off" would empty both places on an existing install.
-     */
-    /**
-     * A link saved before the two placements existed carried only
-     * `is_visible`, and PortfolioContentService had a fallback for it. That
-     * data lived in a JSON column that no longer exists — the links are rows
-     * now, with real defaults, and `migrate:fresh` is the only path here — so
-     * there is nothing left to fall back for.
-     *
-     * What replaces it: a row shown in neither place is not published,
-     * because is_visible is generated from the two placements.
-     */
+    // A row shown in neither place is not published: is_visible is generated
+    // from the two placements.
     public function test_a_link_shown_in_neither_place_is_not_published(): void
     {
         $admin = $this->admin();
@@ -590,10 +532,7 @@ class PortfolioContentTest extends TestCase
         $this->assertNull(PortfolioProfile::query()->first()->contact_email);
     }
 
-    /**
-     * A preview image is fetched by a crawler on another host, so unlike the
-     * CTA fields it cannot be a fragment, a relative path or a mailto.
-     */
+    // Fetched by a crawler on another host, so not a fragment or a mailto.
     #[DataProvider('unusablePreviewImages')]
     public function test_a_preview_image_that_no_crawler_could_fetch_is_rejected(string $url): void
     {

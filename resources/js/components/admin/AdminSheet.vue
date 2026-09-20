@@ -1,20 +1,15 @@
 <script setup>
 import { computed, ref, useId, useSlots } from 'vue';
 
-// The content card every workspace section sits in: page heading, the
-// underline tab strip, the body, and the action bar pinned along the bottom.
-// The only place this shape is rendered — Agenda's day/week/month switch and
-// the Edit page's content tabs were two different controls doing one job.
-//
-// Passing `:tabs="[]"` still yields the card and its heading, just with no tab
-// row, so a section without sub-views reads as the same shape as one with.
+// The content card every workspace section sits in: heading, tab strip, body,
+// and the action bar along the bottom. Passing `:tabs="[]"` still yields the
+// card and its heading, just with no tab row.
 const props = defineProps({
     title: {
         type: String,
         required: true,
     },
-    // Sits under the title and says what this tab edits. Optional: a section
-    // whose title already says it has nothing to add here.
+    // Says what this tab edits; optional, when the title already does.
     subtitle: {
         type: String,
         default: '',
@@ -33,21 +28,18 @@ const emit = defineEmits(['update:modelValue']);
 
 const slots = useSlots();
 
-// The bar is chrome for whatever the page can do here. A section with nothing
-// to say and nothing to do gets no empty 52px strip.
+// A section with nothing to say and nothing to do gets no empty strip.
 const hasBar = computed(() => Boolean(slots.status || slots.actions));
 
-// Ties each tab to the panel it controls. useId keeps them unique when two
-// sheets ever exist in one document.
+// Ties each tab to the panel it controls; useId keeps two sheets apart.
 const uid = useId();
 const panelId = `${uid}-panel`;
 const tabId = (value) => `${uid}-tab-${value}`;
 
 const tabRefs = ref([]);
 
-// Real tabs, so real tab keyboard handling: Left/Right move and select, and
-// only the active tab is in the Tab order (roving tabindex). Without this a
-// role="tab" is a promise the widget does not keep.
+// Real tab semantics need real keyboard handling: Left/Right move and select,
+// and only the active tab is in the Tab order.
 const moveFocus = (index) => {
     const item = props.tabs[index];
 
@@ -117,9 +109,7 @@ const onKeydown = (event, index) => {
             <slot />
         </div>
 
-        <!-- Sticky rather than merely last: on a long editor the save button
-             has to stay reachable, which is the job the floating button it
-             replaced was doing. -->
+        <!-- Sticky, so the save button stays reachable down a long editor. -->
         <div v-if="hasBar" class="admin-sheet-bar">
             <p v-if="slots.status" class="admin-sheet-status">
                 <slot name="status" />

@@ -12,26 +12,16 @@ use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
- * What the portfolio endpoints are allowed to say.
- *
- * `GET /portfolio` needs no login. It used to return the models themselves,
- * so `id`, `slug`, `type`, `is_active` and the timestamps were public, and
- * any column added later would have joined them without anyone deciding to
- * publish it. The two resources in app/Http/Resources fix that; these tests
- * are what keeps it fixed.
+ * What the portfolio endpoints are allowed to say. `GET /portfolio` needs no
+ * login, so nothing may reach it that was not deliberately published.
  */
 class PortfolioPayloadShapeTest extends TestCase
 {
     use RefreshDatabase;
 
     /**
-     * Row metadata, as opposed to page content. None of it is a secret on its
-     * own; publishing it by default is the problem, because that default is
-     * what quietly publishes the next column too.
-     *
-     * Hardcoded rather than derived: this list is the claim being made, and a
-     * list derived from the same constants the code uses would agree with the
-     * code however wrong both were.
+     * Row metadata, not page content. Hardcoded rather than derived: this list
+     * is the claim, and a derived one would agree with the code however wrong.
      *
      * @var list<string>
      */
@@ -93,11 +83,7 @@ class PortfolioPayloadShapeTest extends TestCase
         );
     }
 
-    /**
-     * Keyed to PROFILE_KEYS rather than to a list of its own, on purpose: a
-     * field is published because it was made editable, and adding one should
-     * not mean editing this test.
-     */
+    // Keyed to the constant, so adding a field needs no test edit.
     #[DataProvider('bothEndpoints')]
     public function test_the_profile_carries_the_editable_fields_and_nothing_else(bool $asAdmin): void
     {
@@ -132,7 +118,6 @@ class PortfolioPayloadShapeTest extends TestCase
         }
     }
 
-    /** The claim itself, stated separately from the key lists above. */
     #[DataProvider('bothEndpoints')]
     public function test_no_row_metadata_reaches_either_endpoint(bool $asAdmin): void
     {
@@ -154,11 +139,6 @@ class PortfolioPayloadShapeTest extends TestCase
         }
     }
 
-    /**
-     * The public page still has to be buildable from what it is sent — the
-     * fields every section reads, and both social-link placements, which the
-     * page picks between per place.
-     */
     public function test_the_public_payload_still_carries_what_the_page_draws(): void
     {
         $payload = $this->fetch(asAdmin: false);
@@ -167,17 +147,13 @@ class PortfolioPayloadShapeTest extends TestCase
             $this->assertArrayHasKey($key, $payload['profile']);
         }
 
-        // Social links are their own collection now, and each carries both
-        // placements so the page can pick per place.
+        // Each link carries both placements, so the page can pick per place.
         $this->assertNotEmpty($payload['social_links']);
         $this->assertArrayHasKey('in_rail', $payload['social_links'][0]);
         $this->assertArrayHasKey('in_footer', $payload['social_links'][0]);
     }
 
-    /**
-     * A revision is a snapshot of the same payload, so it is trimmed too —
-     * which is why restoring an old one cannot put a stale id back on a row.
-     */
+    // A snapshot is the same payload, so restoring cannot put a stale id back.
     public function test_a_revision_snapshot_is_stored_in_the_same_shape(): void
     {
         $this->seeded();
@@ -188,10 +164,8 @@ class PortfolioPayloadShapeTest extends TestCase
 
         $snapshot = PortfolioRevision::query()->orderByDesc('id')->firstOrFail()->payload;
 
-        // Sorted: MySQL's JSON type stores an object as a set of keys and
-        // hands them back in its own order, so only the membership is a
-        // contract here. The HTTP responses above keep the order they are
-        // built in, which is why those compare it.
+        // Sorted: MySQL's JSON type hands keys back in its own order, so only
+        // membership is a contract here.
         $this->assertSame(
             $this->sorted(PortfolioFields::PROFILE),
             $this->sorted(array_keys($snapshot['profile'])),

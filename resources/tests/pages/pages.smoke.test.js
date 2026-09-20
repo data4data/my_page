@@ -4,18 +4,15 @@ import PrimeVue from 'primevue/config';
 import PublicPage from '../../js/pages/public/PublicPage.vue';
 import AdminPage from '../../js/pages/admin/AdminPage.vue';
 
-// Nothing else mounts these two, so a broken import or a template referring
-// to something gone would only surface in a browser. `npm run build` proves
-// the files resolve; this proves they render.
-
-// Both call useRoute()/useRouter(), so the module has to be mocked: a
+// Nothing else mounts these two, so a template referring to something gone
+// would only surface in a browser.
+//
+// Both call useRoute()/useRouter(), so the module is mocked: a
 // `mocks: { $route }` option leaves useRoute() undefined.
-// AdminPage picks its section from the route name, so tests move this.
 const routeName = { current: 'admin-edit' };
 
 vi.mock('vue-router', () => ({
-    // `meta` is always present on a real route; PublicPage reads meta.connect
-    // to decide whether the connect popup is open.
+    // PublicPage reads meta.connect to decide whether the popup is open.
     useRoute: () => ({ get name() { return routeName.current; }, path: '/', params: {}, query: {}, meta: {} }),
     useRouter: () => ({ push: vi.fn() }),
 }));
@@ -29,7 +26,6 @@ const payload = {
         default_language: 'en',
         show_language_toggle: true,
     },
-    // A child collection, like the four below it.
     social_links: [
         { label: 'Both', url: 'https://both.test', icon: 'github', in_rail: true, in_footer: true },
         { label: 'Rail only', url: 'https://rail.test', icon: 'link', in_rail: true, in_footer: false },
@@ -64,9 +60,8 @@ describe('page smoke tests', () => {
             + '<meta name="csrf-token" content="test-token">';
     });
 
-    // A render error does not fail a mount, so collect and assert. PrimeVue
-    // is installed as app.js does it: stubbing the App* components out would
-    // skip most of what this exercises.
+    // A render error does not fail a mount, so collect and assert. PrimeVue is
+    // installed for real: stubbing it out would skip most of this.
     const mountPage = (component) => mount(component, {
         global: {
             plugins: [[PrimeVue, { unstyled: true, locale: { firstDayOfWeek: 1 } }]],
@@ -75,11 +70,9 @@ describe('page smoke tests', () => {
     });
 
     /**
-     * A keyboard user should reach the content without walking the whole nav
-     * and the social rail first. Three things have to be right: the link
-     * comes first in the tab order, it points at something that exists, and
-     * that target can take focus so the next Tab continues from the content
-     * rather than from the top of the document.
+     * Three things: the link comes first in the tab order, it points at
+     * something that exists, and that target can take focus, so the next Tab
+     * continues from the content rather than the top of the document.
      */
     const assertSkipLink = (wrapper) => {
         const focusable = 'a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])';

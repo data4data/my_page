@@ -193,10 +193,8 @@
         color: var(--color-gold-dark);
     }
 
-    /* Fixed across the whole page. Both the width and height thresholds that
-       reveal it live in one combined media query at the foot of this file,
-       rather than an `lg:flex` here plus a separate max-height override —
-       split across two rules the later one silently won. */
+    /* Fixed across the whole page. Both thresholds that reveal it live in one
+       combined media query below — split in two, the later rule won. */
     .social-rail {
         @apply fixed hidden flex-col items-center gap-5 text-ink;
         z-index: var(--z-rail);

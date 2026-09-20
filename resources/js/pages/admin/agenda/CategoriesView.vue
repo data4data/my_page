@@ -14,8 +14,8 @@ const { categories, fetchCategories, createCategory, updateCategory, deleteCateg
 const toast = useToast();
 const { confirm } = useConfirm();
 
-// This view holds its own usePlanning() instance, so the calendar's copy of
-// the category list won't see edits made here — tell it to refetch.
+// This view has its own usePlanning() instance, so the calendar's copy of the
+// list will not see edits made here.
 const emit = defineEmits(['changed']);
 
 const loading = ref(true);
@@ -23,10 +23,8 @@ const showModal = ref(false);
 const editing = ref(null);
 const saving = ref(false);
 
-// Two fixed columns: plain categories on the left, ones with subcategories on
-// the right — rather than a single flow, so the short rows stay together
-// instead of being interrupted by tall nested groups. Within the nested
-// column, fewest subcategories first; alphabetical as the tie-break in both.
+// Two fixed columns — plain categories left, nested ones right — so short rows
+// stay together instead of being broken up by tall nested groups.
 const sortedCategories = computed(() => [...categories.value].sort((a, b) => {
     const byChildCount = (a.children?.length ?? 0) - (b.children?.length ?? 0);
 
@@ -63,8 +61,8 @@ const handleSave = async (payload) => {
     saving.value = true;
 
     try {
-        // `editing` doubles as a pre-filled parent for "add subcategory",
-        // which has no id yet — so only treat it as an edit when it has one.
+        // `editing` doubles as a pre-filled parent for "add subcategory", which
+        // has no id yet.
         if (editing.value?.id) {
             await updateCategory(editing.value.id, payload);
         } else {
@@ -119,9 +117,8 @@ load();
         <p v-if="loading" class="admin-note mt-4">{{ copy('loading') }}</p>
         <p v-else-if="categories.length === 0" class="week-day-empty mt-4">{{ copy('categoriesEmpty') }}</p>
 
-        <!-- Column one holds the plain categories, column two the ones with
-             subcategories (see `columns`). Iterating the pair keeps the row
-             markup in a single place rather than duplicating it per column.
+        <!-- Iterating the pair keeps the row markup in one place rather than
+             duplicating it per column.
              Below lg the grid collapses to one column and they simply stack. -->
         <div v-else class="mt-4 grid items-start gap-2 lg:grid-cols-2">
             <ul v-for="(column, index) in columns" :key="index" class="flex flex-col gap-2">

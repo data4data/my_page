@@ -5,16 +5,9 @@ import { useModalDialog } from '../../shared/modal';
 
 /**
  * The visit card's modal: the brand palette, one scrolling body, and the
- * heading left to the caller — the connect form swaps its whole head between
- * the form and the thank-you.
- *
- * Deliberately light-only. The public page has no dark mode (see the theme
- * block in resources/css/theme.css), and this card is the one place a
- * workspace-themed field could leak onto it, which is why .public-modal maps
- * the surface tokens forms.css reads back onto the brand palette.
- *
- * AdminModal is its counterpart in the workspace; the behaviour both need
- * lives in shared/modal.js.
+ * heading left to the caller, since the connect form swaps its whole head for
+ * the thank-you. AdminModal is its counterpart; shared/modal.js holds the
+ * behaviour both need.
  */
 const props = defineProps({
     // Names the dialog for screen readers.

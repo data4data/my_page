@@ -8,8 +8,6 @@ import { apiFetch, errorMessage, reportError } from '../../shared/api';
 import { useToast } from '../../shared/toast';
 import { useConfirm } from '../../shared/confirm';
 
-// Owns its own state and fetches: two-factor is self-contained, and the
-// Insights page has no other reason to know about any of it.
 const toast = useToast();
 const { confirm } = useConfirm();
 
@@ -17,8 +15,7 @@ const state = ref(null);
 const loading = ref(true);
 const busy = ref(false);
 
-// Shown once, at enrolment. Never re-fetched: the server does not hand the
-// secret back after setup, which is the point of it being a secret.
+// Shown once, at enrolment: the server never hands the secret back again.
 const setup = ref(null);
 const code = ref('');
 const password = ref('');
@@ -104,8 +101,7 @@ const newRecoveryCodes = async () => {
                 {{ copy('twoFactorEnable') }}
             </AppButton>
 
-            <!-- Enrolment in progress: the QR and the codes exist only in this
-                 response, so they are shown while the component holds them. -->
+            <!-- The QR and the codes exist only in this response. -->
             <div v-if="setup?.qr_data_uri" class="two-factor-setup mt-4">
                 <img :src="setup.qr_data_uri" alt="" width="228" height="228" class="two-factor-qr">
 

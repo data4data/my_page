@@ -18,8 +18,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property ?Carbon $two_factor_confirmed_at
  */
 #[Fillable(['name', 'email', 'password'])]
-// The two-factor columns are password equivalents: never serialized and never
-// mass-assignable. TwoFactorService sets them explicitly.
+// Password equivalents: never serialized, never mass-assignable.
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable
 {
@@ -27,8 +26,6 @@ class User extends Authenticatable
     use HasFactory, HasRoles, Notifiable;
 
     /**
-     * Get the attributes that should be cast.
-     *
      * @return array<string, string>
      */
     protected function casts(): array
@@ -42,10 +39,7 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * A secret on its own means setup was started and is never enforced.
-     * two_factor_confirmed_at records that a real code has been checked.
-     */
+    /** A secret alone is never enforced; confirmed_at means a code was checked. */
     public function hasTwoFactorEnabled(): bool
     {
         return $this->two_factor_secret !== null && $this->two_factor_confirmed_at !== null;

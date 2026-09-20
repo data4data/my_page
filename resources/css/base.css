@@ -2,12 +2,9 @@
 
 @layer base {
     :root {
-        /* Stacking order, in one place. Two things on the same value once put
-           error toasts behind the modal scrim, where nobody saw them.
-
-           This scale is for things sharing the page's root stacking context.
-           A small lift inside an element's own context — text over its card's
-           decoration — stays a local number at its call site. */
+        /* Stacking order, in one place: two things on the same value once put
+           error toasts behind the modal scrim. For the root stacking context
+           only — a lift inside an element's own context stays a local number. */
         --z-raised: 10; /* section content, above that section's own decoration */
         --z-section: 25; /* a section overlapping the one before it, still under the rail */
         --z-rail: 30;
@@ -20,15 +17,10 @@
         --z-confirm: 60;
         --z-toast: 70;
 
-        /* The page ground at the alphas the hero and section washes fade
-           through. Light fades cream into a photograph; dark fades the same
-           near-black into it. Named by alpha rather than by job because the
-           gradients were hand-tuned and the light values must not move.
-
-           Not in @theme: they are only ever used inside gradients, never as a
-           utility class, so they would add nothing to the colour namespace.
-           The dark half is a little more opaque throughout — a photograph
-           needs more covering to read as part of a dark page than a light one. */
+        /* The page ground at the alphas the hero and section washes fade through.
+           Named by alpha, not by job, because the gradients were hand-tuned and
+           the light values must not move. Not in @theme: they are only ever
+           used inside gradients, never as a utility class. */
         --veil-99: light-dark(rgba(248, 244, 237, 0.99), rgba(20, 18, 15, 0.99));
         --veil-98: light-dark(rgba(248, 244, 237, 0.98), rgba(20, 18, 15, 0.98));
         --veil-94: light-dark(rgba(248, 244, 237, 0.94), rgba(20, 18, 15, 0.96));
@@ -61,12 +53,9 @@
         --glass-border: light-dark(rgba(255, 255, 255, 0.60), rgba(255, 255, 255, 0.22));
         --glass-border-soft: light-dark(rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0.16));
 
-        /* The workspace rail, in its three widths. `--admin-rail` is what the
-           layout reserves in the flex row and what the fixed panel is drawn
-           at, so overriding that one token at a breakpoint moves both halves
-           together and they can never disagree about where the sheet starts.
-           `--admin-rail-open` is the hover/pin width below lg, which overlays
-           the sheet rather than reflowing it. */
+        /* The rail's three widths. `--admin-rail` is both what the layout
+           reserves and what the fixed panel is drawn at, so one override moves
+           both halves and they cannot disagree about where the sheet starts. */
         --admin-rail: 14.75rem; /* 236 — icon and label */
         --admin-rail-collapsed: 3.5rem; /* 56 — icon only */
         --admin-rail-open: 12.5rem; /* 200 — collapsed rail, opened */
@@ -138,10 +127,8 @@
 }
 
 @layer components {
-    /* Off-screen until focused, not display:none — a hidden link is not in
-       the tab order at all, and this one has to be the first thing in it.
-       Both halves use it: the public page skips the nav and the social rail,
-       the workspace skips the rail's destinations. */
+    /* Off-screen until focused, not display:none — a hidden link is not in the
+       tab order at all, and this one has to be first in it. */
     .skip-link {
         position: absolute;
         top: 0;

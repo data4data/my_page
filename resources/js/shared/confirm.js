@@ -1,16 +1,12 @@
 import { ref } from 'vue';
 
-// Module-level singleton (same pattern as toast.js): any component can ask a
-// question and <ConfirmDialog /> — mounted once — renders it. Replaces
-// window.confirm(), which can't be styled and looks like a browser warning
-// rather than part of the app.
+// A module-level singleton, like toast.js: any component can ask, and the one
+// mounted <ConfirmDialog /> renders it.
 const pending = ref(null);
 
-// Resolves true when confirmed, false when cancelled/dismissed, so callers
-// read as: if (!await confirm({ ... })) return;
+// Resolves true when confirmed, false when cancelled or dismissed.
 const ask = (options) => new Promise((resolve) => {
-    // A second question while one is open would strand the first promise —
-    // resolve it as cancelled before replacing it.
+    // A second question would strand the first promise.
     pending.value?.resolve(false);
 
     pending.value = {

@@ -7,11 +7,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The public page is painted by Vue in the browser, and the crawlers behind
- * link previews do not run JavaScript. Everything a LinkedIn or WhatsApp card
- * shows therefore has to be in the HTML this response returns, which is what
- * these cover — along with the other half of that coin: the private workspace
- * renders the same shell and must give a crawler nothing at all.
+ * Link-preview crawlers run no JavaScript, so everything a card shows has to be
+ * in this response — and the workspace, on the same shell, must give nothing.
  */
 class PublicPageMetaTest extends TestCase
 {
@@ -58,8 +55,7 @@ class PublicPageMetaTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertSee('<html lang="nl">', false)
-            // The description follows it too, or the card is in one language
-            // and the page it opens is in another.
+            // The description follows it too, or the card and the page disagree.
             ->assertSee('content="Ik bouw systemen."', false);
     }
 
@@ -78,10 +74,7 @@ class PublicPageMetaTest extends TestCase
         $this->assertSame('Full-Stack Developer', $schema['jobTitle']);
     }
 
-    /**
-     * A field holding markup must not be able to close the script block early
-     * and turn the rest of the head into page content.
-     */
+    // A field holding markup must not close the block and spill into the page.
     public function test_structured_data_cannot_break_out_of_its_script_block(): void
     {
         $this->profile(['summary' => ['en' => 'Ship it </script><script>alert(1)</script>', 'nl' => '']]);
@@ -98,8 +91,7 @@ class PublicPageMetaTest extends TestCase
         $response = $this->get($this->adminUrl('/login'))->assertOk();
 
         $response->assertSee('<meta name="robots" content="noindex, nofollow">', false);
-        // Nothing to preview: these pages are private, so they carry no
-        // description and no card for anyone who does get hold of the URL.
+        // Private pages carry no description and no card.
         $response->assertDontSee('og:title', false);
         $response->assertDontSee('<link rel="canonical"', false);
     }

@@ -8,11 +8,8 @@ use App\Services\SecurityEventRecorder;
 use Illuminate\Auth\Events\Failed;
 
 /**
- * The same for an attempt that did not work.
- *
- * The email is read off the credentials rather than the user, because on a
- * failure there may be no user — someone typing an address that does not
- * exist is exactly what the trail is for.
+ * The same for an attempt that did not work. The email comes off the
+ * credentials: on a failure there may be no user at all.
  */
 class RecordFailedSignIn
 {

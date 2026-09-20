@@ -6,14 +6,9 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * A link the public page may put in an href.
- *
- * Not Laravel's `url` rule, which rejects page fragments like "#work" and
- * relative paths — both of which the editor legitimately produces.
- *
- * Only the scheme matters: these go straight into :href, so a stored
- * "javascript:..." would run for every visitor. No scheme at all can only
- * point back at this site, so it is allowed.
+ * A link the public page may put in an href. Not Laravel's `url` rule, which
+ * rejects the fragments and relative paths the editor produces. Only the
+ * scheme matters: a stored "javascript:..." would run for every visitor.
  */
 class SafeUrl implements ValidationRule
 {
@@ -34,8 +29,7 @@ class SafeUrl implements ValidationRule
             return;
         }
 
-        // Browsers strip control characters first, so "java\nscript:..."
-        // would still run. Simpler to refuse them than to emulate that.
+        // Browsers strip control characters first, so "java\nscript:..." runs.
         if (preg_match('/[\x00-\x1F\x7F]/', $value)) {
             $fail('The :attribute must not contain control characters.');
 

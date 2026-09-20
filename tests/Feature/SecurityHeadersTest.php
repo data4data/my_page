@@ -13,10 +13,7 @@ class SecurityHeadersTest extends TestCase
 {
     use RefreshDatabase;
 
-    /**
-     * Pins the Vite hot file, so these assertions do not change depending on
-     * whether someone happens to have `npm run dev` running.
-     */
+    /** Pins the Vite hot file, so `npm run dev` cannot change the assertions. */
     private function withDevServer(?string $origin): void
     {
         $path = tempnam(sys_get_temp_dir(), 'vite-hot');
@@ -38,10 +35,9 @@ class SecurityHeadersTest extends TestCase
     }
 
     /**
-     * Every source must be one a browser will accept. CSP allows a scheme, a
-     * host name, a port and a path, and has no form for a bracketed IPv6
-     * literal. A source it cannot parse is dropped while the rest stays in
-     * force, so one bad entry blocks the asset it was meant to allow.
+     * CSP has no form for a bracketed IPv6 literal, and a browser drops a source
+     * it cannot parse while enforcing the rest — so one bad entry blocks the
+     * asset it was meant to allow.
      */
     private function assertEverySourceIsValid(string $policy): void
     {
@@ -74,10 +70,8 @@ class SecurityHeadersTest extends TestCase
         $this->assertSame('strict-origin-when-cross-origin', $response->headers->get('Referrer-Policy'));
     }
 
-    /**
-     * The public page puts owner-supplied links in hrefs, so refusing inline
-     * script is what keeps a stored link from becoming a stored execution.
-     */
+    // Owner-supplied links land in hrefs, so refusing inline script is what
+    // keeps a stored link from becoming a stored execution.
     public function test_the_policy_refuses_inline_and_third_party_script(): void
     {
         $policy = $this->policyFor(null);
@@ -132,11 +126,8 @@ class SecurityHeadersTest extends TestCase
         $this->assertStringContainsString('font-src \'self\' http://localhost:5173', $policy);
     }
 
-    /**
-     * Vite binds to IPv6 loopback by default and writes "http://[::1]:5173"
-     * into the hot file, which CSP cannot express. vite.config.js pins the
-     * host; this is the backstop.
-     */
+    // Vite binds to IPv6 loopback by default; vite.config.js pins the host and
+    // this is the backstop.
     public function test_no_policy_is_sent_rather_than_one_that_would_block_the_dev_bundle(): void
     {
         $this->assertNull($this->policyFor('http://[::1]:5173'));

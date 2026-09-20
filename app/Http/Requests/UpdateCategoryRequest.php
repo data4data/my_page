@@ -34,10 +34,8 @@ class UpdateCategoryRequest extends FormRequest
                         return;
                     }
 
-                    // usableTopLevel() only checks the chosen parent. Giving
-                    // a parent to a category that has children makes a
-                    // three-level tree, and index() loads only one level —
-                    // so the grandchildren and their tasks disappear.
+                    // A parent for a category that has children makes a
+                    // three-level tree, and index() loads only one level.
                     if ($category->children()->exists()) {
                         $fail('A category with subcategories cannot itself become a subcategory.');
                     }

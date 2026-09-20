@@ -1,9 +1,6 @@
-// The workspace prefix is per install (ADMIN_PATH) and comes from a <meta>
-// tag, so nothing in the bundle hardcodes it. Read once: the tag is
-// server-rendered and never changes.
-//
-// The fallback applies where the tag is absent — jsdom tests, and pages served
-// to someone who cannot reach the workspace. Nothing there follows it.
+// The prefix is per install and comes from a meta tag, so nothing in the bundle
+// hardcodes it. The fallback applies where the tag is absent — tests, and pages
+// served to someone who cannot reach the workspace.
 const configured = document.querySelector('meta[name="admin-path"]')?.content?.trim();
 
 export const adminBase = `/${(configured || 'control-room').replace(/^\/+|\/+$/g, '')}`;

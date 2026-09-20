@@ -28,12 +28,10 @@ const props = defineProps({
 
 defineEmits(['navigate']);
 
-// Turning the switcher off hides it here too, not just on the public page.
 const showLanguageSwitcher = computed(() => languageSwitcherShown(props.profile));
 
-// The rail is two groups: destinations at the top, Settings on its own at the
-// bottom above the switchers. `foot: true` marks the second group — the same
-// flag-on-the-item convention the tab strip already uses for `right`.
+// Two groups: destinations at the top, anything flagged `foot` pinned to the
+// bottom above the switchers.
 const primaryItems = computed(() => props.navItems.filter((item) => !item.foot));
 const footItems = computed(() => props.navItems.filter((item) => item.foot));
 
@@ -42,16 +40,14 @@ const languageOptions = computed(() => LANGUAGES.map((language) => ({
     label: language.value.toUpperCase(),
 })));
 
-// Icon-only, so each half carries its own aria-label; computed so the labels
-// follow the EN/NL switch like every other string.
+// Icon-only, so each half carries its own aria-label.
 const themeOptions = computed(() => [
     { value: 'light', icon: Sun, ariaLabel: copy('themeLight') },
     { value: 'dark', icon: Moon, ariaLabel: copy('themeDark') },
 ]);
 
-// Below lg the rail is icon-only and widens on hover or keyboard focus. Touch
-// has neither, so the chevron pins it open; persisted because a rail that
-// un-pinned itself on every navigation would be worse than no pin at all.
+// Below lg the rail is icon-only and widens on hover or focus. Touch has
+// neither, so the chevron pins it open, and the choice persists.
 const PIN_KEY = 'workspace-rail-pinned';
 const pinned = ref(localStorage.getItem(PIN_KEY) === '1');
 
@@ -60,22 +56,18 @@ const togglePin = () => {
     localStorage.setItem(PIN_KEY, pinned.value ? '1' : '0');
 };
 
-// `data-theme` on <html> is what selects the dark half of every light-dark()
-// in theme.css. Held only while the workspace is mounted, so the public page
-// and the overlays that append to <body> stay light. See shared/theme.js.
+// `data-theme` selects the dark half of every light-dark() in theme.css.
 onMounted(holdTheme);
 onBeforeUnmount(releaseTheme);
 </script>
 
 <template>
     <div class="admin-shell">
-        <!-- Ahead of the rail, so a keyboard user reaches the section they
-             opened without tabbing through every destination first. -->
+        <!-- Ahead of the rail, so a keyboard user reaches the section directly. -->
         <a href="#workspace-content" class="skip-link">{{ copy('skipToContent') }}</a>
 
-        <!-- Reserves the collapsed/expanded footprint in the flex row. The
-             panel inside is fixed, so widening it on hover overlays the sheet
-             instead of reflowing it. -->
+        <!-- Reserves the footprint in the flex row; the panel inside is fixed,
+             so widening it on hover overlays the sheet instead of reflowing it. -->
         <aside class="admin-rail" :class="{ pinned }">
             <div class="admin-rail-panel">
                 <a href="/" class="admin-rail-brand">
@@ -140,8 +132,7 @@ onBeforeUnmount(releaseTheme);
                             </button>
                         </form>
 
-                        <!-- Only does anything while the rail is collapsed, so
-                             it is hidden from lg up rather than rendered inert. -->
+                        <!-- Hidden from lg up, where the rail never collapses. -->
                         <button
                             type="button"
                             class="admin-rail-icon-button admin-rail-pin"
@@ -157,8 +148,6 @@ onBeforeUnmount(releaseTheme);
             </div>
         </aside>
 
-        <!-- Inset on three sides and open at the bottom: the sheet runs off the
-             end of the page rather than closing into a floating card. -->
         <div id="workspace-content" tabindex="-1" class="admin-frame">
             <slot />
         </div>

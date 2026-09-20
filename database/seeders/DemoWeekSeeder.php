@@ -13,15 +13,12 @@ use Illuminate\Support\Carbon;
 class DemoWeekSeeder extends Seeder
 {
     /**
-     * A populated sample week, purely so anyone cloning the repo sees a
-     * working board right after `php artisan migrate --seed` without first
-     * having to understand the schema. Never call this outside local — see
-     * the environment guard in DatabaseSeeder::run().
+     * A sample week, so a fresh clone shows a working board. Local only —
+     * DatabaseSeeder guards the environment.
      */
     public function run(): void
     {
-        // whereHas (not the role() scope) so a missing 'admin' role just
-        // yields no match instead of Spatie throwing RoleDoesNotExist.
+        // whereHas, not the role() scope, which throws when no role exists yet.
         $user = User::whereHas('roles', fn ($query) => $query->where('name', 'admin'))->first();
 
         if (! $user) {
@@ -30,15 +27,11 @@ class DemoWeekSeeder extends Seeder
             return;
         }
 
-        // Demo tasks are pinned to "this week", so a re-run (e.g. re-seeding
-        // days later) should refresh them to the new week rather than stack
-        // duplicates on top of last time's rows.
+        // Pinned to this week, so a re-run refreshes rather than stacks.
         Task::query()->where('user_id', $user->id)->where('source', TaskSource::Seeder)->delete();
 
-        // Global categories only (the ones CategorySeeder ships). Without the
-        // null check this would happily attach the demo to a personal category
-        // that happens to share a name, which makes the sample week differ
-        // between two installs for no visible reason.
+        // Global categories only: a personal one sharing a name would make the
+        // sample week differ between installs.
         $categoryByName = fn (string $name) => Category::query()
             ->where('name', $name)
             ->whereNull('user_id')
@@ -46,11 +39,8 @@ class DemoWeekSeeder extends Seeder
 
         $monday = Carbon::now()->startOfWeek();
 
-        // Generic on purpose, like the categories they hang off: a sample week
-        // that says "job search" and "Dutch vocabulary" tells whoever forked
-        // this repo about the person who wrote it rather than about the app.
-        // Between them these cover all five statuses, so a fresh install shows
-        // every state the board can be in — including the colours.
+        // Generic on purpose, and between them they cover all five statuses,
+        // so a fresh install shows every state the board can be in.
         $tasks = [
             [
                 'title' => 'Focus block',
@@ -134,8 +124,6 @@ class DemoWeekSeeder extends Seeder
 
             if ($task['logged_minutes'] !== null) {
                 $record->timeLogs()->create([
-                    // user_id as well as task_id: the database's
-                    // one-running-timer index is built on it.
                     'user_id' => $user->id,
                     'started_at' => $start,
                     'ended_at' => $start->copy()->addMinutes($task['logged_minutes']),

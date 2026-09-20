@@ -12,11 +12,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-/**
- * The "only one timer runs at a time" rule used to be a private controller
- * method, reachable only through an HTTP POST. These call it directly — no
- * route, no session, no request — which is the whole reason it was extracted.
- */
 class TimerServiceTest extends TestCase
 {
     use RefreshDatabase;
@@ -62,10 +57,7 @@ class TimerServiceTest extends TestCase
         $this->assertCount(1, $result->timeLogs);
     }
 
-    /**
-     * Without this the same minutes count against several tasks at once and
-     * every report total overstates the day.
-     */
+    // Otherwise the same minutes count against several tasks at once.
     public function test_starting_stops_and_pauses_any_other_running_task(): void
     {
         $user = User::factory()->create();
@@ -82,11 +74,7 @@ class TimerServiceTest extends TestCase
         $this->assertNotNull($first->timeLogs->first()->ended_at);
     }
 
-    /**
-     * The closing write goes through the model one row at a time so
-     * TimeLog::booted()'s saving hook still computes duration_minutes. A mass
-     * builder update() would leave this null.
-     */
+    // Closed one row at a time, so every log gets its duration.
     public function test_the_interrupted_log_still_gets_its_duration_computed(): void
     {
         $user = User::factory()->create();
@@ -137,12 +125,9 @@ class TimerServiceTest extends TestCase
     }
 
     /**
-     * The one-timer rule is a read ("is anything running?") followed by a
-     * write. Two clicks landing together both read "no" and both insert, so
-     * the check is only worth anything if the write is already guarded when it
-     * runs. PHPUnit cannot stage two real connections here, so this asserts
-     * the guard itself is in place and in the right order rather than trying
-     * to provoke the race.
+     * Two clicks landing together would both read "nothing running" and both
+     * insert. PHPUnit cannot stage two connections, so this asserts the lock is
+     * taken, and taken first, rather than provoking the race.
      */
     public function test_starting_holds_a_row_lock_before_it_opens_a_log(): void
     {

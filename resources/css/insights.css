@@ -1,14 +1,8 @@
-/* Imported by app.css. Part of the split described there.
-
-   Insights and Settings: inquiries, the sign-in trail, two-step sign-in, and
+/* Insights and Settings: inquiries, the sign-in trail, two-step sign-in, and
    the settings rows.
 
-   Everything in here draws from the workspace surface tokens in theme.css
-   (--color-sheet, --color-sunken, --color-body, ...) rather than the brand
-   palette. That is the whole dark-mode mechanism: the tokens carry both
-   values, so a rule written against them themes itself. A literal `bg-white`
-   or `border-sand` in this file is a bug — it will stay light when the rest
-   of the workspace goes dark. */
+   Written against the surface tokens, never the brand palette — a literal
+   `bg-white` or `border-sand` here stays light when the workspace goes dark. */
 
 @layer components {
     /* ---------------------------------------------------------------

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PortfolioRevision extends Model
 {
-    // The table has created_at but no updated_at: a snapshot is written once.
+    // A snapshot is written once, so there is no updated_at.
     const UPDATED_AT = null;
 
     protected $fillable = [

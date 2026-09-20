@@ -12,16 +12,14 @@ use Illuminate\Validation\Rule;
 // 'sometimes', so one rule set cannot serve both.
 class UpdateTaskRequest extends FormRequest
 {
-    // Route-model binding has run, so route('task') is the Task itself.
     public function authorize(): bool
     {
         return $this->user()->can('update', $this->route('task'));
     }
 
     /**
-     * A partial update may send either end alone, so comparing only what was
-     * submitted would let a task end before it begins. Compares the effective
-     * pair: the submitted value where there is one, the stored one otherwise.
+     * A partial update may send either end alone, so this compares the
+     * effective pair: what was submitted, or the stored value.
      */
     public function withValidator($validator): void
     {
@@ -47,8 +45,7 @@ class UpdateTaskRequest extends FormRequest
             'title' => ['sometimes', 'string', 'max:190'],
             'description' => ['nullable', 'string', 'max:4000'],
             'start_datetime' => ['sometimes', 'date'],
-            // Checked in withValidator(): after_or_equal does nothing here,
-            // because a partial payload need not carry the start.
+            // Checked in withValidator(): a partial payload need not carry the start.
             'end_datetime' => ['nullable', 'date'],
             'planned_duration_minutes' => ['nullable', 'integer', 'min:0'],
             'status' => ['sometimes', Rule::enum(TaskStatus::class)],

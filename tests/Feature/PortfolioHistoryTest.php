@@ -50,10 +50,7 @@ class PortfolioHistoryTest extends TestCase
         ];
     }
 
-    /**
-     * The first save also records where the page started, so the very first
-     * change is undoable — the moment someone is most likely to want that.
-     */
+    // The first save also records where the page started, so it is undoable.
     public function test_the_first_save_records_a_baseline_and_the_new_state(): void
     {
         $profile = $this->seededProfile();
@@ -164,13 +161,8 @@ class PortfolioHistoryTest extends TestCase
         $this->assertDatabaseHas('portfolio_metrics', ['value' => 'b', 'sort_order' => 2]);
     }
 
-    /**
-     * The property the service exists for, and the one a split could quietly
-     * lose: a save is **one** transaction. If anything in it throws, the
-     * profile, the child rows and the revision all go back together — a
-     * half-written page with a revision claiming it is whole would make the
-     * undo history lie.
-     */
+    // A save is one transaction: a half-written page with a revision claiming
+    // it is whole would make the undo history lie.
     public function test_a_failed_save_rolls_the_revision_back_with_the_content(): void
     {
         $this->seededProfile();
@@ -180,9 +172,8 @@ class PortfolioHistoryTest extends TestCase
 
         $revisionsBefore = PortfolioRevision::query()->count();
 
-        // A metric value longer than the column takes. Validation is bypassed
-        // by calling the service directly, so this fails at the insert —
-        // after the profile has been updated and the baseline written.
+        // Too long for the column, and the service is called directly, so this
+        // fails at the insert — after the profile was updated.
         $broken = $this->payload('After');
         $broken['metrics'] = [['value' => str_repeat('x', 300), 'label' => ['en' => 'A', 'nl' => 'A'], 'is_visible' => true]];
 

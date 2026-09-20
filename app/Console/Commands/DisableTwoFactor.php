@@ -6,11 +6,7 @@ use App\Contracts\TwoFactorProvider;
 use App\Models\User;
 use Illuminate\Console\Command;
 
-/**
- * The way back in when the authenticator and the recovery codes are both gone.
- * Anything that can lock out the only account needs a way in that does not
- * require signing in.
- */
+/** The way back in when the authenticator and the recovery codes are both gone. */
 class DisableTwoFactor extends Command
 {
     protected $signature = 'two-factor:disable {email : The account to turn two-factor off for}';

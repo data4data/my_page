@@ -16,8 +16,11 @@ class Category extends Model
         'icon',
     ];
 
-    // Single level of nesting: a subcategory's parent is always top-level.
-    /** @return BelongsTo<Category, $this> */
+    /**
+     * Single level of nesting: a subcategory's parent is always top-level.
+     *
+     * @return BelongsTo<Category, $this>
+     */
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'parent_id');

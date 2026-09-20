@@ -8,17 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * The profile as exactly the fields the page is made of.
- *
- * Built from PortfolioFields::PROFILE — the same list save()
- * writes — so the endpoint can only ever hand back what the editor can put
- * there. `GET /portfolio` needs no login, and returning the model instead
- * published `id`, `slug`, `type`, `is_active` and the timestamps, and would
- * have published every column added after it with no code change at all.
- *
- * Keying it to the write list rather than to a list of its own is the point:
- * a new content field is published because it was made editable, and nothing
- * else ever is.
+ * The profile as exactly the fields the page is made of. Built from the same
+ * list save() writes, so `GET /portfolio` — which needs no login — can only
+ * hand back what the editor can put there.
  *
  * @property-read PortfolioProfile $resource
  */
@@ -29,8 +21,8 @@ class PortfolioProfileResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        // only() reads through the casts, so the translated columns arrive as
-        // {en, nl} arrays rather than as the raw JSON strings.
+        // only() reads through the casts, so translated columns arrive as
+        // {en, nl} arrays rather than raw JSON strings.
         return $this->resource->only(PortfolioFields::PROFILE);
     }
 }

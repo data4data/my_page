@@ -28,9 +28,8 @@ class AuthController extends Controller
 
     /**
      * Auth::validate(), not Auth::attempt(): it checks the password without
-     * starting a session. An account with two-factor on is never briefly
-     * signed in, and the Login event the trail records as "signed in" fires
-     * only once the person is all the way in.
+     * starting a session, so an account with two-factor on is never briefly
+     * signed in.
      */
     public function store(Request $request): JsonResponse
     {
@@ -116,8 +115,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        // The configured prefix, not a literal path, so a renamed
-        // ADMIN_PATH still lands correctly.
+        // The configured prefix, so a renamed ADMIN_PATH still lands correctly.
         return response()->json([
             'redirect' => $request->session()->pull('url.intended', '/'.config('admin.path')),
         ]);

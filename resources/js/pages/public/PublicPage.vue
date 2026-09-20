@@ -23,8 +23,7 @@ const connectPath = computed(() => {
     return prefix ? `/${prefix}/hi-developer` : '/hi-developer';
 });
 
-// Switching language changes the address, not just a ref: each language is a
-// real page, so the one on screen has to be the one that can be linked to.
+// Each language is a real page, so switching navigates rather than setting a ref.
 const switchLanguage = (value) => {
     setLang(value);
 
@@ -51,7 +50,7 @@ const headerScrolled = ref(false);
 const expertiseCarousel = ref(null);
 const expertiseIndex = ref(0);
 const activeSection = ref('');
-// Document order (top to bottom), for the scan in updateActiveSection below.
+// Document order, for the scan in updateActiveSection below.
 const sectionIdsInDomOrder = ['expertise', 'about', 'work', 'contact'];
 let sectionElements = [];
 
@@ -63,8 +62,7 @@ const Icon = (name) => resolveIcon(name);
 
 const escapeForRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-// The accented words come from the profile, not from a pattern here. They used
-// to be hardcoded, so editing the headline silently lost the accent.
+// The accented words come from the profile, so editing the headline keeps them.
 const headlineSegments = computed(() => {
     const text = t(profile.value.headline);
     const highlights = Array.isArray(profile.value.headline_highlights) ? profile.value.headline_highlights : [];
@@ -90,7 +88,6 @@ const updateHeaderState = () => {
     headerScrolled.value = window.scrollY > 8;
 };
 
-// Highlights whichever section's top edge last crossed the reference line.
 // A plain scan, not IntersectionObserver, which fires short or overlapping
 // sections out of order.
 const updateActiveSection = () => {
@@ -106,18 +103,16 @@ const updateActiveSection = () => {
     activeSection.value = current;
 };
 
-// Off in Settings means the site runs in the default language only.
 const showLanguageSwitcher = computed(() => languageSwitcherShown(profile.value));
 
-// The same two options the workspace rail offers, and the same stored
-// preference: one browser, one pair of eyes.
+// The same options and stored preference as the workspace rail.
 const themeOptions = computed(() => [
     { value: 'light', icon: Sun, ariaLabel: copy('themeLight') },
     { value: 'dark', icon: Moon, ariaLabel: copy('themeDark') },
 ]);
 
-// Held rather than set, so the attribute comes off if this page ever
-// unmounts into something that does not want it. See shared/theme.js.
+// Held, so the attribute comes off if this page unmounts into something that
+// does not want it.
 onMounted(holdTheme);
 onBeforeUnmount(releaseTheme);
 
@@ -125,9 +120,8 @@ onMounted(async () => {
     await fetchPortfolio();
     applyLanguagePolicy(profile.value);
 
-    // A remembered choice sends the visitor to that language's own URL.
-    // replace(), not push(), so Back still leaves the site rather than
-    // bouncing between the two languages.
+    // replace(), not push(), so Back leaves the site rather than bouncing
+    // between the two languages.
     const preferred = preferredPath(profile.value, route.path);
 
     if (preferred) {
@@ -172,11 +166,10 @@ const scrollExpertise = (direction) => {
         <div class="mx-auto max-w-7xl">{{ copy('loading') }}</div>
     </main>
 
-    <!-- No bg-cream: body paints it, and an opaque background here would
-         cover the body::before wash, which sits at a negative z-index. -->
+    <!-- No bg-cream: an opaque background here would cover the body::before
+         wash, which sits at a negative z-index. -->
     <main v-else class="page-grid min-h-screen text-ink">
-        <!-- First thing in the tab order. Without it a keyboard user walks
-             the whole nav and the social rail before reaching any content. -->
+        <!-- First in the tab order, before the nav and the social rail. -->
         <a href="#main-content" class="skip-link u-full">{{ copy('skipToContent') }}</a>
 
         <header class="site-header u-full" :class="{ scrolled: headerScrolled }">
@@ -221,8 +214,6 @@ const scrollExpertise = (direction) => {
                 <div class="hero-photo-shade"></div>
             </div>
 
-            <!-- No links, no rail: the label and line alone read as a stray
-                 mark down the side of the page. -->
             <aside v-if="railLinks.length" class="social-rail" :aria-label="copy('socialFollow')">
                 <span class="rail-role">{{ copy('railCta') }}</span>
                 <div class="rail-line"></div>
@@ -356,9 +347,8 @@ const scrollExpertise = (direction) => {
 
         </section>
 
-        <!-- Three parts, so the links sit in the true centre rather than
-             wherever two notes of unequal length leave them. The rail is
-             desktop-only, so on a phone this is the only copy. -->
+        <!-- Three tracks, so the links sit in the true centre whatever length
+             the two notes are. -->
         <footer class="site-footer">
             <span class="site-footer-note">{{ t(profile.location_note) }}</span>
 
@@ -374,8 +364,7 @@ const scrollExpertise = (direction) => {
                     <component :is="Icon(link.icon)" :size="18" aria-hidden="true" />
                 </a>
             </nav>
-            <!-- Holds the middle track open with no links, so the two notes
-                 stay at the edges. Not needed once stacked. -->
+            <!-- Holds the middle track open, so the two notes stay at the edges. -->
             <span v-else class="site-footer-spacer" aria-hidden="true"></span>
 
             <span class="site-footer-note">{{ t(profile.availability_note) }}</span>

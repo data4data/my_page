@@ -1,13 +1,7 @@
 <script setup>
-// The one switcher shape in the workspace: a rounded track with a white chip
-// on the selected option. EN/NL and light/dark in the rail, default language
-// and show/hide in Settings, on/off for two-step sign-in — all the same
-// control, so they cannot drift apart into five lookalikes.
-//
-// Colours come from --pill-* custom properties rather than a variant prop, so
-// the rail (dark blue in dark mode) and the sheet (grey) each set them once on
-// their own container and every pill inside inherits. Defaults below cover a
-// pill used anywhere else.
+// The one switcher shape in the workspace, so EN/NL, light/dark, default
+// language and show/hide cannot drift into lookalikes. Colours come from
+// --pill-* set by whatever contains it, not from a variant prop.
 defineProps({
     options: {
         type: Array,
@@ -17,8 +11,7 @@ defineProps({
         type: [String, Boolean, Number],
         default: null,
     },
-    // Names the set for a screen reader: "Theme", "Language". Required
-    // because an icon-only pill has no visible label of its own.
+    // Required: an icon-only pill has no visible label of its own.
     ariaLabel: {
         type: String,
         required: true,
@@ -33,9 +26,8 @@ defineEmits(['update:modelValue']);
 </script>
 
 <template>
-    <!-- radiogroup, not a row of toggle buttons: picking one deselects the
-         other, and this way a reader announces "2 of 2" rather than leaving
-         the relationship between the halves to be inferred. -->
+    <!-- radiogroup, not toggle buttons: picking one deselects the other, and a
+         reader announces the relationship rather than leaving it inferred. -->
     <span class="pill-switch" role="radiogroup" :aria-label="ariaLabel">
         <button
             v-for="option in options"

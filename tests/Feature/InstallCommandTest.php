@@ -9,14 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
-/**
- * `php artisan app:install` creates this install's identity.
- *
- * It replaced AdminUserSeeder, which read credentials from .env and then
- * spent sixty lines refusing the weak ones it might be handed. A command can
- * ask instead, so a real password never has to sit in a file and a
- * placeholder one can never reach a live install.
- */
+/** `php artisan app:install` creates this install's identity. */
 class InstallCommandTest extends TestCase
 {
     use RefreshDatabase;
@@ -67,10 +60,7 @@ class InstallCommandTest extends TestCase
         $this->assertSame('ZZ', PortfolioProfile::query()->value('initials'));
     }
 
-    /**
-     * Safe to run twice: it must not duplicate the account, and must not
-     * quietly overwrite content someone has already edited.
-     */
+    // Safe to run twice: no duplicate account, and no overwritten content.
     public function test_running_it_again_leaves_existing_content_alone(): void
     {
         $this->artisan('app:install', ['--email' => 'owner@example.test', '--initials' => 'ZZ'])
@@ -88,11 +78,7 @@ class InstallCommandTest extends TestCase
         $this->assertSame('ED', PortfolioProfile::query()->value('initials'));
     }
 
-    /**
-     * `migrate` without `--seed` and without `app:install` leaves no profile
-     * at all. The editor should fill itself with the placeholder content
-     * rather than answer "not found".
-     */
+    // `migrate` alone leaves no profile: the editor seeds rather than 404s.
     public function test_the_editor_works_on_an_install_that_was_only_migrated(): void
     {
         $this->assertSame(0, PortfolioProfile::query()->count());

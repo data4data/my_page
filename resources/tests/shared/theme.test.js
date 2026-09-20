@@ -2,8 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * theme.js keeps `theme` as a module-level singleton and counts holders, so
- * every case needs a fresh module registry rather than a shared one carrying
- * state between them.
+ * each case needs a fresh module registry.
  */
 const loadTheme = async () => {
     vi.resetModules();
@@ -44,11 +43,9 @@ describe('what a visitor starts on', () => {
 });
 
 /**
- * `data-theme` is what picks the half of every light-dark() in theme.css, so
- * holding it is the same as being in dark mode. It is counted rather than a
- * boolean because a route change can mount the next layout before the
- * previous one tears down — with a boolean, that teardown would strip the
- * attribute off the layout that had just asked for it.
+ * `data-theme` picks the half of every light-dark() in theme.css. Counted
+ * rather than a boolean, because a route change can mount the next layout
+ * before the previous one tears down.
  */
 describe('holding the theme', () => {
     it('writes the attribute while something holds it, and removes it after', async () => {
@@ -87,9 +84,8 @@ describe('holding the theme', () => {
         expect(document.documentElement.getAttribute('data-theme')).toBe('light');
     });
 
-    // The watcher lives at module scope for this reason: one created inside a
-    // component's setup would be stopped when that component unmounted, even
-    // though a second holder was still there.
+    // Why the watcher lives at module scope: one created in a component's setup
+    // would be stopped when that component unmounted.
     it('follows a change of theme while held', async () => {
         const { holdTheme, setTheme } = await loadTheme();
 

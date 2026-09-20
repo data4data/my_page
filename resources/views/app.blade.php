@@ -4,36 +4,29 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
-        {{-- The private workspace's per-install URL prefix (config/admin.php).
-             resources/js/shared/admin-path.js reads it so no admin route or
-             fetch URL is hardcoded in the JS bundle. Emitted only for someone
-             who can reach the workspace — PortfolioController::app() decides —
-             because every page renders this shell, public visit card included. --}}
+        {{-- The workspace's per-install prefix, read by admin-path.js so no
+             route or fetch URL is hardcoded. Emitted only inside the workspace:
+             every page renders this shell, the public visit card included. --}}
         @if ($adminPath)
             <meta name="admin-path" content="{{ $adminPath }}">
         @endif
         <title>{{ $siteTitle }}</title>
 
-        {{-- The workspace is private. It is already behind a login and an
-             unguessable prefix, but a prefix that ever leaks should not then
-             be handed to an index. --}}
+        {{-- A prefix that ever leaks should not then be handed to an index. --}}
         @if ($noindex)
             <meta name="robots" content="noindex, nofollow">
         @endif
 
-        {{-- Rendered here, not by the bundle, because the crawlers behind link
-             previews do not run JavaScript: whatever is missing from this
-             response is missing from the preview. See
-             PortfolioController::publicMeta(). --}}
+        {{-- Rendered here, not by the bundle: link-preview crawlers run no
+             JavaScript, so whatever is missing here is missing from the card. --}}
         @if ($meta)
             @if ($meta['description'])
                 <meta name="description" content="{{ $meta['description'] }}">
             @endif
             <link rel="canonical" href="{{ $meta['url'] }}">
 
-            {{-- One entry per language, plus x-default for a visitor whose own
-                 language is neither. Without these a crawler sees / and /nl as
-                 two unrelated pages, or as duplicates of each other. --}}
+            {{-- Without these a crawler reads / and /nl as unrelated pages, or
+                 as duplicates of each other. --}}
             @foreach ($meta['alternates'] as $code => $href)
                 <link rel="alternate" hreflang="{{ $code }}" href="{{ $href }}">
             @endforeach
@@ -53,9 +46,7 @@
                 <meta property="og:image:alt" content="{{ $siteTitle }}">
             @endif
 
-            {{-- The large card is only worth asking for when there is a
-                 picture to fill it. Without one it renders as a blank slab,
-                 which reads worse than the small card. --}}
+            {{-- The large card is a blank slab with no picture to fill it. --}}
             <meta name="twitter:card" content="{{ $meta['image'] ? 'summary_large_image' : 'summary' }}">
             @if ($meta['image'])
                 <meta name="twitter:image" content="{{ $meta['image'] }}">
@@ -66,18 +57,14 @@
             @endif
 
             @if ($meta['schema'])
-                {{-- JSON_HEX_* rather than {{ }}: Blade's escaping would turn
-                     the quotes into entities and produce invalid JSON, while
-                     leaving it raw would let a '</script>' in any field close
-                     this block early. --}}
+                {{-- JSON_HEX_*, not {{ }}: Blade's escaping would make invalid
+                     JSON, and raw would let a '</script>' close this early. --}}
                 <script type="application/ld+json">{!! json_encode($meta['schema'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
             @endif
         @endif
 
-        {{-- Two bundles. The workspace's JavaScript is loaded only inside
-             the workspace prefix, so the public page never serves it and its
-             endpoint names cannot be read out of a chunk fetched from the
-             public site. The login page counts as inside: it is the door. --}}
+        {{-- Two bundles: the workspace's JavaScript is served only inside the
+             prefix. The login page counts as inside — it is the door. --}}
         @vite(['resources/css/app.css', $inWorkspace ? 'resources/js/app-admin.js' : 'resources/js/app-public.js'])
     </head>
     <body>
