@@ -9,12 +9,8 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * How the owner finds out somebody used the connect form, without having to
- * open Insights and look.
- *
  * Queued: the public form must answer the visitor whether or not the mail
- * provider is reachable. A send that fails retries on its own rather than
- * turning someone's message into a 500 they see and nobody records.
+ * provider is reachable.
  */
 class InquiryReceivedNotification extends Notification implements ShouldQueue
 {
@@ -42,9 +38,7 @@ class InquiryReceivedNotification extends Notification implements ShouldQueue
             }
         }
 
-        // No action button: the URLs above came from a stranger, and a
-        // one-click link in your own inbox is a nastier target than a line of
-        // text you decide to copy.
+        // No action button: those URLs came from a stranger.
         return $mail->line('It is in Insights as well, whenever you next look.');
     }
 }

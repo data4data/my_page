@@ -17,14 +17,8 @@ use Illuminate\Support\Str;
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * The two contracts that have somewhere to go.
-     *
-     * Everything else in app/Services is a concrete class the container
-     * resolves by reflection, and stays that way: an interface with one
-     * implementation behind it is a file and an indirection. These two are
-     * different — a second factor that is not TOTP is a real prospect, and a
-     * fork replacing the seeded page is the whole point of the project being
-     * forkable.
+     * The only two bindings: everything else in app/Services is a concrete
+     * class the container resolves by reflection.
      */
     public function register(): void
     {
@@ -32,21 +26,14 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(PortfolioSeedContent::class, DefaultPortfolioContent::class);
     }
 
-    /**
-     * Only the rate limiter. The sign-in trail's listeners live in
-     * app/Listeners and are discovered by Laravel from their handle()
-     * signature — nothing registers them.
-     */
     public function boot(): void
     {
         $this->configureLoginRateLimiting();
     }
 
     /**
-     * Two limits, because they stop different attacks. Per address alone
-     * misses a spread-out attempt on one account; per account alone lets
-     * anyone lock the owner out. The account limit is the looser of the two,
-     * so ordinary mistyping never trips it.
+     * Two limits: per address alone misses a spread-out attempt on one
+     * account, per account alone lets anyone lock the owner out.
      */
     private function configureLoginRateLimiting(): void
     {

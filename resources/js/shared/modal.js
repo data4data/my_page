@@ -1,13 +1,9 @@
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
 /**
- * The keyboard and focus behaviour every modal needs.
- *
- * There are two shells — AdminModal and PublicModal — because the workspace
- * and the visit card are two different palettes and two different card
- * shapes. They must not be two different *dialogs*, though: Escape, the Tab
- * trap and handing focus back are the parts a user notices only when they are
- * missing, and behaviour copied into two files is behaviour that drifts.
+ * The keyboard and focus behaviour every modal needs. The two shells differ in
+ * looks, not in this: Escape, the Tab trap and handing focus back are noticed
+ * only when missing, and copied behaviour drifts.
  *
  * Call it with the function that closes the modal; bind the returned ref to
  * the element carrying role="dialog".
@@ -18,8 +14,8 @@ export const useModalDialog = (close) => {
     // Handed back on close, so focus does not jump to the top of the page.
     let previouslyFocused = null;
 
-    // No offsetParent check: these modals use v-if, so anything hidden is not
-    // in the DOM, and it would make the trap depend on rendered geometry.
+    // No offsetParent check: these modals use v-if, so nothing hidden is in
+    // the DOM and the trap need not depend on rendered geometry.
     const focusableWithin = () => [...(dialog.value?.querySelectorAll(
         'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
     ) ?? [])].filter((element) => !element.closest('[hidden]'));
@@ -41,7 +37,7 @@ export const useModalDialog = (close) => {
         }
 
         // Select and DatePicker overlays append to <body>, so focus can sit
-        // outside this element. Only wrap when it is inside.
+        // outside this element.
         if (!dialog.value?.contains(document.activeElement)) {
             return;
         }

@@ -40,9 +40,8 @@ const emit = defineEmits(['close', 'save', 'delete', 'start-timer', 'stop-timer'
 
 const isEditing = computed(() => Boolean(props.task));
 
-// Reads straight off the task prop (kept fresh by the parent after each
-// start/stop) rather than off the form, so the timer reflects server state
-// without the unsaved form fields interfering.
+// Off the task prop, not the form, so the timer shows server state rather
+// than unsaved edits.
 const runningLog = computed(() => runningTimeLog(props.task));
 const elapsedLabel = useRunningElapsed(runningLog);
 
@@ -62,9 +61,8 @@ const form = ref({
     result_notes: props.task?.result_notes ?? '',
 });
 
-// Flat list ("Parent › Child" for one level of nesting) — AppSelect has no
-// native optgroup support, and the category tree here is only ever one
-// level deep anyway (see Category::parent()/children()).
+// Flat ("Parent › Child"): AppSelect has no optgroups, and the tree is one
+// level deep.
 const categoryOptions = computed(() => {
     const options = [{ label: copy('noCategory'), value: null }];
 
@@ -81,20 +79,9 @@ const categoryOptions = computed(() => {
 
 const statusOptions = computed(() => TASK_STATUSES.map((status) => ({ label: copy(taskStatusLabelKey[status]), value: status })));
 
-// --- Keeping end time and planned duration in step ------------------------
-//
-// The two describe the same thing, so letting them drift would leave a task
-// whose times say one hour and whose planned duration says ninety minutes —
-// and the report trusts the duration, so it would silently contradict the
-// calendar. Each edit derives the other.
-//
-// Driven by watchers on the model rather than DOM @change: `change` only
-// fires on blur, so typing a duration and going straight to Save left the
-// end time stale. Watching the value catches every edit however it's made,
-// including the DatePicker, which emits no DOM change event at all.
-//
-// flush: 'sync' plus the guard keeps this from ping-ponging — the derived
-// write lands while `syncing` is still true, so the paired watcher bails.
+// End time and planned duration describe the same thing, and the report trusts
+// the duration — so each edit derives the other. Watchers rather than @change,
+// which only fires on blur; flush: 'sync' plus the guard stops the ping-pong.
 
 const plannedMinutes = () => {
     const value = Number(form.value.planned_duration_minutes);
@@ -136,7 +123,7 @@ const guarded = (sync) => () => {
 
 watch(() => form.value.planned_duration_minutes, guarded(syncEndFromDuration), { flush: 'sync' });
 watch(() => form.value.end_datetime, guarded(syncDurationFromEnd), { flush: 'sync' });
-// Moving the start keeps the planned length and carries the end along with it.
+// Moving the start keeps the planned length and carries the end with it.
 watch(() => form.value.start_datetime, guarded(syncEndFromDuration), { flush: 'sync' });
 
 const submit = () => {
@@ -150,8 +137,8 @@ const submit = () => {
         status: form.value.status,
         start_datetime: formatForApi(form.value.start_datetime),
         end_datetime: form.value.end_datetime ? formatForApi(form.value.end_datetime) : null,
-        // Number inputs hand back strings; send a real integer (or null when
-        // left blank, which lets the report fall back to the start→end span).
+        // Number inputs hand back strings; null lets the report fall back to
+        // the start→end span.
         planned_duration_minutes: form.value.planned_duration_minutes === '' || form.value.planned_duration_minutes === null
             ? null
             : Number(form.value.planned_duration_minutes),
@@ -170,7 +157,7 @@ const submit = () => {
         :title="isEditing ? copy('editTask') : copy('addTask')"
         @close="$emit('close')"
     >
-        <!-- Only for saved tasks: a timer needs a task id to attach to. -->
+        <!-- A timer needs a task id to attach to. -->
         <template v-if="isEditing" #head-aside>
             <button
                 type="button"

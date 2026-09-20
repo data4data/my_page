@@ -169,8 +169,7 @@ return [
     |
     */
 
-    // On everywhere but local development, rather than off unless someone
-    // remembers to switch it on. Override explicitly if you must.
+    // On everywhere but local, rather than off unless someone remembers.
     'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') !== 'local'),
 
     /*
@@ -201,9 +200,7 @@ return [
     |
     */
 
-    // Strict, not Laravel's "lax": nothing here is meant to be reached from
-    // another site. The cost is that a link from elsewhere lands you signed
-    // out, which for a private workspace is the right trade.
+    // Strict, not Laravel's "lax": nothing here is reached from another site.
     'same_site' => env('SESSION_SAME_SITE', 'strict'),
 
     /*

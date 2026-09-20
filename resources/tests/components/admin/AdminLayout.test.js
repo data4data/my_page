@@ -3,12 +3,10 @@ import { markRaw } from 'vue';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import AdminLayout from '../../../js/components/admin/AdminLayout.vue';
 
-// markRaw: a bare component object handed in as a prop gets made reactive,
-// which Vue warns about and which costs a deep walk of the definition.
+// markRaw: a component object handed in as a prop is otherwise made reactive.
 const icon = markRaw({ template: '<i />' });
 
-// Settings carries `foot: true`, which is what puts it in the group pinned to
-// the bottom of the rail rather than with the destinations.
+// `foot: true` pins an item to the bottom group rather than the destinations.
 const navItems = [
     { key: 'agenda', label: 'My agenda', icon },
     { key: 'insights', label: 'Insights', icon, count: 3 },
@@ -16,9 +14,7 @@ const navItems = [
     { key: 'settings', label: 'Settings', icon, foot: true },
 ];
 
-// Tracked and torn down after every test: the theme is held by a count in
-// shared/theme.js, so a layout left mounted keeps holding data-theme and the
-// next test starts from a state no real page is ever in.
+// Torn down after every test: a layout left mounted keeps holding data-theme.
 const mounted = [];
 
 const mountLayout = (activeKey = 'edit', profile = {}) => {
@@ -78,8 +74,7 @@ describe('AdminLayout rail', () => {
         expect(wrapper.emitted('navigate')).toEqual([['agenda'], ['settings']]);
     });
 
-    // The label is clipped by CSS rather than removed, so the icon-only rail
-    // still announces what each row is.
+    // Clipped by CSS rather than removed, so the icon-only rail still announces.
     it('keeps every label in the accessibility tree', () => {
         const wrapper = mountLayout();
 
@@ -105,8 +100,7 @@ describe('AdminLayout rail', () => {
 });
 
 describe('AdminLayout pin', () => {
-    // Touch has neither hover nor focus, so the chevron is the only way to
-    // open a collapsed rail — and it has to survive navigating.
+    // Touch has neither hover nor focus, so the chevron is the only way in.
     it('toggles the pin and remembers it', async () => {
         const wrapper = mountLayout();
         const pin = wrapper.get('.admin-rail-pin');
@@ -128,9 +122,8 @@ describe('AdminLayout pin', () => {
 });
 
 describe('AdminLayout theme', () => {
-    // data-theme is what selects the dark half of every light-dark() in
-    // theme.css. The public page shares forms.css and the overlays that append
-    // to <body>, so the attribute must not outlive the workspace.
+    // The attribute must not outlive the workspace: the public page shares
+    // forms.css and the overlays that append to <body>.
     it('holds data-theme while mounted and releases it on unmount', () => {
         mountLayout();
 
@@ -148,8 +141,7 @@ describe('AdminLayout theme', () => {
         mounted.pop().unmount();
 
         // A route change can mount the next layout before the previous one
-        // tears down; a boolean here would strip the attribute off the layout
-        // that had just asked for it.
+        // tears down, which a boolean could not survive.
         expect(document.documentElement.getAttribute('data-theme')).toBeTruthy();
 
         mounted.pop().unmount();

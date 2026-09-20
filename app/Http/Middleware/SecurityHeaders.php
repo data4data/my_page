@@ -33,10 +33,9 @@ class SecurityHeaders
     {
         $dev = $this->viteDevServerOrigins();
 
-        // CSP has no syntax for a bracketed IPv6 host like http://[::1]:5173.
-        // The browser drops that source but still enforces the rest, which
-        // blocks the whole dev bundle. Send no policy instead of a broken one.
-        // vite.config.js pins the dev host so this should not happen.
+        // CSP has no syntax for a bracketed IPv6 host like http://[::1]:5173:
+        // a browser drops that source and enforces the rest, blocking the whole
+        // dev bundle. Send no policy rather than a broken one.
         foreach ($dev['http'] as $origin) {
             if (str_contains($origin, '[')) {
                 return null;
@@ -65,8 +64,7 @@ class SecurityHeaders
     }
 
     /**
-     * The dev server's origin, from Vite's hot file. Empty in a built
-     * deployment, which is the policy that ships.
+     * The dev server's origin, from Vite's hot file. Empty once built.
      *
      * @return array{http: list<string>, ws: list<string>}
      */

@@ -12,10 +12,7 @@ class FreshInstallSeedTest extends TestCase
 {
     use RefreshDatabase;
 
-    /**
-     * This project is meant to be forked. Whoever clones it should not find
-     * somebody else's initials waiting for them, in the seed or in the schema.
-     */
+    // A fork should not find somebody else's initials waiting for them.
     public function test_a_fresh_install_seeds_placeholder_initials(): void
     {
         app(PortfolioSeeder::class)->seed();

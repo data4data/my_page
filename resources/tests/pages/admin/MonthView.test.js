@@ -35,10 +35,9 @@ describe('MonthView', () => {
     it('does not select the day when a task chip is activated by keyboard', async () => {
         const wrapper = mountMonth();
 
-        // Otherwise Enter on a chip opens the task editor *and* navigates the
-        // view underneath it to Day view. Only the navigation is asserted
-        // here: the chip's own activation is the browser turning Enter into a
-        // click on a native button, which trigger() does not synthesise.
+        // Otherwise Enter on a chip opens the editor and navigates the view
+        // underneath it. Only the navigation is asserted: the chip's own
+        // activation is a browser behaviour trigger() does not synthesise.
         await wrapper.find('.month-task-chip').trigger('keydown.enter');
 
         expect(wrapper.emitted('select-day')).toBeUndefined();

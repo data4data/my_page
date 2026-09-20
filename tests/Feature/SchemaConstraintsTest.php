@@ -13,13 +13,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Rules the database holds, rather than only the application.
- *
- * Each of these was a PHP-only guarantee before: a lock, a saving hook, or
- * nothing at all. A bug, a console command or a retried request could step
- * around any of them. These tests are what says the schema still carries
- * them — a migration rewritten without the constraint fails here rather than
- * a year later in a report.
+ * Rules the database holds, rather than only the application: a migration
+ * rewritten without one fails here rather than a year later in a report.
  */
 class SchemaConstraintsTest extends TestCase
 {

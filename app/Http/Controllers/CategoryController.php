@@ -10,8 +10,7 @@ use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
-    // Global (seeded, user_id null) categories plus this admin's own,
-    // top-level with their one level of subcategories nested under `children`.
+    // Global categories (user_id null) plus this user's own, one level deep.
     public function index(Request $request): JsonResponse
     {
         $categories = Category::query()
@@ -36,8 +35,6 @@ class CategoryController extends Controller
         return response()->json(['category' => $category], 201);
     }
 
-    // Ownership is checked by UpdateCategoryRequest::authorize(), which runs
-    // before this method is entered.
     public function update(UpdateCategoryRequest $request, Category $category): JsonResponse
     {
         $category->update($request->validated());

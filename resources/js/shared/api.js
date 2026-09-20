@@ -2,14 +2,6 @@ import { adminUrl } from './admin-path';
 import { copy } from './i18n';
 import { useToast } from './toast';
 
-/**
- * Every call to this app's JSON endpoints goes through here.
- *
- * The Accept header is the important part. Without it, an expired session
- * gets the auth middleware's HTML redirect to /login instead of a JSON 401,
- * response.json() throws on the HTML, and whichever `loading` ref was in
- * flight never clears.
- */
 export const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
 export class ApiError extends Error {
@@ -22,8 +14,7 @@ export class ApiError extends Error {
 
 }
 
-// Every caller would handle an expired session the same way, so it is handled
-// once. Guarded so the login page cannot bounce to itself.
+// Guarded, so the login page cannot bounce to itself.
 const returnToLogin = () => {
     const login = adminUrl('/login');
 
@@ -33,13 +24,9 @@ const returnToLogin = () => {
 };
 
 /**
- * The part of a failed response that is safe to put in front of a person.
- *
- * A field-level validation message beats everything: it names what to fix.
- * Otherwise only a 4xx `message` is used — those are written for a reader,
- * while a 5xx carries the exception's own text, which with APP_DEBUG on is
- * the first line of a stack trace. That is exactly the strange error a user
- * should never see; it stays on the ApiError's `body` for the console.
+ * The part of a failed response that is safe to show. A validation message
+ * wins, since it names what to fix. A 5xx message never is: that is the
+ * exception's own text, and with APP_DEBUG on it is a stack trace.
  */
 const serverMessage = (status, payload) => {
     const validation = payload?.errors ? Object.values(payload.errors)[0]?.[0] : null;
@@ -52,25 +39,21 @@ const serverMessage = (status, payload) => {
 };
 
 /**
- * What to tell the user about a failure, or null when there is nothing to
- * say. Every catch block in the app goes through this, so one kind of failure
- * reads the same wherever it happens.
+ * What to tell the user about a failure, or null when there is nothing to say.
+ * Every catch block goes through this, so one failure reads the same anywhere.
  *
  * @param {unknown} error     Whatever was thrown.
  * @param {string} [fallback] Shown when the failure carries nothing better.
  */
 export const errorMessage = (error, fallback) => {
-    // fetch() itself rejected: no network, DNS, a blocked request. Its own
-    // message is "Failed to fetch", which tells a reader nothing.
+    // fetch() itself rejected: no network. Its own message says nothing useful.
     if (error instanceof TypeError) {
         return copy('errorOffline');
     }
 
     if (!(error instanceof ApiError)) {
-        // Something threw that was not a response at all — a bug, whose
-        // message reads like "Cannot read properties of undefined". That is
-        // the strange error a user should never be shown, so it goes to the
-        // console and they get the caller's own words.
+        // Not a response at all, so a bug: the console gets it, the user gets
+        // the caller's own words.
         console.error(error);
 
         return fallback || copy('error');
@@ -81,8 +64,7 @@ export const errorMessage = (error, fallback) => {
         return null;
     }
 
-    // Laravel's CSRF/session-expiry status. The generic text would send
-    // someone hunting for a fault in what they typed.
+    // Laravel's CSRF/session-expiry status, not a fault in what they typed.
     if (error.status === 419) {
         return copy('errorSessionExpired');
     }
@@ -100,10 +82,14 @@ export const reportError = (error, fallback) => {
 };
 
 /**
+ * Every call to this app's JSON endpoints goes through here. The Accept header
+ * is load-bearing: without it an expired session takes the auth middleware's
+ * HTML redirect instead of a JSON 401, and the loading ref never clears.
+ *
  * @param {string} url
  * @param {{method?: string, body?: unknown, message?: string}} options
  *   `message` is the error text thrown when the request fails; a validation
- *   message from the server wins over it when there is one.
+ *   message from the server wins over it.
  */
 export async function apiFetch(url, { method = 'GET', body, message } = {}) {
     const headers = {

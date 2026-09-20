@@ -9,13 +9,8 @@ use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
- * Each language is its own URL.
- *
- * The language used to live only in localStorage, so both languages shared "/".
- * Nobody could send a Dutch link, and a crawler — which carries no storage and
- * runs no JavaScript — only ever saw the default one, so half the page was
- * unfindable. The default language keeps the bare path and the other gets a
- * prefix, with hreflang tying them together.
+ * Each language is its own URL: the default keeps the bare path, the other gets
+ * a prefix, and hreflang ties them together.
  */
 class PublicPageLanguageTest extends TestCase
 {
@@ -105,8 +100,7 @@ class PublicPageLanguageTest extends TestCase
     {
         $this->profile(['default_language' => 'nl']);
 
-        // Flipping the default moves which language is unprefixed, so the
-        // prefix cannot be hardcoded to "the non-English one".
+        // Flipping the default moves which language is unprefixed.
         $this->get('/')->assertOk()->assertSee('<html lang="nl">', false);
         $this->get('/en')->assertOk()->assertSee('<html lang="en">', false);
         $this->get('/nl')->assertRedirect('/');
@@ -123,8 +117,7 @@ class PublicPageLanguageTest extends TestCase
     {
         $this->profile();
 
-        // It is noindex; handing a crawler alternates would be pointless and
-        // would name the prefix twice more in the source.
+        // It is noindex, and alternates would name the prefix twice more.
         Role::findOrCreate('admin', 'web');
         $user = User::factory()->create();
         $user->assignRole('admin');
@@ -139,8 +132,8 @@ class PublicPageLanguageTest extends TestCase
     {
         $this->profile();
 
-        // The page around the form is Dutch, so Laravel's own validator must
-        // not answer in English.
+        // The page around the form is Dutch, so the validator must not answer
+        // in English.
         $this->postJson('/nl/hi-developer', ['name' => '', 'email' => 'nope', 'message' => ''])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['name', 'email', 'message'])

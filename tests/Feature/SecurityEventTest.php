@@ -51,11 +51,8 @@ class SecurityEventTest extends TestCase
         $this->assertSame($admin->email, $event->email);
     }
 
-    /**
-     * The limiter answers before the controller runs, so no Failed event
-     * fires. Without its response callback the trail goes quiet exactly when
-     * the attack gets loud.
-     */
+    // The limiter answers before the controller, so no Failed event fires:
+    // without its callback the trail goes quiet when the attack gets loud.
     public function test_an_attempt_the_rate_limiter_turns_away_is_still_recorded(): void
     {
         $admin = $this->admin();
@@ -86,8 +83,8 @@ class SecurityEventTest extends TestCase
         $body = $this->actingAs($admin)->getJson($this->adminUrl('/security-events'))->assertOk()->json();
 
         $this->assertSame(12, $body['window_hours']);
-        // "failed" is a wrong password and nothing else; a blocked attempt
-        // never reached the credential check, so it counts separately.
+        // A blocked attempt never reached the credential check, so it counts
+        // separately from a wrong password.
         $this->assertSame(2, $body['totals']['failed']);
         $this->assertSame(1, $body['totals']['blocked']);
         $this->assertSame(1, $body['totals']['succeeded']);

@@ -3,24 +3,17 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
 
-    /* Breakpoints. sm/md/lg keep Tailwind's defaults (they're used throughout);
-       xl/2xl are retargeted at the two sizes this layout actually reacts to —
-       1440 is where content moves into the gutters, 1800 is where the column
-       itself steps up. Neither variant was in use before this. */
+    /* sm/md/lg keep Tailwind's defaults; xl/2xl are retargeted at the two sizes
+       this layout reacts to — 1440 moves content into the gutters, 1800 steps
+       the column up. */
     --breakpoint-xl: 90rem;
     --breakpoint-2xl: 112.5rem;
 
-    /* Core palette — the site's recurring brand colors.
+    /* Core palette — the site's recurring brand colours, in both halves.
 
-       Both halves, like the workspace surfaces below. The dark half keeps the
-       warmth: this is a cream-and-ink design, so its night version is a warm
-       near-black rather than the neutral greys the workspace uses, and the
-       browns and golds stay brown and gold instead of turning grey.
-
-       `ink` and `cream` swap roles — ink is near-black text on cream in light
-       and warm off-white text on near-black in dark. Anything painted
-       `bg-ink` therefore needs `--color-ink-text` on top of it rather than a
-       literal white, which would vanish in dark. */
+       `ink` and `cream` swap roles: ink is near-black text on cream in light,
+       warm off-white on near-black in dark. So anything painted `bg-ink` needs
+       `--color-ink-text` on it, not a literal white, which would vanish. */
     --color-ink: light-dark(#071523, #f2ede5);
     --color-ink-hover: light-dark(#10283f, #e3dcd1);
     --color-ink-text: light-dark(#ffffff, #14120f); /* what sits on bg-ink */
@@ -63,11 +56,9 @@
     --color-info-bg: light-dark(#eef4f8, #1b2a35);
     --color-info-text: light-dark(#294a5f, #9fc4db);
 
-    /* Cards lifted off the public page. Translucent white over cream in
-       light; a faint white lift over near-black in dark, because a card
-       above a dark ground is lighter than it, not more opaque. Each is one
-       of the `bg-white/NN` values the visit card used to hardcode — those
-       could not flip, which is why they are tokens now. */
+    /* Cards lifted off the public page. A card above a dark ground is lighter
+       than it, not more opaque, so the old `bg-white/NN` alphas could not
+       simply carry over. */
     --color-surface-card: light-dark(rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.055));
     --color-surface-card-hover: light-dark(rgba(255, 255, 255, 0.90), rgba(255, 255, 255, 0.085));
     --color-surface-panel: light-dark(rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.038));
@@ -87,23 +78,14 @@
     --color-visual-mist: light-dark(#edf3f5, #1e282c);
     --color-visual-blush: light-dark(#f5eee5, #241f19);
 
-    /* ---------------------------------------------------------------
-       Workspace surfaces — the semantic layer the private workspace is
-       built from, and the only tokens that differ between light and dark.
+    /* Workspace surfaces — the semantic layer the workspace is built from.
 
-       Named for the job, not the colour, because the value flips: `sheet`
-       is white in light and near-black in dark, so any rule written as
-       `bg-white` instead of `bg-sheet` silently stays white in dark mode.
+       Named for the job, not the colour, because the value flips: `sheet` is
+       white in light and near-black in dark, so a rule written `bg-white`
+       stays white in dark mode.
 
-       Each token carries both values in one `light-dark()` rather than being
-       restated in a `[data-theme='dark']` block — two lists of the same 20
-       colours is two lists that drift. Which half applies is decided by
-       `color-scheme`, set on :root by the two rules below this block.
-
-       The public visit card deliberately uses none of these: it draws from
-       the brand palette above, so it cannot be pulled into dark mode by a
-       token it never opted into.
-       --------------------------------------------------------------- */
+       One `light-dark()` per token rather than a restated dark block — two
+       lists of the same colours is two lists that drift. */
 
     /* Grounds, back to front. */
     --color-ground: light-dark(#faf9f8, #141417); /* the page behind the sheet */
@@ -147,10 +129,8 @@
     --color-signal: light-dark(#c08a2e, #d3a44a);
     --color-alert: light-dark(#a03c2c, #e79080);
 
-    /* The rail. Light keeps it on the page ground so the chrome reads as one
-       surface; dark carries the studio blue — the palette's own
-       --color-accent-hover, one step darker than --color-accent, which is the
-       step that lets 12-14px labels clear 4.5:1 on it. */
+    /* The rail. Dark carries the studio blue one step darker than --color-accent,
+       which is the step that lets 12-14px labels clear 4.5:1 on it. */
     --color-rail: light-dark(#faf9f8, #255f8a);
     --color-rail-text: light-dark(#52525b, #ffffff);
     --color-rail-text-strong: light-dark(#18181b, #ffffff);
@@ -166,14 +146,10 @@
 
 /* Which half of every light-dark() above applies.
 
-   Deliberately keyed to an attribute rather than to prefers-color-scheme:
-   `data-theme` is written onto <html> by AdminLayout and removed when it
-   unmounts (resources/js/shared/theme.js), so the switch is live only inside
-   the workspace. With no attribute — the public page, and the first paint
-   before the script runs — color-scheme stays at its initial `normal`, which
-   resolves every light-dark() to its light half. That is what keeps the visit
-   card, and the connect modal's fields that share forms.css, out of dark mode
-   on an owner who picked dark in here or an OS set to dark.
+   Keyed to `data-theme`, which shared/theme.js writes onto <html> while a page
+   holds it. With no attribute — the login page, and the first paint before the
+   script runs — color-scheme stays `normal` and every light-dark() resolves to
+   its light half.
 
    Setting color-scheme also hands the browser the native half of the theme:
    form controls, scrollbars and the canvas behind the page. */

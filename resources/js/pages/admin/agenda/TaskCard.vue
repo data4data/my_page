@@ -10,8 +10,7 @@ const props = defineProps({
         type: Object,
         required: true,
     },
-    // 'row' across the full sheet (day view), 'stack' inside a week column.
-    // The content is identical; only the axis differs.
+    // 'row' across the sheet (day view), 'stack' inside a week column.
     layout: {
         type: String,
         default: 'stack',
@@ -35,8 +34,6 @@ const timeRange = computed(() => {
 
     return `${formatTime(start)}–${formatTime(parseServerDatetime(props.task.end_datetime))}`;
 });
-
-// --- Timer ----------------------------------------------------------------
 
 const runningLog = computed(() => runningTimeLog(props.task));
 const elapsedLabel = useRunningElapsed(runningLog);
@@ -79,8 +76,7 @@ const onTimerClick = () => {
             </span>
         </template>
 
-        <!-- Shared by both layouts, so the timer is written once.
-             @keydown.stop as well as @click.stop: .stop on @click only guards
+        <!-- @keydown.stop as well as @click.stop: .stop on @click only guards
              the mouse path, and a bubbling keydown would let Enter both toggle
              the timer and open the editor over the top of it. -->
         <button

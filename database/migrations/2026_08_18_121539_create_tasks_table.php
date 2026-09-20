@@ -17,9 +17,8 @@ return new class extends Migration
             $table->dateTime('start_datetime');
             $table->dateTime('end_datetime')->nullable();
             $table->unsignedInteger('planned_duration_minutes')->nullable();
-            // A plain string, not a DB enum: adding a status to a DB enum
-            // needs an ALTER TABLE. Validated against TaskStatus on the way
-            // in and cast to it on the model.
+            // A plain string, not a DB enum: a new case would need an ALTER
+            // TABLE. Validated against TaskStatus and cast on the model.
             $table->string('status')->default('planned');
             $table->unsignedInteger('sort_order')->default(0);
             $table->text('result_notes')->nullable();
@@ -29,12 +28,9 @@ return new class extends Migration
 
             $table->index(['user_id', 'start_datetime']);
 
-            // Pulling from a calendar means the same event arriving twice —
-            // two syncs overlapping, a retry, a provider resending. This
-            // makes a duplicate impossible rather than something the sync
-            // code has to remember. Manual tasks are unaffected: their
-            // external_ref is NULL, and a unique index does not compare
-            // NULLs, so there can be any number of them.
+            // An overlapping calendar sync or a retry cannot import one remote
+            // event twice. Manual tasks hold a NULL external_ref, and a unique
+            // index does not compare NULLs.
             $table->unique(['user_id', 'source', 'external_ref'], 'tasks_one_row_per_remote_event');
         });
     }

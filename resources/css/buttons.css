@@ -33,11 +33,9 @@
         @apply px-4 py-2.5 shadow-none;
     }
 
-    /* Workspace buttons. Deliberately unlike the public page's uppercase
-       pills above: this is a tool, and a settings row full of 12px tracked
-       capitals reads as shouting. Both draw from the surface tokens, so they
-       invert with the theme — `solid` is ink-on-white in light and
-       white-on-ink in dark, which is the same button either way. */
+    /* Workspace buttons, deliberately quieter than the public page's pills
+       above: a settings row full of tracked capitals reads as shouting. Drawn
+       from the surface tokens, so they invert with the theme. */
     .solid-button,
     .outline-button {
         @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-[0.8125rem] font-medium transition disabled:cursor-not-allowed disabled:opacity-50;

@@ -11,9 +11,8 @@ const props = defineProps({
     },
 });
 
-// A two-option switch rather than checkboxes: exactly one language is the
-// default, so picking one implicitly unpicks the other and the site can never
-// end up with no default at all.
+// A switch, not checkboxes: exactly one language is the default, so the site
+// can never end up with none.
 const defaultLanguage = computed({
     get: () => props.profile.default_language || 'en',
     set: (value) => {
@@ -34,8 +33,7 @@ const languageOptions = computed(() => LANGUAGES.map((language) => ({
     ariaLabel: language.label,
 })));
 
-// Shown/hidden rather than on/off: the eye says which state you are looking
-// at, and the label underneath says what hiding it costs.
+// Shown/hidden rather than on/off: the eye says which state you are in.
 const switcherOptions = computed(() => [
     { value: true, icon: Eye, ariaLabel: copy('languageSwitcherShown') },
     { value: false, icon: EyeOff, ariaLabel: copy('languageSwitcherHidden') },

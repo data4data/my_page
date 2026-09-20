@@ -21,9 +21,8 @@ import { copy, lang } from '../../../shared/i18n';
 const { fetchReport, fetchReflection, saveReflection } = usePlanning();
 const toast = useToast();
 
-// Self-contained period state: reports summarise a whole week or month,
-// which doesn't map onto the calendar's day/week/month view modes, so this
-// keeps its own selector rather than piggy-backing on CalendarView's.
+// Its own period state: a report summarises a whole week or month, which does
+// not map onto the calendar's view modes.
 const periodType = ref('week');
 const periodStart = ref(startOfWeek(new Date()));
 const report = ref(null);
@@ -52,16 +51,14 @@ const load = async () => {
     try {
         report.value = await fetchReport(periodType.value, periodStart.value);
 
-        // Reuse the period the backend derived for the report, so the
-        // reflection is always keyed to exactly the range being summarised.
+        // The period the backend derived, so the note is keyed to the range
+        // being summarised.
         const reflection = await fetchReflection(periodType.value, report.value.period_start, report.value.period_end);
         reflectionNotes.value = reflection?.notes ?? '';
     } catch (error) {
         report.value = null;
         reflectionNotes.value = '';
         failed.value = true;
-        // The panel shows its own "could not load" state, so this adds the
-        // reason rather than repeating that something went wrong.
         reportError(error, copy('reportError'));
     } finally {
         loading.value = false;
@@ -109,10 +106,7 @@ const goToCurrent = () => {
 };
 
 // One bar per category, read as progress against the plan: the track is the
-// planned time, the fill is what was actually tracked. Two separate bars
-// forced a left-to-right comparison of lengths to answer "did I do what I
-// planned"; this answers it directly, and the absolute minutes stay in the
-// row's label so magnitude isn't lost.
+// planned time, the fill is what was tracked.
 const categoryRows = computed(() => [...(report.value?.by_category ?? [])]
     .map((row) => {
         const planned = row.planned_minutes ?? 0;
@@ -121,13 +115,12 @@ const categoryRows = computed(() => [...(report.value?.by_category ?? [])]
 
         return {
             ...row,
-            // The report groups by id and leaves the label to the client, so
-            // the uncategorized bucket is named here rather than in English
-            // on the server.
+            // The report groups by id, so this bucket is named here rather
+            // than in English on the server.
             label: row.category ?? copy('uncategorized'),
             planned,
             tracked,
-            // No plan to measure against, so a percentage would be meaningless.
+            // No plan to measure against, so a percentage would mean nothing.
             percent: planned > 0 ? Math.round(ratio * 100) : null,
             fillWidth: planned > 0
                 ? `${Math.min(100, Math.round(ratio * 100))}%`
@@ -165,7 +158,7 @@ const statusRows = computed(() => TASK_STATUSES
 
 load();
 
-// Computed so the two labels follow the EN/NL switch like every other string.
+// computed, so the labels follow the EN/NL switch.
 const periodOptions = computed(() => [
     { value: 'week', label: copy('week') },
     { value: 'month', label: copy('month') },

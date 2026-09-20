@@ -1,10 +1,8 @@
 import { defineConfig } from 'vitest/config';
 import { vuePlugin } from './vue-plugin';
 
-// Deliberately separate from vite.config.js: that config loads the Laravel and
-// Tailwind plugins, which expect a PHP app and a real asset build. Tests only
-// need Vue SFC compilation and a DOM — compiled the same way the app is, which
-// is what vue-plugin.js is for.
+// Separate from vite.config.js, which loads the Laravel and Tailwind plugins:
+// tests need only Vue SFC compilation and a DOM, compiled the same way.
 export default defineConfig({
     plugins: [vuePlugin()],
     test: {

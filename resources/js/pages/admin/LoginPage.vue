@@ -14,18 +14,15 @@ const error = ref('');
 const submitting = ref(false);
 const initials = ref('');
 
-// The password was right and two-factor is on, so the sign-in is half done:
-// nothing is authenticated until the code below is accepted.
+// The password was right and two-factor is on; nothing is signed in yet.
 const awaitingCode = ref(false);
 const usingRecoveryCode = ref(false);
 const code = ref('');
 const recoveryCode = ref('');
 
 onMounted(async () => {
-    // Public endpoint — just enough to show the real site initials instead
-    // of a hardcoded name, so this page isn't tied to one specific project.
-    // Decorative, so a failure here must not stop anyone signing in: on a
-    // fresh install there is no seeded profile to read at all.
+    // Decorative, so a failure must not stop anyone signing in: a fresh
+    // install has no profile to read.
     initials.value = await apiFetch('/portfolio')
         .then((body) => body?.profile?.initials ?? '')
         .catch(() => '');
@@ -48,8 +45,6 @@ const submit = async () => {
             message: 'Could not sign in. Please try again.',
         });
     } catch (failure) {
-        // apiFetch already prefers the field-level message, which for a bad
-        // password is the one AuthController attaches to `email`.
         error.value = errorMessage(failure, copy('error'));
         submitting.value = false;
         return;
@@ -83,10 +78,9 @@ const verify = async () => {
     }
 };
 
-// Full navigation (not a router push) so the freshly-set session cookie is
-// picked up by Laravel's auth/role middleware on the next request. The
-// fallback is the public page, not a guessed workspace path: this page is
-// served to guests, so it is never told the prefix (see app.blade.php).
+// A full navigation, so the new session cookie reaches the auth middleware.
+// The fallback is the public page: this page is served to guests, so it is
+// never told the workspace prefix.
 const land = (body) => {
     window.location.href = body.redirect ?? '/';
 };
@@ -120,8 +114,6 @@ const land = (body) => {
                 </AppButton>
             </form>
 
-            <!-- Second step. The password is already accepted at this point,
-                 but nothing is signed in until this is too. -->
             <form v-else class="mt-8 space-y-5" @submit.prevent="verify">
                 <p class="text-sm leading-6 text-graphite">{{ copy('twoFactorChallengeHint') }}</p>
 

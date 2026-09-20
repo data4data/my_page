@@ -16,13 +16,11 @@ import {
 } from '../../js/shared/planning';
 
 /**
- * The half of planning.js that decides what a date means. Everything the
- * calendar draws is built on these, and every one of them can be wrong by a
- * day or an hour without anything failing loudly.
+ * Everything the calendar draws is built on these, and each can be wrong by a
+ * day or an hour without failing loudly.
  */
 describe('weeks are Monday-based, everywhere', () => {
-    // Carbon's default startOfWeek server-side, and firstDayOfWeek: 1 in the
-    // PrimeVue config, so the DatePicker agrees.
+    // Carbon's default server-side, and firstDayOfWeek: 1 for the DatePicker.
     it('walks back to Monday from any day of the week', () => {
         const monday = '2026-06-08';
 
@@ -31,8 +29,7 @@ describe('weeks are Monday-based, everywhere', () => {
         }
     });
 
-    // The off-by-one that a Sunday-first implementation gets wrong: Sunday
-    // belongs to the week that has just ended, not the one starting.
+    // Sunday belongs to the week that has just ended, not the one starting.
     it('puts Sunday at the end of its week, not the start', () => {
         expect(toDateKey(startOfWeek(new Date(2026, 5, 14)))).toBe('2026-06-08');
         expect(toDateKey(startOfWeek(new Date(2026, 5, 15)))).toBe('2026-06-15');
@@ -58,9 +55,7 @@ describe('moving through the calendar', () => {
         expect(toDateKey(addDays(new Date(2028, 1, 28), 1))).toBe('2028-02-29');
     });
 
-    // setMonth() alone overflows: 31 January plus a month is 31 February,
-    // which rolls into March — so a "previous month" step from a 31st would
-    // skip February. Clamped, it lands on the last day that exists.
+    // setMonth() alone rolls 31 February into March, skipping February.
     it('clamps rather than overflowing a short month', () => {
         expect(toDateKey(addMonths(new Date(2026, 0, 31), 1))).toBe('2026-02-28');
         expect(toDateKey(addMonths(new Date(2028, 0, 31), 1))).toBe('2028-02-29');
@@ -79,9 +74,9 @@ describe('moving through the calendar', () => {
 });
 
 /**
- * Not all the datetimes the server sends are real instants, and they
- * serialise identically. Reading one as the other moves every displayed time
- * by the browser's UTC offset — silently, and only for people not on UTC.
+ * Not all the datetimes the server sends are real instants, and the two
+ * serialise identically. Reading one as the other shifts every displayed time
+ * by the browser's offset — silently, and only for people not on UTC.
  */
 describe('wall-clock times versus real instants', () => {
     it('reads a task time as the digits the owner typed', () => {
@@ -102,8 +97,7 @@ describe('wall-clock times versus real instants', () => {
         expect(Number.isNaN(parseServerDatetime('not a date').getTime())).toBe(true);
     });
 
-    // time_logs.started_at is stamped by the server, so its Z is meaningful
-    // and the browser should shift it.
+    // Stamped by the server, so the Z is meaningful and the browser shifts it.
     it('reads a timer stamp as a genuine instant', () => {
         expect(parseServerInstant('2026-06-10T09:00:00.000000Z').getTime())
             .toBe(Date.UTC(2026, 5, 10, 9, 0, 0));

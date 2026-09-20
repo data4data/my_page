@@ -1,14 +1,7 @@
-/* Imported by app.css. Part of the split described there.
+/* The planner: the day, week and month views, the task cards, the categories.
 
-   The planner: the day, week and month calendar views, the task cards, and
-   the categories list.
-
-   Everything in here draws from the workspace surface tokens in theme.css
-   (--color-sheet, --color-sunken, --color-body, ...) rather than the brand
-   palette. That is the whole dark-mode mechanism: the tokens carry both
-   values, so a rule written against them themes itself. A literal `bg-white`
-   or `border-sand` in this file is a bug — it will stay light when the rest
-   of the workspace goes dark. */
+   Written against the surface tokens, never the brand palette — a literal
+   `bg-white` or `border-sand` here stays light when the workspace goes dark. */
 
 @layer components {
     /* ---------------------------------------------------------------
@@ -24,10 +17,8 @@
         border-left: 3px solid var(--task-color, var(--color-steel));
     }
 
-    /* Two layouts for one card. Day view has the full sheet width, so its
-       tasks read as rows — time, title, status, timer on one line. A week
-       column is a seventh of that, where the same row would wrap into an
-       unreadable staircase, so there the card stacks. */
+    /* Two layouts for one card: day view has the sheet's full width, so its
+       tasks read as rows; a week column is a seventh of that, so it stacks. */
     .task-card-row {
         @apply flex items-center gap-3.5 p-3;
     }
@@ -67,22 +58,15 @@
         color: var(--color-faint);
     }
 
-    /* Time and status on one line under the title. Wraps, because a week
-       column is a seventh of the sheet: both children are flex-none (a
-       truncated clock time or a half-shown "In progress" is worse than a
-       second line), so without this the pair overflowed and the badge sat
-       outside the card. */
+    /* Both children are flex-none — a truncated clock time reads worse than a
+       second line — so without the wrap the badge sat outside the card. */
     .task-card-meta {
         @apply flex flex-wrap items-center gap-x-2 gap-y-1;
     }
 
-    /* One pill rule for all five statuses; each status sets the trio below.
-       The trio lives on a `status-*` class rather than a card-specific one, so
-       the report's "12 done / 3 skipped" chips read the same colours from the
-       same place instead of growing a second palette that drifts.
-       Colour repeats the label, it never replaces it — the pill always says
-       "Paused" as well as looking paused, so the state survives greyscale,
-       a colour-blind reader and a screen reader alike. */
+    /* One pill rule for all five statuses, with the trio on a `status-*` class
+       so the report's chips read the same colours from the same place.
+       Colour repeats the label; the pill always says "Paused" as well. */
     .task-card-status {
         @apply flex-none rounded-full px-2.5 py-0.5 text-xs font-medium;
         background: var(--status-bg, transparent);

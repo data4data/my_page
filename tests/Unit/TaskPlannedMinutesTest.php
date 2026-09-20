@@ -5,9 +5,9 @@ namespace Tests\Unit;
 use App\Models\Task;
 use Tests\TestCase;
 
-// No database: plannedMinutes() only reads attributes off the model, so these
-// run against unsaved instances. Extends Tests\TestCase (not PHPUnit's) purely
-// because the 'datetime' cast resolves through the container.
+// No database: plannedMinutes() only reads attributes, so these run against
+// unsaved instances. Tests\TestCase, because the 'datetime' cast needs the
+// container.
 class TaskPlannedMinutesTest extends TestCase
 {
     public function test_an_explicit_planned_duration_wins(): void

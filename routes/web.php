@@ -13,19 +13,15 @@ use App\Http\Controllers\TwoFactorController;
 use App\Http\Middleware\SetPublicLocale;
 use Illuminate\Support\Facades\Route;
 
-// Every path below renders the same Vue SPA shell (resources/views/app.blade.php);
-// vue-router (resources/js/router.js) decides which page component to show.
+// Every path below renders the same Vue shell; the bundle's router picks the page.
 Route::get('/', [PortfolioController::class, 'app']);
 Route::get('/hi-developer', [PortfolioController::class, 'app']);
 
-// The same two pages under an explicit language. Constrained to the configured
-// locales, so this cannot swallow any other path. The default language keeps
-// the unprefixed URL and app() redirects /{default} back to it, so no page is
-// reachable at two addresses.
+// The same two pages under an explicit language, constrained to the configured
+// locales so they cannot swallow any other path. The default language keeps the
+// unprefixed URL and app() redirects /{default} back to it.
 $locales = implode('|', config('app.locales'));
 
-// SetPublicLocale puts the request into that language, so Laravel's own
-// validation messages come back in the language the visitor is reading.
 Route::middleware(SetPublicLocale::class)->group(function () use ($locales) {
     Route::get('/{locale}', [PortfolioController::class, 'app'])->where('locale', $locales);
     Route::get('/{locale}/hi-developer', [PortfolioController::class, 'app'])->where('locale', $locales);
@@ -37,24 +33,19 @@ Route::middleware(SetPublicLocale::class)->group(function () use ($locales) {
 Route::get('/portfolio', [PortfolioController::class, 'show']);
 Route::post('/hi-developer', [DeveloperInquiryController::class, 'store'])->middleware('throttle:10,1');
 
-// The private workspace lives behind a per-install prefix (ADMIN_PATH) rather
-// than /admin, and nothing on the public page links to it. Read from config,
-// never written here, so no two installs share a URL.
-
-// Login and logout sit behind the same prefix but without auth — you cannot
-// be signed in yet when you ask for the login page. There is nothing at the
-// standard /login for a scanner to find.
+// The workspace sits behind a per-install prefix (ADMIN_PATH), never a literal.
+// Login and logout share it but carry no auth — you cannot be signed in yet —
+// and there is nothing at the standard /login for a scanner to find.
 Route::prefix(config('admin.path'))->group(function () {
     Route::get('/login', [PortfolioController::class, 'app'])->name('login')->middleware('guest');
     Route::post('/login', [AuthController::class, 'store'])->name('login.attempt')->middleware(['guest', 'throttle:login']);
-    // Second step. Throttled like the password step: six digits is cheap to
-    // guess otherwise.
+    // Throttled like the password step: six digits is cheap to guess.
     Route::post('/two-factor-challenge', [AuthController::class, 'challenge'])->name('two-factor.challenge')->middleware(['guest', 'throttle:login']);
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout')->middleware('auth');
 });
 
 Route::prefix(config('admin.path'))->middleware(['auth', 'role:admin'])->group(function () {
-    // SPA shell routes. Each section has a real, bookmarkable URL.
+    // Shell routes: each section has a real, bookmarkable URL.
     Route::get('/', [PortfolioController::class, 'app']);
     Route::get('/mijn-agenda', [PortfolioController::class, 'app']);
     Route::get('/insights', [PortfolioController::class, 'app']);
@@ -65,23 +56,19 @@ Route::prefix(config('admin.path'))->middleware(['auth', 'role:admin'])->group(f
     Route::put('/portfolio', [PortfolioController::class, 'update']);
     Route::post('/portfolio/seed-defaults', [PortfolioController::class, 'seedDefaults']);
 
-    // Saved versions of the public page.
     Route::get('/portfolio/revisions', [PortfolioController::class, 'revisions']);
     Route::post('/portfolio/revisions/{revision}/restore', [PortfolioController::class, 'restore']);
     Route::get('/inquiries', [DeveloperInquiryController::class, 'index']);
 
-    // Sign-in attempts against this install, successful or not.
     Route::get('/security-events', [SecurityEventController::class, 'index']);
 
-    // Two-factor enrolment. Turning it off asks for the password again,
-    // rather than riding on whatever session is open.
+    // Turning it off asks for the password again, not just an open session.
     Route::get('/two-factor', [TwoFactorController::class, 'show']);
     Route::post('/two-factor', [TwoFactorController::class, 'store']);
     Route::post('/two-factor/confirm', [TwoFactorController::class, 'confirm']);
     Route::post('/two-factor/recovery-codes', [TwoFactorController::class, 'recoveryCodes']);
     Route::delete('/two-factor', [TwoFactorController::class, 'destroy']);
 
-    // Planning Calendar (Agenda) — all scoped to the authenticated admin.
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::post('/categories', [CategoryController::class, 'store']);
     Route::put('/categories/{category}', [CategoryController::class, 'update']);

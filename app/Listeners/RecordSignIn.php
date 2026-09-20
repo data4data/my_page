@@ -8,12 +8,8 @@ use App\Services\SecurityEventRecorder;
 use Illuminate\Auth\Events\Login;
 
 /**
- * One row in the sign-in trail per successful sign-in.
- *
- * A listener rather than code in AuthController, so an attempt is recorded
- * however it was made — including the second factor, since AuthController
- * uses Auth::validate() for the password step and the Login event does not
- * fire until the code has passed too.
+ * One row in the sign-in trail per successful sign-in. The Login event does
+ * not fire until any second factor has passed too.
  */
 class RecordSignIn
 {

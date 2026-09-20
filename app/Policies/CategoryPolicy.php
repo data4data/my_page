@@ -7,17 +7,15 @@ use App\Models\User;
 
 class CategoryPolicy
 {
-    // Single-admin today, but scoped anyway: the owner, or anyone for a
-    // shared global category.
+    // The owner, or anyone for a shared global category.
     public function update(User $user, Category $category): bool
     {
         return $category->user_id === null || $category->user_id === $user->id;
     }
 
     /**
-     * Narrower than editing. parent_id cascades and tasks.category_id nulls,
-     * so deleting a shared category takes other people's subcategories with
-     * it and unfiles their tasks. Editing one is recoverable; that is not.
+     * Narrower than editing: parent_id cascades and tasks.category_id nulls, so
+     * deleting a shared category unfiles other people's tasks.
      */
     public function delete(User $user, Category $category): bool
     {

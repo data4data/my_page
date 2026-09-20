@@ -1,20 +1,8 @@
-/* Entry point. Everything below is split by concern rather than living in one
-   file, so a change to (say) the agenda can't silently affect the public page.
-   Import order is the cascade order — partials are listed general to specific,
-   and rules inside them stay in their original relative order.
+/* Entry point. The partials are split by concern and listed general to
+   specific, because import order is cascade order. Each one says what it holds.
 
-   theme      design tokens (@theme): colours, fonts, breakpoints
-   base       @layer base: :root scales, html/body, the ambient wash
-   layout     the .page-grid track system, span + stacking utilities
-   buttons    .eyebrow and every button variant
-   public     the visit card: header, hero, rails, sections, projects, contact
-   admin      admin chrome and the agenda/planning views
-   forms      .admin-grid and the PrimeVue field styling
-   overlays   modals shared by public and admin
-   responsive every media query, kept together so breakpoints are reviewable
-
-   All @import rules must precede @plugin/@source: CSS requires @import to come
-   before other at-rules, and Lightning CSS (used by Tailwind v4) enforces it. */
+   All @import rules must precede @plugin/@source: CSS requires @import first,
+   and Lightning CSS enforces it. */
 @import 'tailwindcss';
 @import './theme.css';
 @import './base.css';

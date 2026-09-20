@@ -139,10 +139,8 @@
     }
 }
 
-/* Medium: 768-1023px. This range previously had no rules at all and fell
-   through to the desktop layout — three expertise cards at ~220px each, and a
-   hero sized for a viewport twice this wide. The social rail is already
-   hidden here (it's lg:flex), so the hero reclaims its reserved column. */
+/* Medium: 768-1023px. The social rail is hidden here (it is lg:flex), so the
+   hero reclaims its reserved column. */
 @media (width >= theme(--breakpoint-md)) and (width < theme(--breakpoint-lg)) {
     .expertise-carousel {
         --cards: 2;
@@ -193,25 +191,10 @@
     }
 }
 
-/* Note: the right-hand gutter is intentionally left to the ambient wash. A
-   section-index rail (01/02/03/04 with the active section marked) was built
-   and removed — labels only fit from 1600px up, so between 1440 and 1600 it
-   could show nothing but unexplained numbers.
-
-   Note: the quote card and contact band deliberately sit in the content column
-   too, not a wider `u-wide` bleed. Widening them was tried and reverted — the
-   fixed rails sit just outside the content edge, so a wider band closed the gap
-   to them and broke the alignment with the project cards directly above.
-   Consistent left/right edges beat the wide/narrow rhythm here.
-
-   Note: section eyebrows deliberately stay in the content column. Moving them
-   into the left gutter as sidenotes was tried and reverted — .social-rail is
-   fixed in that gutter, and because both it and the content column derive from
-   the same tokens, the ~100px gap between them is constant at every width
-   above 1480px. A sidenote wide enough to be readable overlaps the rail at any
-   scroll position that puts a section head beside it. Both gutters are already
-   occupied (social rail left, section rail right), so there's no space to
-   reclaim here anyway. */
+/* Both gutters stay empty on purpose. A section-index rail, a wider bleed for
+   the quote and contact bands, and sidenote eyebrows were each tried and
+   reverted: the fixed rails sit just outside the content edge, so anything in a
+   gutter either overlaps them or breaks the alignment with the cards above. */
 
 /* Ultra-wide: >=1800px. The content column has stepped up (see :root above),
    so a fourth expertise card fits — real content in the reclaimed space
@@ -222,14 +205,12 @@
     }
 }
 
-/* Below lg the rail collapses to icons and opens on hover, keyboard focus or
-   the pin. Every difference between the two states is carried by three custom
-   properties set on the panel, so a state lives in exactly one rule rather
-   than being chased across a descendant selector per property.
+/* Below lg the rail collapses to icons and opens on hover, focus or the pin.
+   Three custom properties on the panel carry every difference between the two
+   states, so a state is one rule rather than a selector per property.
 
-   The open state keys off the *panel*, not the .admin-rail placeholder: the
-   panel is fixed and grows past the placeholder's 56px, so a pointer resting
-   on an open rail would leave the placeholder's box and collapse it again. */
+   The open state keys off the panel, not the placeholder: the panel grows past
+   the placeholder's box, so a pointer on an open rail would leave it. */
 @media (width < theme(--breakpoint-lg)) {
     :root {
         --admin-rail: var(--admin-rail-collapsed);

@@ -24,16 +24,9 @@ class Reflection extends Model
     ];
 
     /**
-     * The one note a user has for a period.
-     *
-     * Matched on (user, type, start) rather than on the whole unique index.
-     * `period_end` is derived from the other two by the database, so adding
-     * it to the lookup would ask the same question twice — and would trust
-     * the caller's arithmetic over the column's.
-     *
-     * whereDate(), not updateOrCreate(): the 'date' cast stores these with a
-     * time component, and updateOrCreate compares the raw "Y-m-d" input
-     * against it — so it never finds the row and hits the unique constraint.
+     * Matched on (user, type, start): period_end is derived from those by the
+     * database. whereDate(), because the 'date' cast stores a time component
+     * that a raw "Y-m-d" comparison would never match.
      */
     public function scopeForPeriod(Builder $query, int $userId, string $periodType, string $periodStart): Builder
     {

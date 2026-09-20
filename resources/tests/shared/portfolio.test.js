@@ -9,12 +9,8 @@ describe('showsIn', () => {
         expect(showsIn(link, 'footer')).toBe(false);
     });
 
-    /*
-     * The links are rows with real defaults now, so a missing placement can
-     * only come from an object the editor has half built — a link just added,
-     * before either box has been touched. Reading that as "off" would make a
-     * new link invisible without saying so.
-     */
+    // A missing placement can only be a half-built object in the editor, and
+    // reading it as "off" would make a new link invisible without saying so.
     it('treats a missing placement as shown, not hidden', () => {
         expect(showsIn({}, 'rail')).toBe(true);
         expect(showsIn({ in_rail: false }, 'footer')).toBe(true);
@@ -62,11 +58,8 @@ describe('normalizePortfolio', () => {
         }
     });
 
-    /*
-     * copy() falls back to English on a missing key, but a *content* field is
-     * per-install text with no fallback to give — so an absent Dutch half is
-     * filled from English rather than rendering blank.
-     */
+    // A content field has no dictionary to fall back on, so an absent Dutch
+    // half is filled from English rather than rendering blank.
     it('fills a missing Dutch half from the English one', () => {
         const payload = normalizePortfolio({ profile: { headline: { en: 'Only English' } } });
 

@@ -4,10 +4,8 @@ import AppTextarea from '../../components/ui/AppTextarea.vue';
 import AppLanguageCards from '../../components/ui/AppLanguageCards.vue';
 import { copy } from '../../shared/i18n';
 
-// Translated copy only. The untranslated values that used to sit between
-// these fields — initials, the CTA URLs, the accent word lists — moved to the
-// Shared tab, so reading down a column here is reading one language's page
-// rather than alternating between the two and the things common to both.
+// Translated copy only; the untranslated values live on the Shared tab, so a
+// column here reads as one language's page.
 defineProps({
     profile: {
         type: Object,

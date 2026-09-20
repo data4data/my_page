@@ -3,10 +3,8 @@ import { ChevronDown, ChevronUp, Trash2 } from '@lucide/vue';
 import AppCheckbox from './ui/AppCheckbox.vue';
 import { copy } from '../shared/i18n';
 
-// One item in an ordered, editable collection — a metric, an expertise card,
-// a process step, a project, a social link. The head carries everything that
-// is true of the item as a whole (its name, where it sits, whether the public
-// page shows it, and the reorder/remove controls); the slot holds its fields.
+// One item in an ordered, editable collection: the head carries the item's
+// name, position, visibility and reorder controls, the slot holds its fields.
 defineProps({
     title: {
         type: String,
@@ -16,7 +14,7 @@ defineProps({
         type: Number,
         required: true,
     },
-    // Shown as "2 of 5". A position with no total is just a number.
+    // Shown as "2 of 5": a position with no total is just a number.
     total: {
         type: Number,
         required: true,
@@ -25,8 +23,7 @@ defineProps({
         type: String,
         required: true,
     },
-    // Optional: social links have no per-item visibility (their two placement
-    // checkboxes do that job), so the toggle is left out rather than faked.
+    // Optional: social links derive visibility from their two placements.
     visible: {
         type: Boolean,
         default: null,

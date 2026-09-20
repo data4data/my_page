@@ -181,17 +181,13 @@ export const adminUi = {
         insightsCompany: 'Company',
         insightsPortfolio: 'Portfolio',
         insightsLinkedin: 'LinkedIn',
-        // Workspace chrome. The rail carries the switchers now that there is
-        // no header, so both pills need a group label a screen reader can read.
         languageSwitch: 'Language',
         navExpand: 'Expand navigation',
         navCollapse: 'Collapse navigation',
         unsavedChanges: 'Unsaved changes',
         allSaved: 'All saved',
         tabShared: 'Shared',
-        // One subtitle per section tab, under the page title. They say what
-        // the tab edits, which is what the old .admin-note paragraphs did
-        // from inside the panel.
+        // One subtitle per section tab, saying what that tab edits.
         subtitleAgendaCategories: 'Colours, icons and one level of nesting',
         subtitleInsightsConnections: 'Messages from the contact form',
         subtitleInsightsNews: 'Placeholder in the app today',
@@ -206,13 +202,11 @@ export const adminUi = {
         subtitleSettingsLanguage: 'Which language the site opens in',
         subtitleSettingsTwoFactor: 'A second step after your password',
         subtitleSettingsVersions: 'Every save, newest first',
-        // Item-card controls, shared by every editable collection.
         visible: 'Visible',
         moveUp: 'Move up',
         moveDown: 'Move down',
         remove: 'Remove',
         positionOf: 'of',
-        // Edit page field labels.
         processGroupInput: 'Input',
         processGroupCore: 'Core',
         processGroupOutput: 'Output',
@@ -254,8 +248,6 @@ export const adminUi = {
         fieldAccentGold: 'Accented words — gold',
         timerRunning: 'Timer running',
         cancel: 'Cancel',
-        // Field labels on the Edit page. Hardcoded English before; a label is
-        // a UI string like any other and the workspace itself runs in NL too.
         sharedAccentHint: 'Both languages\u2019 spellings go in one list — only words in the headline on screen can match.',
     },
 

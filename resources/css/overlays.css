@@ -1,23 +1,16 @@
 /* Imported by app.css. Part of the split described there. */
 
 @layer components {
-    /* ---------------------------------------------------------------
-       Shared geometry. The two shells differ in palette and in the bands
-       inside the card, not in where the card sits — so position lives here
-       once and each shell supplies its own --modal-scrim.
-       --------------------------------------------------------------- */
+    /* Shared geometry: the two shells differ in palette and in the bands inside
+       the card, not in where the card sits. Each supplies its own scrim. */
     .modal-overlay {
         @apply fixed inset-0 flex items-center justify-center px-4 py-6 backdrop-blur-sm sm:px-6 sm:py-10;
         z-index: var(--z-overlay);
         background: var(--modal-scrim);
     }
 
-    /* ---------------------------------------------------------------
-       The workspace modal: head, scrolling body, action bar — the same three
-       bands as .admin-sheet, drawn from the surface tokens so it follows
-       light and dark. A literal colour here is the bug the tokens exist to
-       prevent.
-       --------------------------------------------------------------- */
+    /* The workspace modal: head, scrolling body, action bar — the same three
+       bands as .admin-sheet, drawn from the surface tokens. */
     .admin-modal-overlay {
         --modal-scrim: var(--color-scrim);
     }
@@ -95,10 +88,7 @@
         color: var(--color-body);
     }
 
-    /* ---------------------------------------------------------------
-       The visit card's modal. Brand palette, light only: the public page has
-       no dark mode, and this is the one card that could drag it into one.
-       --------------------------------------------------------------- */
+    /* The visit card's modal, on the brand palette. */
     .public-modal-overlay {
         --modal-scrim: light-dark(rgba(7, 21, 35, 0.6), rgba(0, 0, 0, 0.72));
     }
@@ -108,16 +98,9 @@
         max-height: calc(100dvh - 3rem);
         box-shadow: light-dark(0 30px 90px rgba(7, 21, 35, 0.35), 0 30px 90px rgba(0, 0, 0, 0.6));
 
-        /* forms.css is shared: the workspace's fields and this card's fields
-           are the same rules on the same surface tokens. The workspace wants
-           the neutral greys the redesign specifies; the visit card wants its
-           own sand-and-ink palette, which it had before those tokens existed.
-
-           Set on the card itself rather than keyed to the absence of
-           data-theme, as it used to be: only the public page renders this
-           shell, so the remap does not need a condition to tell it apart from
-           TaskModal and CategoryModal any more — those are a different
-           component now. */
+        /* forms.css is shared, so this remaps the surface tokens it reads onto
+           the brand palette — the visit card's fields are sand and ink, not
+           the workspace's neutral greys. */
         --color-field: var(--color-paper);
         --color-ring: var(--color-sand);
         --color-raised: var(--color-cream);

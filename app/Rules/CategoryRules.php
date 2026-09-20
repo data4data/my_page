@@ -6,11 +6,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
 
 /**
- * Existence rules for category foreign keys.
- *
- * A bare `exists:categories,id` only proves the row exists, which let a task
- * be attached to another user's private category. A category is usable if it
- * is global (user_id null) or your own.
+ * A bare `exists:categories,id` would let a task be attached to another user's
+ * private category. Usable means global (user_id null) or your own.
  */
 class CategoryRules
 {
@@ -32,10 +29,8 @@ class CategoryRules
     }
 
     /**
-     * The OR needs its own closure. usableTopLevel() adds a sibling
-     * whereNull('parent_id'), and written flat this becomes
-     * (parent_id IS NULL AND user_id IS NULL) OR user_id = $userId — which
-     * accepts your own subcategory as a parent and breaks the one-level rule.
+     * The OR needs its own closure: written flat alongside usableTopLevel()'s
+     * whereNull('parent_id') it would accept your own subcategory as a parent.
      */
     private static function ownedOrGlobal($query, int $userId): void
     {

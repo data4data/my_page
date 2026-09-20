@@ -12,8 +12,7 @@ export function useTaskFilters(tasks, categories) {
     const selectedCategoryIds = ref([]);
     const selectedStatuses = ref([]);
 
-    // Flat "Parent › Child" list (one level of nesting, same as TaskModal's own
-    // category select) plus a pseudo-option for tasks with no category at all.
+    // Flat "Parent › Child", plus a pseudo-option for tasks with no category.
     const categoryFilterOptions = computed(() => {
         const options = [{ label: copy('uncategorized'), value: null }];
 
@@ -28,14 +27,11 @@ export function useTaskFilters(tasks, categories) {
         return options;
     });
 
-    // computed, so the labels re-render when the admin switches their own
-    // working language.
+    // computed, so the labels follow the EN/NL switch.
     const statusFilterOptions = computed(() => TASK_STATUSES.map((status) => ({ label: copy(taskStatusLabelKey[status]), value: status })));
 
-    // Tasks are filed against a leaf category ("Learning › Laravel"), so picking
-    // the parent alone would match nothing. Selecting a parent is taken to mean
-    // "this and everything under it" — otherwise "Learning" reads as an empty
-    // category even while its subcategories hold tasks.
+    // Tasks are filed against a leaf, so a parent means "this and everything
+    // under it" — otherwise it reads as empty while its children hold tasks.
     const activeCategoryIds = computed(() => {
         const ids = new Set(selectedCategoryIds.value);
 
@@ -50,7 +46,7 @@ export function useTaskFilters(tasks, categories) {
         return ids;
     });
 
-    // Empty selection = no filter on that facet; both facets AND together.
+    // Empty selection = no filter on that facet; the two AND together.
     const filteredTasks = computed(() => tasks.value.filter((task) => {
         const matchesCategory = selectedCategoryIds.value.length === 0 || activeCategoryIds.value.has(task.category_id);
         const matchesStatus = selectedStatuses.value.length === 0 || selectedStatuses.value.includes(task.status);

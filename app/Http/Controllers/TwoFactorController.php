@@ -8,11 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
-/**
- * Enrolment, from inside the workspace. Two-factor is off until the owner
- * turns it on here, which is the point: a fresh install must not depend on
- * having an authenticator to hand.
- */
+/** Enrolment, from inside the workspace. Off until the owner turns it on here. */
 class TwoFactorController extends Controller
 {
     public function __construct(private TwoFactorProvider $twoFactor) {}
@@ -29,14 +25,10 @@ class TwoFactorController extends Controller
 
         return response()->json([
             ...$this->state($request),
-            // Provider-shaped: TOTP fills this with a QR data URI and the
-            // same secret typed out. A data URI rather than raw markup, so
-            // the page renders it as an ordinary <img> instead of reaching
-            // for v-html — the CSP allows data: images and no inline
-            // anything else.
+            // A data URI, so the page renders an ordinary <img> rather than
+            // reaching for v-html, which the CSP would block.
             ...$this->twoFactor->enrolmentDetails($user),
-            // Shown once, here, because enrolment is the only moment they are
-            // useful and the QR is worthless without somewhere to fall back to.
+            // Shown once: the QR is worthless with nothing to fall back to.
             'recovery_codes' => $user->two_factor_recovery_codes,
         ]);
     }
@@ -56,9 +48,8 @@ class TwoFactorController extends Controller
     }
 
     /**
-     * Turning it off is a change to how you get in, so it asks for the
-     * password again. A session left open on an unlocked machine is then not
-     * enough to strip the account back to one factor.
+     * Asks for the password again, so a session left open on an unlocked
+     * machine cannot strip the account back to one factor.
      */
     public function destroy(Request $request): JsonResponse
     {
@@ -88,12 +79,11 @@ class TwoFactorController extends Controller
         $user = $request->user()->fresh();
 
         return [
-            // Echoed so the workspace can print the exact console command
-            // that turns this off, for the day the phone is gone.
+            // Echoed so the workspace can print the console command that
+            // turns this off, for the day the phone is gone.
             'email' => $user->email,
             'enabled' => $user->hasTwoFactorEnabled(),
-            // A secret with no confirmation means enrolment was started and
-            // never finished, which the UI shows as "waiting for a code".
+            // A secret with no confirmation: enrolment started, never finished.
             'pending' => $user->two_factor_secret !== null && ! $user->hasTwoFactorEnabled(),
             'recovery_codes_left' => count($user->two_factor_recovery_codes ?? []),
         ];

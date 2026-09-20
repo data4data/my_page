@@ -9,17 +9,8 @@ class CategorySeeder extends Seeder
 {
     /**
      * Default categories, global (user_id null) so they show up for anyone.
-     *
-     * Deliberately generic: this project is meant to be forked and made
-     * someone else's, and a starting set of "Job Search" and "Interview Prep"
-     * assumes the person cloning it is hunting for work — the same way the
-     * old "Dutch" and "Laravel" subcategories assumed which language and which
-     * framework. These seven are buckets almost any week falls into, and every
-     * one of them is renameable from Agenda -> Task categories.
-     *
-     * Safe to run anywhere, including a live DB — updateOrCreate() means it
-     * never duplicates or clobbers a personal edit to a category's own fields
-     * beyond what's listed here.
+     * Deliberately generic buckets, since this project is meant to be forked.
+     * updateOrCreate(), so it is safe to run against a live database.
      */
     public function run(): void
     {
@@ -42,8 +33,7 @@ class CategorySeeder extends Seeder
             );
         }
 
-        // Two parents get children, which is enough to show that one level of
-        // nesting exists without pretending to know how anyone files their week.
+        // Two parents get children, enough to show the one level of nesting.
         $subcategories = [
             'Learning' => ['Reading', 'Practice'],
             'Projects' => ['Planning', 'Building'],

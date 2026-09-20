@@ -18,16 +18,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
         ]);
 
-        // Every route here is a web route, so the whole surface gets these.
         $middleware->web(append: [
             SecurityHeaders::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // shouldRenderJsonWhen() replaces Laravel's expectsJson() check
-        // rather than adding to it. With only `api/*`, every non-2xx on a web
-        // route rendered as an HTML redirect even when the request asked for
-        // JSON, breaking every fetch() in resources/js.
+        // This replaces Laravel's expectsJson() check rather than adding to it:
+        // with only `api/*`, a web route's 422 renders as an HTML redirect and
+        // breaks every fetch() in resources/js.
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

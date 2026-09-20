@@ -11,16 +11,14 @@ return new class extends Migration
         Schema::create('security_events', function (Blueprint $table) {
             $table->id();
             $table->string('type', 40);
-            // 45 chars fits an IPv6 literal. Nullable: a console attempt has
-            // no client address.
+            // 45 chars fits an IPv6 literal; a console attempt has no address.
             $table->string('ip_address', 45)->nullable();
-            // The address that was typed. For a failure it may not exist.
+            // The address that was typed; on a failure it may not exist.
             $table->string('email')->nullable();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->string('user_agent')->nullable();
             $table->timestamp('created_at')->nullable();
 
-            // "What happened lately" and "how often has this address tried".
             $table->index('created_at');
             $table->index(['ip_address', 'created_at']);
         });

@@ -24,8 +24,8 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save']);
 
-// Keyed on the id, not on the object: AgendaPage passes a `{ parent_id }` stub
-// to pre-select the parent when adding a subcategory, which is still a create.
+// On the id, not the object: a `{ parent_id }` stub pre-selects the parent
+// when adding a subcategory, which is still a create.
 const isEditing = computed(() => Boolean(props.category?.id));
 
 const form = ref({
@@ -35,11 +35,9 @@ const form = ref({
     parent_id: props.category?.parent_id ?? null,
 });
 
-// Only one level of nesting exists, so a valid parent is a top-level category
-// that has no children of its own — offering anything else would produce a
-// grandchild that no view renders while tasks still point at it. Nothing may
-// be its own parent. The category's *current* parent always stays in the list,
-// otherwise editing a subcategory would show an empty select.
+// One level of nesting, so a valid parent is top-level with no children of its
+// own, and nothing may be its own parent. The current parent always stays in
+// the list, or editing a subcategory would show an empty select.
 const parentOptions = computed(() => {
     const options = [{ label: copy('categoryNoParent'), value: null }];
     const currentParentId = props.category?.parent_id ?? null;
@@ -64,8 +62,7 @@ const parentOptions = computed(() => {
     return options;
 });
 
-// A handful of on-brand presets, so picking a colour doesn't mean hunting
-// through the OS colour wheel for something that fits the palette.
+// On-brand presets, so picking a colour need not mean the OS colour wheel.
 const presetColors = [
     '#2f75a8', '#5b8aa6', '#7c9a6b', '#c5a064',
     '#a5773e', '#c0503f', '#8c8478', '#071523',

@@ -31,8 +31,7 @@ const props = defineProps({
     },
 });
 
-// One restore at a time — every button in the list locks while any of them
-// is in flight, including the defaults row.
+// One restore at a time: every button locks while any is in flight.
 const busy = computed(() => props.restoring || props.restoringId !== null);
 
 const formatDate = (value) => new Date(value).toLocaleString(undefined, {
@@ -46,8 +45,7 @@ const formatDate = (value) => new Date(value).toLocaleString(undefined, {
         <p class="admin-note">{{ copy('historyHint') }}</p>
 
         <ul class="flex list-none flex-col gap-2.5 p-0">
-            <!-- The shipped defaults are just another version to go back to,
-                 so they lead the list rather than sitting in their own block. -->
+            <!-- The defaults are just another version to go back to. -->
             <li class="history-row history-row-defaults">
                 <div class="history-meta">
                     <span class="history-time">
@@ -72,8 +70,7 @@ const formatDate = (value) => new Date(value).toLocaleString(undefined, {
             <li v-for="revision in revisions" v-else :key="revision.id" class="history-row history-row-revision">
                 <div class="history-meta">
                     <span class="history-time">{{ formatDate(revision.created_at) }}</span>
-                    <!-- No author means the baseline snapshot taken before the
-                         first ever save, not a missing person. -->
+                    <!-- No author means the baseline snapshot, not a missing person. -->
                     <span class="history-author">
                         <template v-if="revision.author">{{ copy('historyBy') }} {{ revision.author }}</template>
                         <template v-else>{{ copy('historyUnknown') }}</template>

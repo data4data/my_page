@@ -26,8 +26,7 @@ class AdminAccessTest extends TestCase
         $this->get('/admin')->assertNotFound();
     }
 
-    // An unguessable workspace is worth little if the door to it sits at the
-    // URL every scanner tries first.
+    // An unguessable workspace is worth little if its door sits at /login.
     public function test_there_is_no_login_form_at_the_guessable_path(): void
     {
         $this->get('/login')->assertNotFound();
@@ -40,10 +39,8 @@ class AdminAccessTest extends TestCase
         $this->get($this->adminUrl('/login'))->assertOk();
     }
 
-    /**
-     * The login page builds its own form action and router path, so it needs
-     * the prefix. Asking for this URL means you already knew it.
-     */
+    // The login page builds its own form action, and asking for this URL
+    // already required knowing the prefix.
     public function test_the_login_page_is_told_the_prefix_it_is_already_served_from(): void
     {
         $this->get($this->adminUrl('/login'))
@@ -57,9 +54,8 @@ class AdminAccessTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('admin');
 
-        // phpunit.xml sets ADMIN_PATH to something other than the default that
-        // ships in config/admin.php, so that default must NOT resolve here.
-        // If it does, some route is still hardcoding a prefix.
+        // phpunit.xml sets a prefix other than the shipped default, so the
+        // default answering means a route still hardcodes one.
         $this->assertSame('test-workspace', config('admin.path'));
 
         $default = 'change-me-before-going-live';
@@ -75,8 +71,6 @@ class AdminAccessTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('admin');
 
-        // resources/js/shared/admin-path.js reads this tag to build both the
-        // vue-router paths and every admin fetch URL.
         $this->actingAs($user)
             ->get($this->adminUrl())
             ->assertOk()
@@ -85,8 +79,7 @@ class AdminAccessTest extends TestCase
 
     public function test_the_public_page_does_not_leak_the_workspace_prefix(): void
     {
-        // Every route renders the same shell, so the tag that hands the prefix
-        // to the frontend used to go out on the public page too.
+        // Every route renders the same shell, so the tag must be conditional.
         foreach (['/', '/hi-developer'] as $path) {
             $this->get($path)
                 ->assertOk()
@@ -95,15 +88,9 @@ class AdminAccessTest extends TestCase
         }
     }
 
-    /**
-     * The public page and the workspace are two bundles (vite.config.js), and
-     * this is the line between them. Before the split, one bundle served both
-     * halves, so anyone could fetch AdminPage's chunk from the public site and
-     * read the private API's endpoint names out of it.
-     *
-     * resources/js/bundle-split.test.js guards the other half — that the
-     * public entry point cannot reach the workspace's code in the first place.
-     */
+    // One bundle for both halves would let a visitor read the private API's
+    // endpoint names out of the workspace chunk. bundle-split.test.js guards
+    // the other half.
     public function test_the_public_page_is_served_the_public_bundle_only(): void
     {
         foreach (['/', '/hi-developer'] as $path) {
@@ -206,14 +193,12 @@ class AdminAccessTest extends TestCase
         $this->assertGuest();
     }
 
-    // Per address alone misses a spread-out attempt on one account, so the
-    // limiter keys on both.
+    // Per address alone misses a spread-out attempt on one account.
     public function test_repeated_failures_against_one_account_are_throttled(): void
     {
         $user = User::factory()->create(['password' => 'secret-password']);
 
-        // Different address each time, so only the per-account limit can stop
-        // them.
+        // A different address each time, so only the per-account limit applies.
         for ($attempt = 0; $attempt < 12; $attempt++) {
             $this->withServerVariables(['REMOTE_ADDR' => "10.0.0.{$attempt}"])
                 ->postJson($this->adminUrl('/login'), ['email' => $user->email, 'password' => 'wrong'])

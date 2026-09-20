@@ -51,9 +51,8 @@ class Task extends Model
     }
 
     /**
-     * How long the task was meant to take. Prefers planned_duration_minutes,
-     * falls back to the start→end span (the calendar sets times but no
-     * duration), and returns 0 when the task is open-ended.
+     * Prefers planned_duration_minutes, falls back to the start→end span (the
+     * calendar sets times but no duration), and is 0 when open-ended.
      */
     public function plannedMinutes(): int
     {
@@ -65,8 +64,7 @@ class Task extends Model
             return 0;
         }
 
-        // Raw timestamps: diffInMinutes()'s sign handling varies by Carbon
-        // version. TimeLog does the same.
+        // Raw timestamps: diffInMinutes()'s sign handling varies by Carbon version.
         return max(0, (int) round(($this->end_datetime->timestamp - $this->start_datetime->timestamp) / 60));
     }
 }

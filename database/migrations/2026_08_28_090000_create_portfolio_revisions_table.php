@@ -7,20 +7,17 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     // One row per save of the public page, holding the complete payload as a
-    // snapshot. Soft deletes on the child tables could not do this job: the
-    // profile row is updated rather than deleted, so its 15 fields would have
-    // had no history at all, and deleted child rows carry nothing that groups
-    // them into a version.
+    // snapshot. Soft deletes could not do this: the profile row is updated
+    // rather than deleted, so its own fields would have no history.
     public function up(): void
     {
         Schema::create('portfolio_revisions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('portfolio_profile_id')->constrained()->cascadeOnDelete();
-            // Nullable so history survives the author being removed; the UI
-            // falls back to a translated "Unknown".
+            // Nullable so history survives the author being removed.
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->json('payload');
-            // created_at only — a history row is written once and never edited.
+            // created_at only: a history row is written once.
             $table->timestamp('created_at')->nullable();
 
             $table->index(['portfolio_profile_id', 'created_at']);

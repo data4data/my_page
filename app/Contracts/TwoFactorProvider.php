@@ -5,31 +5,21 @@ namespace App\Contracts;
 use App\Models\User;
 
 /**
- * The second factor's lifecycle, without saying what the factor is.
- *
- * TOTP today (TwoFactorService). Passkeys are the plausible second
- * implementation, and they share every step below — enrol, prove it once,
- * prove it at sign-in, fall back to a recovery code, turn it off — while
- * differing entirely in what "the proof" is.
- *
- * What is deliberately *not* here: `qrCodeSvg()` and `otpauthUri()`. Those
- * are TOTP's own, and a passkey provider has no answer for them. The shape
- * the client needs is `enrolmentDetails()`, which each provider fills with
- * whatever its own enrolment screen has to show.
+ * The second factor's lifecycle, without saying what the factor is. TOTP's own
+ * QR and otpauth URI are not here — a passkey provider has no answer for them,
+ * so enrolment screens ask enrolmentDetails() instead.
  */
 interface TwoFactorProvider
 {
     /**
-     * Step one: issue whatever the user has to register, and the recovery
-     * codes, without enforcing anything yet. A secret alone is never
-     * enforced, so a mis-scanned QR is a retry rather than a lockout.
+     * Step one: issue the secret and recovery codes, enforcing nothing yet, so
+     * a mis-scanned QR is a retry rather than a lockout.
      */
     public function begin(User $user): User;
 
     /**
-     * What the enrolment screen needs to show. Provider-shaped on purpose:
-     * TOTP returns a QR and a typable key, a passkey provider would return a
-     * challenge.
+     * What the enrolment screen shows — provider-shaped: a QR for TOTP, a
+     * challenge for a passkey.
      *
      * @return array<string, mixed>
      */

@@ -44,10 +44,8 @@ const mountView = async (byCategory = []) => {
 };
 
 /**
- * One bar per category, read as progress against the plan: the track is the
- * planned time, the fill is what was tracked. Every one of these numbers can
- * be wrong without anything failing — a division by zero, a bar past 100%,
- * or a percentage on a category nothing was planned for.
+ * Every one of these numbers can be wrong without anything failing: a division
+ * by zero, a bar past 100%, a percentage where nothing was planned.
  */
 describe('ReportView: the category bars', () => {
     const rowsOf = (wrapper) => wrapper.vm.categoryRows;
@@ -58,16 +56,14 @@ describe('ReportView: the category bars', () => {
         expect(rowsOf(wrapper)[0]).toMatchObject({ percent: 50, fillWidth: '50%', overBy: 0, unplanned: false });
     });
 
-    // The bar is progress against the plan, so it stops at full — but the
-    // overshoot is kept, because that is the interesting part.
+    // The bar stops at full; the overshoot is the interesting part.
     it('caps the bar at full while still reporting the overshoot', async () => {
         const wrapper = await mountView([{ category_id: 1, category: 'Work', planned_minutes: 60, minutes: 150 }]);
 
         expect(rowsOf(wrapper)[0]).toMatchObject({ percent: 250, fillWidth: '100%', overBy: 90 });
     });
 
-    // Nothing planned means nothing to measure against: a percentage would be
-    // a division by zero dressed up as information.
+    // Nothing planned means a percentage would be a division by zero.
     it('gives no percentage to a category nothing was planned for', async () => {
         const wrapper = await mountView([{ category_id: 1, category: 'Unplanned work', planned_minutes: 0, minutes: 45 }]);
 
@@ -80,8 +76,7 @@ describe('ReportView: the category bars', () => {
         expect(rowsOf(wrapper)[0]).toMatchObject({ percent: null, fillWidth: '0%', unplanned: false });
     });
 
-    // The report groups by category id and leaves the label to the client, so
-    // the uncategorized bucket is not named in English on the server.
+    // The server groups by id and leaves the label to the client.
     it('names the uncategorized bucket in the reader s language', async () => {
         const wrapper = await mountView([{ category_id: null, category: null, planned_minutes: 30, minutes: 30 }]);
 
@@ -101,8 +96,6 @@ describe('ReportView: the category bars', () => {
             .toEqual(['Big', 'Tied high', 'Tied low', 'Small']);
     });
 
-    // A missing number is a category with no rows on either side, not a zero
-    // the server forgot to send.
     it('reads a missing figure as nothing rather than breaking', async () => {
         const wrapper = await mountView([{ category_id: 1, category: 'Sparse' }]);
 
@@ -124,16 +117,12 @@ describe('ReportView: moving between periods', () => {
         const [type, start] = fetchReport.mock.calls.at(-1);
 
         expect(type).toBe('week');
-        // A Date, not a string — the URL key is made inside fetchReport. And
-        // a Monday, because weeks are Monday-based everywhere.
+        // A Date, not a string, and a Monday: weeks are Monday-based.
         expect(start).toBeInstanceOf(Date);
         expect(start.getDay()).toBe(1);
     });
 
-    /*
-     * The reflection is keyed to exactly the range the report summarises, so
-     * it reuses the period the backend derived rather than recomputing it.
-     */
+    // The note reuses the period the backend derived rather than recomputing it.
     it('keys the reflection to the range the report came back with', async () => {
         await mountView();
 

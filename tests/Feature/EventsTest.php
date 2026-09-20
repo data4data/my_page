@@ -21,10 +21,8 @@ use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
- * Events exist so a second reaction can be added without editing the class
- * that caused it. These check the three things that are easy to get wrong:
- * that they fire at all, that they fire *after* the transaction, and that
- * they do not fire for a no-op.
+ * The three things that are easy to get wrong: that events fire at all, that
+ * they fire after the transaction, and that they do not fire for a no-op.
  */
 class EventsTest extends TestCase
 {
@@ -67,8 +65,7 @@ class EventsTest extends TestCase
         ])->assertOk();
 
         Event::assertDispatched(PortfolioSaved::class, function (PortfolioSaved $event) use ($admin) {
-            // Committed, not pending: a listener reading the page must not
-            // see a version a rollback is about to undo.
+            // Committed, not pending: a rollback must not undo what a listener read.
             $this->assertSame('ZZ', $event->profile->fresh()->initials);
 
             return $event->author?->is($admin) && $event->restored === false;
@@ -124,12 +121,7 @@ class EventsTest extends TestCase
         Notification::assertSentTo($owner, InquiryReceivedNotification::class);
     }
 
-    /**
-     * A fresh install that has not run `app:install` has no admin and no
-     * `admin` role at all. A stranger's message must still be accepted —
-     * Spatie's role() scope throws in that state, which would have turned
-     * this into a 500.
-     */
+    // No admin and no `admin` role yet: a stranger's message must still land.
     public function test_a_message_is_still_accepted_with_nobody_to_mail(): void
     {
         Notification::fake();

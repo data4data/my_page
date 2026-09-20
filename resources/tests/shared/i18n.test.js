@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// i18n keeps `lang` as a module-level singleton, so every test needs a fresh
-// module registry rather than a shared one carrying state between cases.
+// `lang` is a module-level singleton, so each test needs a fresh registry.
 const loadI18n = async () => {
     vi.resetModules();
 
@@ -26,9 +25,8 @@ describe('applyLanguagePolicy', () => {
 
         applyLanguagePolicy({ default_language: 'nl', show_language_toggle: true });
 
-        // Writing the default here would make it indistinguishable from a
-        // deliberate user choice on the next visit, permanently pinning the
-        // visitor to whatever the default happened to be the first time.
+        // Writing the default would make it indistinguishable from a deliberate
+        // choice on the next visit.
         expect(localStorage.getItem('site-language')).toBeNull();
     });
 
@@ -75,8 +73,7 @@ describe('setLang', () => {
         expect(localStorage.getItem('site-language')).toBe('nl');
     });
 
-    // The key used to name one particular owner. A visitor who chose a
-    // language before the rename keeps it rather than being reset.
+    // A visitor who chose before the key was renamed keeps their language.
     it('still honours a choice stored under the retired key', async () => {
         localStorage.setItem('oa-language', 'nl');
 
@@ -88,15 +85,11 @@ describe('setLang', () => {
     });
 });
 
-// The dictionary is split across i18n-public.js, i18n-admin.js and the shared
-// block in i18n.js. copy() falls back to English when a key is missing from
-// Dutch, so a dropped or mistyped Dutch key ships silently and simply reads in
-// the wrong language. These two check what the fallback would otherwise hide.
+// copy() falls back to English on a missing key, so a dropped Dutch string
+// ships silently. These check what that fallback would otherwise hide.
 describe('the en and nl dictionaries agree', () => {
-    // Each file on its own, not the merged `ui`. The entry points register
-    // one half each now (see i18n.js), so a merged dictionary in a test would
-    // only ever hold whatever that test happened to register — and a missing
-    // Dutch key in the half it did not would pass unnoticed.
+    // Each file on its own, not the merged `ui`, which after the split holds
+    // only what the test itself registered.
     const dictionaries = async () => {
         vi.resetModules();
 
@@ -124,8 +117,7 @@ describe('the en and nl dictionaries agree', () => {
         }
     });
 
-    // The split is what keeps 493 workspace strings out of the public bundle.
-    // A key drifting back into the shared file would quietly undo it.
+    // A key drifting back into the shared file would undo the split.
     it('keeps the shared file to strings both halves really use', async () => {
         const [[, shared]] = await dictionaries();
 
@@ -133,9 +125,8 @@ describe('the en and nl dictionaries agree', () => {
     });
 });
 
-// One URL per language. These helpers decide what that URL is; the same rule
-// is implemented server-side in PortfolioController::alternates(), and the
-// route constraint in routes/web.php has to allow the same set.
+// The same rule lives in PortfolioController::alternates() and the route
+// constraint in routes/web.php — keep the three in step.
 describe('language in the URL', () => {
     it('reads the language off the path, and only a whole segment', async () => {
         const { localeFromPath } = await loadI18n();

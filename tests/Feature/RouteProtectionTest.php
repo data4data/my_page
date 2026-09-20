@@ -6,12 +6,8 @@ use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
- * Every route that needs a login has one.
- *
- * Read off the route table rather than off routes/web.php, so a route added
- * by a package or by a config flag is covered too — `'serve' => true` on the
- * local disk used to register an unauthenticated GET and PUT at
- * /storage/{path} without anyone writing them down.
+ * Every route that needs a login has one. Read off the route table, so a route
+ * a package or a config flag registers is covered too.
  */
 class RouteProtectionTest extends TestCase
 {
@@ -77,9 +73,8 @@ class RouteProtectionTest extends TestCase
 
             $middleware = $route->gatherMiddleware();
 
-            // login, the two-factor challenge and logout are the three that
-            // cannot require an admin session: two happen before there is one,
-            // and the third ends it.
+            // These three cannot require an admin session: two happen before
+            // there is one, and the third ends it.
             if (in_array('guest', $middleware, true) || $route->uri() === $prefix.'/logout') {
                 continue;
             }

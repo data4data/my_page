@@ -33,10 +33,8 @@ defineEmits(['load-more']);
 
 const tab = ref('connections');
 
-// computed so the labels re-render when the admin switches EN/NL.
-// Security sits last and to the right: it is a log you check, not one of the
-// two feeds you read. `right: true` pushes it across the strip, the same way
-// the sheet handles any trailing tab.
+// Security sits last and to the right: it is a log you check, not a feed you
+// read.
 const insightsTabs = computed(() => [
     { value: 'connections', label: copy('insightsConnections') },
     { value: 'news', label: copy('insightsNews') },
@@ -51,16 +49,14 @@ const SUBTITLES = {
 
 const subtitle = computed(() => copy(SUBTITLES[tab.value] ?? ''));
 
-// What the action bar reports: how much of the list is on screen. Only the
-// connections tab has a count worth stating — the other two say nothing
+// Only the connections tab has a count worth stating; the others say nothing
 // rather than filling the bar with something untrue.
 const status = computed(() => {
     if (tab.value !== 'connections' || props.inquiriesLoading) {
         return '';
     }
 
-    // The label as translated, not lower-cased into a sentence: which words
-    // keep a capital is a per-language rule, not a JS one.
+    // The label as translated: which words keep a capital is a language rule.
     return `${props.inquiries.length}${props.inquiriesHasMore ? '+' : ''} · ${copy('insightsConnections')}`;
 });
 
@@ -122,9 +118,8 @@ const formatDate = (value) => new Date(value).toLocaleString(undefined, {
             </AppButton>
         </div>
 
-        <!-- Keeps its place in the strip so the plan stays visible, and says
-             plainly that it holds nothing rather than showing an empty list
-             that looks like a failed load. -->
+        <!-- Says plainly that it holds nothing, rather than showing an empty
+             list that looks like a failed load. -->
         <div v-else-if="tab === 'news'" class="flex flex-col gap-2.5">
             <div class="admin-empty">
                 <span class="admin-empty-icon"><Newspaper :size="20" aria-hidden="true" /></span>

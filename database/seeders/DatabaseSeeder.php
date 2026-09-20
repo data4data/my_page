@@ -6,13 +6,8 @@ use App\Services\PortfolioSeeder;
 use Illuminate\Database\Seeder;
 
 /**
- * Samples only.
- *
- * This install's *identity* — the admin account and the profile — is created
- * by `php artisan app:install`, which can ask for a password instead of
- * reading one out of a file. What is left here is placeholder page content,
- * the shared categories, and a demo week: things a fresh clone wants so the
- * app has something to show, and that a live instance must never be handed.
+ * Samples only. This install's identity — the admin account and the profile —
+ * is created by `php artisan app:install`.
  */
 class DatabaseSeeder extends Seeder
 {
@@ -21,8 +16,8 @@ class DatabaseSeeder extends Seeder
         $seeder->seed();
         $this->call(CategorySeeder::class);
 
-        // Demo tasks are local-only: never let a `git pull` + `migrate --seed`
-        // on the live instance overwrite real planning data with sample rows.
+        // Local only: a `migrate --seed` on a live instance must never bury
+        // real planning data under sample rows.
         if (app()->environment('local')) {
             $this->call(DemoWeekSeeder::class);
         }

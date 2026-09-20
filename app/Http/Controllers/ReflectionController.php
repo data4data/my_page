@@ -20,9 +20,7 @@ class ReflectionController extends Controller
 
     /**
      * Upsert by (user, period_type, period_start). `period_end` is generated
-     * from the type and the start, so it is neither written nor looked up —
-     * see the reflections migration. Both halves find the row the same way,
-     * through scopeForPeriod().
+     * from the first two, so it is neither written nor looked up.
      */
     public function upsert(Request $request): JsonResponse
     {
@@ -55,9 +53,7 @@ class ReflectionController extends Controller
         return [
             'period_type' => ['required', Rule::enum(ReflectionPeriodType::class)],
             'period_start' => ['required', 'date'],
-            // Still accepted so the frontend need not change, and still
-            // checked for sense — but the column is derived, so the value is
-            // not stored and not looked up.
+            // Accepted and sanity-checked, but the column is derived: not stored.
             'period_end' => ['sometimes', 'date', 'after_or_equal:period_start'],
             ...$extra,
         ];

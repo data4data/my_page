@@ -10,10 +10,6 @@ use App\Support\PortfolioFields;
 /**
  * The shape every read of the page returns — the public endpoint, the admin
  * endpoint, and the JSON a PortfolioRevision stores.
- *
- * Assembled from the two resources rather than by handing the models out, so
- * the keys it carries are exactly PortfolioFields::PROFILE and ::CHILDREN and
- * nothing that happens to sit in the same table.
  */
 class PortfolioPayload
 {

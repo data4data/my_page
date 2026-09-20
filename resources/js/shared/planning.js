@@ -2,8 +2,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { adminUrl } from './admin-path';
 import { apiFetch } from './api';
 
-// Monday-based week, matching the backend (Carbon's default startOfWeek()/
-// endOfWeek() is Monday-Sunday — see DemoWeekSeeder and ReportController).
+// Monday-based, matching Carbon's default on the backend.
 export const startOfWeek = (date) => {
     const result = new Date(date);
     const day = result.getDay(); // 0 = Sunday .. 6 = Saturday
@@ -19,15 +18,9 @@ export const addDays = (date, amount) => {
     return result;
 };
 
-// Safe against month-end overflow only when `date` is the 1st (which is how
-// CalendarView always calls it for month view) — Date.setMonth on the 1st
-// can never roll into the following month the way e.g. Jan 31 would.
-// Clamped to the last day of the target month, which is what every date
-// library does and what the name promises. setMonth() alone overflows: the
-// 31st of January plus one month is the 31st of February, which JavaScript
-// rolls forward into March — so a "previous month" step from a 31st would
-// skip February entirely. Both callers normalise to the 1st first, so this
-// changes nothing today; it is here so the next one need not know to.
+// Clamped to the last day of the target month. setMonth() alone overflows —
+// 31 January plus a month is 31 February, which rolls into March — so a
+// "previous month" step from a 31st would skip February entirely.
 export const addMonths = (date, amount) => {
     const result = new Date(date);
     const day = result.getDate();
@@ -60,9 +53,8 @@ export const toDateKey = (date) => {
     return `${year}-${month}-${day}`;
 };
 
-// Eloquent serializes these with a "Z", but they are the admin's wall-clock
-// time ("09:00" as typed), not a real instant. `new Date(iso)` would shift
-// every displayed time by the browser's UTC offset, so read the digits.
+// Wall-clock time ("09:00" as typed), not an instant, despite the "Z". A plain
+// new Date() would shift every displayed time by the browser's offset.
 export const parseServerDatetime = (value) => {
     const match = typeof value === 'string' && value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
 
@@ -74,18 +66,15 @@ export const parseServerDatetime = (value) => {
     return new Date(year, month - 1, day, hour, minute, second);
 };
 
-// For the columns that ARE real instants: time_logs.started_at/ended_at are
-// stamped server-side, so the "Z" is meaningful. Use this for machine-stamped
-// timestamps and parseServerDatetime for typed ones.
+// For the columns that are real instants: time_logs is stamped server-side.
 export const parseServerInstant = (value) => new Date(value);
 
 const pad = (value) => String(value).padStart(2, '0');
 
-// Date -> the "Y-m-d H:i:s" string the Task API expects in request bodies.
+// Date -> the "Y-m-d H:i:s" string the Task API expects.
 export const formatForApi = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 
-// Minutes -> "2h 15m" / "45m" / "0m". Reports deal in whole minutes (the
-// duration_minutes column), so no seconds component here.
+// Minutes -> "2h 15m" / "45m" / "0m".
 export const formatMinutes = (minutes) => {
     const total = Math.max(0, Math.round(minutes ?? 0));
     const hours = Math.floor(total / 60);
@@ -97,8 +86,8 @@ export const formatMinutes = (minutes) => {
 // The open (not yet stopped) time log on a task, if any.
 export const runningTimeLog = (task) => task?.time_logs?.find((log) => !log.ended_at) ?? null;
 
-// Live "M:SS" / "H:MM:SS" label for a running timer. Ticks only while one is
-// running, and stops on unmount. Shared by TaskCard and TaskModal.
+// Live "M:SS" / "H:MM:SS" label for a running timer. Shared by TaskCard and
+// TaskModal, so the two cannot drift.
 export function useRunningElapsed(runningLog) {
     const now = ref(new Date());
     let intervalId = null;
@@ -149,8 +138,7 @@ export const taskStatusLabelKey = {
     skipped: 'taskStatusSkipped',
 };
 
-// Shared fetch + reactive slices for the Agenda/Planning Calendar. A fresh
-// instance per call (like usePortfolioSource), not a module-level singleton.
+// A fresh instance per call, not a module-level singleton.
 export function usePlanning() {
     const tasks = ref([]);
     const categories = ref([]);
@@ -164,7 +152,7 @@ export function usePlanning() {
             const body = await apiFetch(`${adminUrl('/tasks')}?${query}`, { message: 'Could not load the tasks.' });
             tasks.value = body.tasks ?? [];
         } finally {
-            // finally: a failed load must still clear the flag.
+            // A failed load must still clear the flag.
             loading.value = false;
         }
     };
@@ -174,8 +162,8 @@ export function usePlanning() {
         categories.value = body.categories ?? [];
     };
 
-    // period_start must already be the period's first day — the backend
-    // derives period_end from it (see ReportController).
+    // period_start must already be the period's first day; the backend derives
+    // the end from it.
     const fetchReport = (periodType, periodStart) => {
         const query = new URLSearchParams({ period_type: periodType, period_start: toDateKey(periodStart) });
 
@@ -216,9 +204,8 @@ export function usePlanning() {
         message: 'Could not delete the task.',
     });
 
-    // period_start/period_end are plain "Y-m-d" strings — the report response
-    // hands back exactly the pair the backend derived, so reflections stay
-    // keyed to the same period the report summarises.
+    // The pair the report response handed back, so a reflection stays keyed to
+    // the period it summarises.
     const fetchReflection = async (periodType, periodStart, periodEnd) => {
         const query = new URLSearchParams({ period_type: periodType, period_start: periodStart, period_end: periodEnd });
 

@@ -41,8 +41,8 @@ const {
     filteredTasks,
 } = useTaskFilters(tasks, categories);
 
-// Wrapped in an arrow rather than passed directly: load() is declared just
-// below and reads gridStart/gridEnd back out of this same call.
+// An arrow, not load() directly: load() is declared below and reads
+// gridStart/gridEnd back out of this same call.
 const {
     viewMode,
     referenceDate,
@@ -58,8 +58,7 @@ const {
 
 const load = () => fetchTasks(gridStart.value, gridEnd.value);
 
-// computed (not a plain array) so labels re-render when the admin switches
-// their own working language via the rail's EN/NL toggle.
+// computed, so the labels re-render on the EN/NL toggle.
 const viewModeTabs = computed(() => [
     { value: 'day', label: copy('day') },
     { value: 'week', label: copy('week') },
@@ -68,8 +67,7 @@ const viewModeTabs = computed(() => [
     { value: 'report', label: copy('report') },
 ]);
 
-// The sheet's subtitle. The three calendar modes say which period is on
-// screen; the other two say what they are, since neither has a period.
+// The calendar modes name the period on screen; the other two have none.
 const subtitle = computed(() => {
     if (viewMode.value === 'categories') {
         return copy('subtitleAgendaCategories');
@@ -78,14 +76,11 @@ const subtitle = computed(() => {
     return viewMode.value === 'report' ? '' : rangeLabel.value;
 });
 
-// Read off the task list rather than tracked separately: only one timer runs
-// at a time (TimerService.pauseOtherRunningTasks), so the in-progress task is
-// the running one by definition and the two cannot disagree.
+// Only one timer runs at a time, so the in-progress task is the running one
+// by definition — no separate state to disagree with the list.
 const runningTask = computed(() => tasks.value.find((task) => task.status === 'in_progress'));
 
 const status = computed(() => (runningTask.value ? `${copy('timerRunning')} — ${runningTask.value.title}` : ''));
-
-// --- Create / edit / delete -------------------------------------------
 
 const showModal = ref(false);
 const editingTask = ref(null);
@@ -93,9 +88,8 @@ const savingTask = ref(false);
 
 const newTaskStart = ref(new Date());
 
-// Each day column/cell has its own small "+" button (see WeekView/DayView/
-// MonthView), so the target day is always known up front — use "now"'s
-// time-of-day if that's today, otherwise a sensible default of 09:00.
+// The target day comes from the cell's own "+" button; the time is now if that
+// is today, and 09:00 otherwise.
 const openCreateModalForDay = (date) => {
     const start = new Date(date);
     const now = new Date();
@@ -141,12 +135,8 @@ const handleSave = async (payload) => {
     }
 };
 
-// No toast on start/stop — it's meant to be a quick, frequent action, and
-// the button's own state (icon + ticking elapsed time) is already the
-// confirmation. A failure still surfaces one, since that's silent otherwise.
-// Both endpoints return the refreshed task; when it's the one currently open
-// in the modal, re-point editingTask at it so the modal's timer updates too
-// (it reads the task prop, not the in-progress form).
+// No toast on success: the button's own ticking state is the confirmation.
+// The refreshed task is re-pointed at the open modal, which reads the prop.
 const runTimerAction = async (task, action) => {
     try {
         const updated = await action(task.id);
@@ -160,8 +150,7 @@ const runTimerAction = async (task, action) => {
     }
 };
 
-// Categories were edited in the Categories tab — refresh the copy the task
-// modal and filters read from, and the tasks whose colours may have changed.
+// Refresh both: the filters read the categories, the tasks carry their colours.
 const onCategoriesChanged = async () => {
     await fetchCategories();
     await load();
@@ -210,17 +199,12 @@ fetchCategories();
         :subtitle="subtitle"
         @update:model-value="setViewMode"
     >
-        <!-- Report brings its own period selector and navigation, so none of
-             the calendar chrome below applies to it. -->
+        <!-- Report brings its own period selector, so no calendar chrome. -->
         <ReportView v-if="viewMode === 'report'" />
 
-        <!-- Categories manage themselves and reload the shared list, so the
-             calendar picks up new colours/names on the next fetch. -->
         <CategoriesView v-else-if="viewMode === 'categories'" @changed="onCategoriesChanged" />
 
         <template v-else>
-            <!-- One control row for all three calendar views: period stepper
-                 left, filters right, wrapping when there is no room. -->
             <div class="admin-toolbar">
                 <div class="period-nav">
                     <button type="button" class="period-nav-button" :aria-label="copy('previousPeriod')" @click="goToPrevious">
@@ -248,8 +232,7 @@ fetchCategories();
 
         <template v-if="status" #status>{{ status }}</template>
 
-        <!-- Week and month put an add button on each day cell; day view has no
-             cell to hang one off, so its button lives here. -->
+        <!-- Day view has no cell to hang an add button off, so it lives here. -->
         <template v-if="viewMode === 'day'" #actions>
             <AppButton variant="solid" @click="openCreateModalForDay(referenceDate)">
                 <Plus :size="14" aria-hidden="true" />

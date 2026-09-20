@@ -145,8 +145,7 @@ class PlanningApiTest extends TestCase
             ->assertJsonValidationErrors(['end_datetime']);
     }
 
-    // The update path is deliberately partial: sending only one field must not
-    // trip the 'required' rules that apply when creating.
+    // A partial update must not trip the create path's 'required' rules.
     public function test_task_update_accepts_a_partial_payload(): void
     {
         $admin = $this->admin();
@@ -181,8 +180,8 @@ class PlanningApiTest extends TestCase
             ->assertJsonValidationErrors(['parent_id']);
     }
 
-    // after_or_equal:start_datetime silently does nothing when start_datetime
-    // is absent — which is exactly what a partial update sends.
+    // after_or_equal does nothing when start_datetime is absent, as in a
+    // partial update, so the check lives in withValidator().
     public function test_update_cannot_move_the_end_before_the_stored_start(): void
     {
         $admin = $this->admin();
@@ -245,8 +244,7 @@ class PlanningApiTest extends TestCase
             ->assertJsonValidationErrors(['category_id']);
     }
 
-    // The scoped rule must not break the shared seeded categories, which are
-    // exactly the ones with a null user_id.
+    // The scoped rule must still accept the shared seeded categories.
     public function test_a_task_can_still_use_a_global_category(): void
     {
         $admin = $this->admin();
@@ -276,8 +274,7 @@ class PlanningApiTest extends TestCase
             ->assertJsonValidationErrors(['parent_id']);
     }
 
-    // The tree is exactly one level deep, so a subcategory is never a valid
-    // parent — not even your own.
+    // One level deep: a subcategory is never a valid parent, not even your own.
     public function test_a_category_cannot_be_nested_under_a_subcategory(): void
     {
         $admin = $this->admin();
@@ -294,9 +291,7 @@ class PlanningApiTest extends TestCase
             ->assertJsonValidationErrors(['parent_id']);
     }
 
-    // The other direction of the one-level rule. index() loads only one level
-    // of children, so a three-level tree makes the deepest row and its tasks
-    // vanish with no error.
+    // The other direction: index() loads one level, so a grandchild vanishes.
     public function test_a_category_with_subcategories_cannot_be_given_a_parent(): void
     {
         $admin = $this->admin();
@@ -335,8 +330,7 @@ class PlanningApiTest extends TestCase
         $this->assertSame('Focus', $parent->fresh()->name);
     }
 
-    // Deleting a shared category cascades to its children and unfiles their
-    // tasks, so it only goes while nothing of anyone else's hangs off it.
+    // A shared delete cascades to children and unfiles their tasks.
     public function test_a_global_category_cannot_be_deleted_out_from_under_someone_else(): void
     {
         $admin = $this->admin();
@@ -457,8 +451,7 @@ class PlanningApiTest extends TestCase
         $this->assertSame(0, $first->fresh()->timeLogs()->whereNull('ended_at')->count());
         $this->assertSame(1, $second->fresh()->timeLogs()->whereNull('ended_at')->count());
 
-        // The handed-over task is parked as paused, not marked done, and its
-        // elapsed time is still banked.
+        // The handed-over task is paused, not done, and its time is banked.
         $this->assertSame(TaskStatus::Paused, $first->fresh()->status);
         $this->assertSame(TaskStatus::InProgress, $second->fresh()->status);
         $this->assertEqualsWithDelta(30, $first->timeLogs()->first()->duration_minutes, 1);
@@ -582,8 +575,7 @@ class PlanningApiTest extends TestCase
         $this->assertSame(45, $response->json('by_category.0.minutes'));
     }
 
-    // Two categories can share a name — a global one and a personal one.
-    // Grouping by label merged them into one row with one colour.
+    // A global and a personal category can share a name, so grouping is by id.
     public function test_report_keeps_same_named_categories_apart(): void
     {
         $admin = $this->admin();
