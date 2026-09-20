@@ -33,9 +33,10 @@ The workspace sits behind a URL prefix you choose, login page included. There is
 - Two-step sign-in (TOTP), off until you turn it on, with recovery codes and `php artisan two-factor:disable` as the way back in
 - Sign-in attempts limited per address *and* per account, and logged for 30 days
 - Content Security Policy, `Secure` and `SameSite=Strict` cookies, and security headers on every response
-- The seeder refuses a weak admin password outside local development
+- `php artisan app:install` asks for the admin password and refuses a weak one, so it never sits in a file
+- The workspace is built as its own JavaScript bundle, served only inside the prefix, so the private API's endpoint names are not in the public page's assets
 - The connect form has a rate limit, a honeypot and validation
-- Every save of the public page is kept, so a bad edit is one click from undone
+- The last 20 saves of the public page are kept, so a bad edit is one click from undone
 
 ## Stack
 
