@@ -14,9 +14,9 @@ const { categories, fetchCategories, createCategory, updateCategory, deleteCateg
 const toast = useToast();
 const { confirm } = useConfirm();
 
-// This view has its own usePlanning() instance, so the calendar's copy of the
-// list will not see edits made here.
-const emit = defineEmits(['changed']);
+// Its own usePlanning() instance. The calendar keeps another one, and does not
+// need telling: AdminPage renders one section at a time, so walking back to
+// Agenda mounts it fresh and it fetches the list again.
 
 const loading = ref(true);
 const showModal = ref(false);
@@ -77,7 +77,6 @@ const handleSave = async (payload) => {
         closeModal();
         toast.success(copy('categorySaved'));
         await load();
-        emit('changed');
     } catch (error) {
         reportError(error, copy('categoryError'));
     } finally {
@@ -101,7 +100,6 @@ const handleDelete = async (category) => {
         await deleteCategory(category.id);
         toast.success(copy('categoryDeleted'));
         await load();
-        emit('changed');
     } catch (error) {
         reportError(error, copy('categoryError'));
     }

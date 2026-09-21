@@ -216,7 +216,7 @@ export const adminUi = {
         visualStyleFlow: 'Flow',
         visualStyleCms: 'CMS',
         // One subtitle per section tab, saying what that tab edits.
-        subtitleAgendaCategories: 'Colours, icons and one level of nesting',
+        subtitleSettingsCategories: 'Colours, icons and one level of nesting',
         subtitleInsightsConnections: 'Messages from the contact form',
         subtitleInsightsNews: 'Placeholder in the app today',
         subtitleInsightsSecurity: 'Every sign-in attempt against this site',
@@ -489,7 +489,7 @@ export const adminUi = {
         visualStyleDashboard: 'Dashboard',
         visualStyleFlow: 'Flow',
         visualStyleCms: 'CMS',
-        subtitleAgendaCategories: 'Kleuren, iconen en één niveau subcategorieën',
+        subtitleSettingsCategories: 'Kleuren, iconen en één niveau subcategorieën',
         subtitleInsightsConnections: 'Berichten uit het contactformulier',
         subtitleInsightsNews: 'Nu nog een placeholder in de app',
         subtitleInsightsSecurity: 'Elke inlogpoging op deze site',

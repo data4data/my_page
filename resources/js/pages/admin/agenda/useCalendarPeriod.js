@@ -2,7 +2,7 @@ import { computed, ref } from 'vue';
 import { addDays, addMonths, startOfDay, startOfMonth, startOfWeek } from '../../../shared/planning';
 import { lang } from '../../../shared/i18n';
 
-// The modes that are real stretches of time. Report and Categories are not.
+// The modes that are real stretches of time. Report is not.
 const CALENDAR_MODES = ['day', 'week', 'month'];
 
 export const isCalendarMode = (mode) => CALENDAR_MODES.includes(mode);
@@ -71,8 +71,8 @@ export function useCalendarPeriod(onChange = () => {}) {
             return;
         }
 
-        // Not periods: leaving referenceDate alone means switching back lands
-        // where the user left it, and neither tab needs the task fetch.
+        // Not a period: leaving referenceDate alone means switching back lands
+        // where the user left it, and the report does not need the task fetch.
         if (!isCalendarMode(mode)) {
             viewMode.value = mode;
 

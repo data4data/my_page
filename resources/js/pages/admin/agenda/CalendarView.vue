@@ -5,7 +5,6 @@ import DayView from './DayView.vue';
 import WeekView from './WeekView.vue';
 import MonthView from './MonthView.vue';
 import ReportView from './ReportView.vue';
-import CategoriesView from './CategoriesView.vue';
 import TaskModal from './TaskModal.vue';
 import AdminSheet from '../../../components/admin/AdminSheet.vue';
 import AppButton from '../../../components/ui/AppButton.vue';
@@ -63,18 +62,13 @@ const viewModeTabs = computed(() => [
     { value: 'day', label: copy('day') },
     { value: 'week', label: copy('week') },
     { value: 'month', label: copy('month') },
-    { value: 'categories', label: copy('categories') },
-    { value: 'report', label: copy('report') },
+    // Pinned right: the three before it are the same calendar at three widths,
+    // and the report is a different question about the same tasks.
+    { value: 'report', label: copy('report'), right: true },
 ]);
 
-// The calendar modes name the period on screen; the other two have none.
-const subtitle = computed(() => {
-    if (viewMode.value === 'categories') {
-        return copy('subtitleAgendaCategories');
-    }
-
-    return viewMode.value === 'report' ? '' : rangeLabel.value;
-});
+// The calendar modes name the period on screen; the report brings its own.
+const subtitle = computed(() => (viewMode.value === 'report' ? '' : rangeLabel.value));
 
 // Only one timer runs at a time, so the in-progress task is the running one
 // by definition — no separate state to disagree with the list.
@@ -150,16 +144,6 @@ const runTimerAction = async (task, action) => {
     }
 };
 
-// Refresh both: the filters read the categories, the tasks carry their colours.
-const onCategoriesChanged = async () => {
-    try {
-        await fetchCategories();
-        await load();
-    } catch (error) {
-        reportError(error, copy('taskLoadError'));
-    }
-};
-
 const handleStartTimer = (task) => runTimerAction(task, startTaskTimer);
 const handleStopTimer = (task) => runTimerAction(task, stopTaskTimer);
 
@@ -206,8 +190,6 @@ fetchCategories().catch((error) => reportError(error, copy('categoryLoadError'))
     >
         <!-- Report brings its own period selector, so no calendar chrome. -->
         <ReportView v-if="viewMode === 'report'" />
-
-        <CategoriesView v-else-if="viewMode === 'categories'" @changed="onCategoriesChanged" />
 
         <template v-else>
             <div class="admin-toolbar">

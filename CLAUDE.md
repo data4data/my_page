@@ -378,10 +378,10 @@ The CSS is still one entry (`app.css`) for both. Splitting it would save bytes, 
 
 | Section | Holds |
 |---|---|
-| Agenda | the planner |
+| Agenda | the planner - day, week and month, plus **Report**, pinned right because the three before it are one calendar at three widths and the report is a different question about the same tasks |
 | Insights | connect-form messages, news, and the sign-in trail — `Security` last and `right: true`, since it is a log you check rather than a feed you read |
 | Edit page | the public page's content, and nothing else — the six content tabs plus **General**, trailing, for the values that are the same in both languages (initials, the CTA URLs, the accent word lists) |
-| Settings | Language & time, two-step sign-in, Content versions — changed rarely, and none of it is page copy |
+| Settings | Language & time, **Task categories**, two-step sign-in, Content versions - set up once and then used, which is what the sheet has in common |
 
 Only the Edit page and Settings' Language & time tab put content in the unsaved
 payload — and within that tab, only its two language rows. The timezone sitting
@@ -415,7 +415,9 @@ Like its sibling tabs it carries no heading of its own — the sheet's title and
 
 For the sheet to stretch to the bottom of the page, its ancestors must form an unbroken flex column: `.admin-shell` → `.admin-frame` → `.admin-sheet`. Agenda, Insights and Edit each render their own sheet, so a change to that chain needs checking on all three.
 
-**Agenda** (`resources/js/pages/admin/agenda/`): `CalendarView` (mode switching, filters, period navigation, task CRUD wiring) → `DayView` / `WeekView` / `MonthView` / `CategoriesView` / `ReportView`, plus `TaskCard`, `TaskModal`, `CategoryModal`.
+**Agenda** (`resources/js/pages/admin/agenda/`): `CalendarView` (mode switching, filters, period navigation, task CRUD wiring) -> `DayView` / `WeekView` / `MonthView` / `ReportView`, plus `TaskCard` and `TaskModal`.
+
+**Task categories moved to Settings**, taking `CategoryModal` with them, so `CategoriesTab` and `CategoryModal` now live in `pages/admin/settings/`. They are a thing you set up once and then use, like the rest of that sheet, and the calendar was carrying a tab that was not a period alongside three that are. The tab emitted `changed` so the calendar could refetch; it no longer needs to, because `AdminPage` renders one section at a time and walking back to Agenda mounts `CalendarView` fresh.
 
 **A skip link is the first focusable element in both halves** — `#main-content` on the visit card, `#workspace-content` in the workspace. Both targets carry `tabindex="-1"`, so the next Tab continues from the content rather than restarting at the top of the document; `.skip-link` in `base.css` is off-screen by transform rather than `display:none`, which would take it out of the tab order entirely. `pages.smoke.test.js` checks all three properties on both pages.
 
