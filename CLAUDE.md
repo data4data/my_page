@@ -178,6 +178,8 @@ Separate from the portfolio, all scoped to the signed-in user:
 - `Task` — `title`, `start_datetime`, optional `end_datetime`, `planned_duration_minutes`, `status`, `result_notes`, `source`, `external_ref`, optional `category_id`. UNIQUE on `(user_id, source, external_ref)`, so an overlapping calendar sync or a retry cannot import one remote event twice; manual tasks hold a NULL `external_ref` and NULLs never collide.
 - `Category` — self-referencing `parent_id` for **exactly one** level of nesting (a child never has children). `user_id` null = a shared/global seeded category.
 - `TimeLog` — `started_at` / `ended_at` per task, plus a `user_id` denormalised from it. `duration_minutes` and `running_user_id` are generated columns; see *Two rules worth knowing* below.
+- `User.timezone` — the zone the report measures a period in, `UTC` until it is
+  set. See *Time handling* below for the one query that reads it.
 - `Reflection` — one note per (user, period_type, period_start). `period_end` is a **generated** column derived from the type and the start, so the two cannot disagree; `scopeForPeriod()` therefore looks up on the first three and the controller neither writes nor matches on the fourth.
 
 Enums in `app/Enums/`: `TaskStatus` (planned, in_progress, paused, done, skipped), `TaskSource` (manual, seeder, ai_chat — the last reserved for future AI-assisted task creation and unused today), `ReflectionPeriodType` (week, month, plus `startFor()`/`endFor()`, which own the period boundaries the report and the reflection upsert both key on). Statuses are plain string columns validated against the enum, not DB enums, because adding a case to a DB enum needs an `ALTER TABLE`. **`TASK_STATUSES` in `resources/js/shared/planning.js` mirrors `TaskStatus` — keep them in step.**
@@ -285,6 +287,10 @@ The public connect form has three layers against spam: `throttle:10,1` on the ro
 - `GET|PUT {admin}/reflections` (upsert by period).
 - `GET|POST {admin}/two-factor`, `POST {admin}/two-factor/confirm`, `POST {admin}/two-factor/recovery-codes`, `DELETE {admin}/two-factor` — enrolment. The delete takes the password in its body rather than relying on the open session, so a machine left unlocked cannot strip the account back to one factor.
 - `POST {admin}/two-factor-challenge` — the second step at sign-in, throttled by the same `login` limiter as the password step.
+- `GET|PUT {admin}/timezone` — the owner's zone, and the list of zones the save
+  accepts, so the picker cannot offer one it would then reject. Saved the
+  moment it is picked rather than through the Edit page's payload: it belongs
+  to the account, not to the public page.
 - `GET {admin}/security-events` — the sign-in trail: a per-address rollup over the last 12 hours, outcome totals for that window, and the 50 most recent attempts. Rendered by the **Security** tab under Insights.
 - `GET {admin}/inquiries?page=N` — intentionally **view-only**; no update/destroy exists. `simplePaginate`d into `{inquiries, page, has_more}`, since the public form that fills it is throttled per minute rather than in total.
 
@@ -359,9 +365,13 @@ The CSS is still one entry (`app.css`) for both. Splitting it would save bytes, 
 | Agenda | the planner |
 | Insights | connect-form messages, news, and the sign-in trail — `Security` last and `right: true`, since it is a log you check rather than a feed you read |
 | Edit page | the public page's content, and nothing else — the six content tabs plus **Shared**, trailing, for the values that are the same in both languages (initials, the CTA URLs, the accent word lists) |
-| Settings | Language, two-step sign-in, Content versions — changed rarely, and none of it is page copy |
+| Settings | Language & time, two-step sign-in, Content versions — changed rarely, and none of it is page copy |
 
-Only the Edit page and Settings' Language tab put content in the unsaved payload. Everything else in Settings and Insights persists through its own endpoint the moment you act on it.
+Only the Edit page and Settings' Language & time tab put content in the unsaved
+payload — and within that tab, only its two language rows. The timezone sitting
+under them is a property of the account rather than of the page, so it persists
+through `{admin}/timezone` the moment it is picked, and says so in its own
+hint — as does everything else in Settings and Insights.
 
 **Those two share one payload, so it is the one thing the shell still owns.** `usePortfolioEditor.js` holds the unsaved payload, `dirty`, `save()`, the two restores and the revision list; `AdminPage` calls `providePortfolioEditor()` once and `EditPage`/`SettingsPage` `inject()` it, so an edit made on one survives walking over to the other. Per-section instances would each fetch, and switching sections would throw the edit away.
 
@@ -423,6 +433,24 @@ The backend runs `APP_TIMEZONE=UTC` and Eloquent serializes datetimes with a `Z`
 - `TimeLog.started_at` **is** a genuine instant (server `Carbon::now()`). Parse with `parseServerInstant()` (plain `new Date`), which is what elapsed-time maths needs.
 
 Send datetimes back with `formatForApi()`.
+
+**The two kinds meet in the report, and that is what `users.timezone` is for.**
+A week is a wall-clock idea — Monday 00:00 to Sunday 23:59 where the owner is
+standing — so the period boundaries compare to `start_datetime` as they are.
+`started_at` is an instant, so the same boundaries have to be read in the
+owner's zone and converted to UTC before they can be compared to it:
+`shiftTimezone($zone)->utc()` in `ReportController`, which keeps the digits and
+then converts. Without it a timer run at 00:30 on Monday in Amsterdam is stored
+as 22:30 on Sunday and its minutes land in the week before the one they were
+spent in — and at the far edge, a UTC window runs six hours into the next week
+and claims Monday morning for the week that ended. `TimezoneTest` holds all
+three edges, east and west of UTC.
+
+The column **defaults to `UTC`**, which is exactly the behaviour every install
+had before it existed, and it is set under **Settings → Language & time**. It
+is on `users` rather than in config because it travels with the person, not
+with the install. Nothing else in the app reads it: the calendar is wall-clock
+end to end, and the sign-in trail's window is relative.
 
 Weeks are Monday-based everywhere: Carbon's default `startOfWeek()` server-side, `startOfWeek()` in `planning.js`, and `locale: { firstDayOfWeek: 1 }` in the PrimeVue config so the DatePicker agrees.
 

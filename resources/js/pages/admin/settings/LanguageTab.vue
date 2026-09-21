@@ -1,8 +1,12 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { Eye, EyeOff } from '@lucide/vue';
 import AppPillSwitch from '../../../components/ui/AppPillSwitch.vue';
+import AppSelect from '../../../components/ui/AppSelect.vue';
 import { copy, LANGUAGES } from '../../../shared/i18n';
+import { adminUrl } from '../../../shared/admin-path';
+import { apiFetch, reportError } from '../../../shared/api';
+import { useToast } from '../../../shared/toast';
 
 const props = defineProps({
     profile: {
@@ -10,6 +14,8 @@ const props = defineProps({
         required: true,
     },
 });
+
+const toast = useToast();
 
 // A switch, not checkboxes: exactly one language is the default, so the site
 // can never end up with none.
@@ -38,6 +44,49 @@ const switcherOptions = computed(() => [
     { value: true, icon: Eye, ariaLabel: copy('languageSwitcherShown') },
     { value: false, icon: EyeOff, ariaLabel: copy('languageSwitcherHidden') },
 ]);
+
+// The timezone is the one row here that is not page content: it belongs to the
+// signed-in owner, so it loads and saves through its own endpoint rather than
+// riding along in the payload the Save button writes.
+const zone = ref(null);
+const zones = ref([]);
+const loadingZones = ref(true);
+const savingZone = ref(false);
+
+onMounted(async () => {
+    try {
+        const body = await apiFetch(adminUrl('/timezone'));
+        zone.value = body.timezone;
+        // The server sends the list, so the picker can only offer a value the
+        // save would accept. Underscores read badly in a menu.
+        zones.value = body.options.map((name) => ({ value: name, label: name.replace(/_/g, ' ') }));
+    } catch (failure) {
+        reportError(failure, copy('timezoneLoadError'));
+    } finally {
+        loadingZones.value = false;
+    }
+});
+
+const timezone = computed({
+    get: () => zone.value,
+    set: (value) => {
+        const previous = zone.value;
+        zone.value = value;
+        savingZone.value = true;
+
+        apiFetch(adminUrl('/timezone'), { method: 'PUT', body: { timezone: value } })
+            .then(() => toast.success(copy('timezoneSaved')))
+            .catch((failure) => {
+                // Back to what the server still holds: a row showing a value
+                // that was refused would report in a zone nothing uses.
+                zone.value = previous;
+                reportError(failure, copy('timezoneSaveError'));
+            })
+            .finally(() => {
+                savingZone.value = false;
+            });
+    },
+});
 </script>
 
 <template>
@@ -65,6 +114,23 @@ const switcherOptions = computed(() => [
                 v-model="switcherShown"
                 :options="switcherOptions"
                 :aria-label="copy('languageToggleVisibility')"
+            />
+        </div>
+
+        <div class="setting-row">
+            <div class="setting-row-text">
+                <span class="setting-row-name">{{ copy('timezoneLabel') }}</span>
+                <span class="setting-row-hint">{{ copy('timezoneHint') }}</span>
+            </div>
+
+            <AppSelect
+                v-model="timezone"
+                class="setting-row-field"
+                filterable
+                :options="zones"
+                :filter-placeholder="copy('timezoneSearch')"
+                :disabled="loadingZones || savingZone"
+                :aria-label="copy('timezoneLabel')"
             />
         </div>
     </div>

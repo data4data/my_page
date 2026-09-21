@@ -24,7 +24,7 @@ All the content lives in the database, so you change it in the app rather than i
 - **My agenda** — day, week and month views. Tasks with a status and a planned duration. One timer at a time, so minutes never count twice. Filters by category and status. Weekly and monthly reports of planned against tracked time, with a reflection note per period.
 - **Insights** — messages from the connect form, and every sign-in attempt grouped by address.
 - **Edit page** — the public content, a tab per section.
-- **Settings** — language, two-step sign-in, and a version history you can roll back to.
+- **Settings** — language, your timezone, two-step sign-in, and a version history you can roll back to. Set the timezone once: it is what decides which week a tracked minute belongs to, and it starts at UTC.
 
 ## Security
 
