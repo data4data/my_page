@@ -62,20 +62,40 @@ jobs:
           cp .env.example .env
           php artisan key:generate
 
-      # The five commands, in the order CONTRIBUTING.md runs them. --test
-      # rather than a rewrite: CI reports style, it does not fix it.
+      # The five gate commands. --test rather than a rewrite: CI reports
+      # style, it does not fix it.
       - name: Style
         run: vendor/bin/pint --test
 
       - name: Static analysis
         run: composer analyse
 
+      # Before the PHP tests, not after them as CONTRIBUTING.md lists it: the
+      # suite renders the Blade shell, which resolves the Vite manifest, and
+      # public/build is not in the repository. On a working machine it is
+      # already there, so only a clean checkout ever notices.
+      - name: Build
+        run: npm run build
+
       - name: PHP tests
-        run: composer test
+        run: composer test 2>&1 | tee /tmp/php-tests.log
+
+      # Downloading a job log needs a token; a job summary does not. So a red
+      # gate says what failed on its own page, and through the public API.
+      - name: What failed
+        if: failure()
+        run: |
+          {
+            echo '### PHP test failures'
+            echo '```'
+            grep -E '(FAILED|FAIL |Tests:)' /tmp/php-tests.log | head -60 || true
+            echo '```'
+            echo '<details><summary>Last 150 lines</summary>'
+            echo '```'
+            tail -150 /tmp/php-tests.log
+            echo '```'
+            echo '</details>'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Frontend tests
         run: npm test
-
-      # Catches template and import errors the tests never reach.
-      - name: Build
-        run: npm run build

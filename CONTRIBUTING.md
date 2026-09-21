@@ -98,6 +98,12 @@ npm test
 npm run build         # catches template and import errors the tests never reach
 ```
 
+**`composer test` needs built assets.** Several tests render the Blade shell,
+which resolves the Vite manifest, and `public/build` is not in the repository —
+so on a clean checkout run `npm run build` (or have `npm run dev` up) before the
+PHP suite, or `SecurityHeadersTest` fails on a 500 that has nothing to do with
+what you changed. On a machine you have already worked on, the build is there.
+
 **A machine runs these five too**, on every push to `main` and every pull
 request — `.github/workflows/ci.yml`, against MySQL 8 like everywhere else.
 Run them here anyway: a red tick ten minutes after you pushed costs more than
