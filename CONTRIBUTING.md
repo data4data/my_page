@@ -21,10 +21,16 @@ never hardcoded.
 ```bash
 composer install && npm install
 cp .env.example .env && php artisan key:generate
-php artisan migrate --seed        # placeholder content and categories
-php artisan app:install           # the admin account and the profile — asks for them
+php artisan migrate --seed        # placeholder content, categories, and a local-only demo login
+php artisan app:install           # a real admin account and the profile — asks for them
 composer run dev                  # serve + queue + logs + vite
 ```
+
+On a development machine `migrate --seed` leaves a demo login behind —
+`demo@my-page.test` / `demo-workspace` — so `migrate:fresh --seed` does not lock
+you out. It is `local`-only and refuses to replace an account that already
+exists; see the seeding section of `CLAUDE.md`. Run `app:install` instead for
+anything real.
 
 MySQL everywhere, including tests — the same engine as production, so strict
 mode, foreign-key indexing and JSON handling behave the same in all three.
