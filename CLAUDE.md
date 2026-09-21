@@ -356,7 +356,11 @@ Underneath it, `time_logs` carries a **virtual generated column** `running_user_
 
 `resources/js/pages/` is split by audience: `public/` holds what an anonymous visitor sees, `admin/` everything behind the login (including `LoginPage.vue`, which is the door to it).
 
-**`admin/` is then split by section** — `agenda/`, `edit/`, `insights/`, `settings/` — each holding its own page component and the tabs only it renders. They were one flat folder mixing pages, editor tabs and settings panels while `agenda/` already had its own; now the four look the same.
+**`admin/` is then split by section** - `agenda/`, `edit/`, `insights/`, `settings/` - each holding its own page component and the tabs only it renders. They were one flat folder mixing pages, editor tabs and settings panels while `agenda/` already had its own; now the four look the same.
+
+**A section splits again when it holds both kinds of file.** `agenda/` and `edit/` carry composables as well as components, so each has `components/` and `composables/`; `insights/` and `settings/` have only components, and a `components/` folder holding everything in the folder is nesting that says nothing. The rule is the presence of the second kind, not the size of the first.
+
+**`components/` at the root of `resources/js/` is for what many places use** - `ui/`, the design system, and `admin/`, the shell. It held two files that were not that: `DeveloperConnectModal.vue`, which only `PublicPage` opens, and `EditableCard.vue`, which only the five `edit/` tabs render. Both now live with their one caller.
 
 **Each section loads what it shows.** `AdminPage.vue` is the rail and a `v-if` over four components, and nothing else: opening Agenda used to fetch the connect-form messages, the sign-in trail and the saved-version list too, because one component owned all four loaders.
 
@@ -370,7 +374,7 @@ So a `<!-- -->` next to the markup it explains costs nothing, and that is where 
 
 Each entry has its own router — `router-public.js` and `router-admin.js` — and they share `create-app.js`, which holds the PrimeVue options both need. The split is only worth what enforces it, so two tests do: `bundle-split.test.js` walks the real import graph from each entry and fails if the public one can reach anything under `pages/admin/`, `components/admin/` or `shared/planning.js`; `AdminAccessTest` checks the Blade shell serves the right one to each half.
 
-`router-public.js` maps `/`, `/hi-developer` and their language-prefixed twins to `public/PublicPage.vue` (which also renders `DeveloperConnectModal` on the connect routes). `router-admin.js` maps `admin/LoginPage.vue` and `admin/AdminPage.vue` for every workspace route — `AdminPage` derives its active section from the route name, so each section is a real bookmarkable/refreshable URL.
+`router-public.js` maps `/`, `/hi-developer` and their language-prefixed twins to `public/PublicPage.vue` (which also renders its neighbour `DeveloperConnectModal.vue` on the connect routes). `router-admin.js` maps `admin/LoginPage.vue` and `admin/AdminPage.vue` for every workspace route — `AdminPage` derives its active section from the route name, so each section is a real bookmarkable/refreshable URL.
 
 The CSS is still one entry (`app.css`) for both. Splitting it would save bytes, not secrets: Tailwind generates its utilities by scanning the same sources either way, so the saving is the hand-written partials only.
 
@@ -417,13 +421,13 @@ Like its sibling tabs it carries no heading of its own — the sheet's title and
 
 For the sheet to stretch to the bottom of the page, its ancestors must form an unbroken flex column: `.admin-shell` → `.admin-frame` → `.admin-sheet`. Agenda, Insights and Edit each render their own sheet, so a change to that chain needs checking on all three.
 
-**Agenda** (`resources/js/pages/admin/agenda/`): `CalendarView` (mode switching, filters, period navigation, task CRUD wiring) -> `DayView` / `WeekView` / `MonthView` / `ReportView`, plus `TaskCard` and `TaskModal`.
+**Agenda** (`resources/js/pages/admin/agenda/`): `components/CalendarView` (mode switching, filters, period navigation, task CRUD wiring) -> `DayView` / `WeekView` / `MonthView` / `ReportView`, plus `TaskCard` and `TaskModal`; `composables/` holds `useCalendarPeriod` and `useTaskFilters`.
 
 **Task categories moved to Settings**, taking `CategoryModal` with them, so `CategoriesTab` and `CategoryModal` now live in `pages/admin/settings/`. They are a thing you set up once and then use, like the rest of that sheet, and the calendar was carrying a tab that was not a period alongside three that are. The tab emitted `changed` so the calendar could refetch; it no longer needs to, because `AdminPage` renders one section at a time and walking back to Agenda mounts `CalendarView` fresh.
 
 **A skip link is the first focusable element in both halves** — `#main-content` on the visit card, `#workspace-content` in the workspace. Both targets carry `tabindex="-1"`, so the next Tab continues from the content rather than restarting at the top of the document; `.skip-link` in `base.css` is off-screen by transform rather than `display:none`, which would take it out of the tab order entirely. `pages.smoke.test.js` checks all three properties on both pages.
 
-**Tests live in `resources/tests/`**, mirroring `resources/js/` — not beside the files they cover. `vitest.config.js` points there and loads `resources/tests/setup.js` first.
+**Tests live in `resources/tests/`**, mirroring `resources/js/` - not beside the files they cover, and the mirror includes the `components/` and `composables/` split. `vitest.config.js` points there and loads `resources/tests/setup.js` first.
 
 **Shared** (`resources/js/shared/`):
 - `api.js` — `apiFetch(url, {method, body})`, `errorMessage()`, `reportError()` and `csrfToken()`. **Every** call to a JSON endpoint goes through `apiFetch`; no component calls `fetch()` directly. It sets `Accept: application/json` and the CSRF header, throws an `ApiError` carrying `status` and the parsed `body` on any non-2xx, and redirects to `/login` on a 401. The `Accept` header is the load-bearing part: without it an expired session takes the auth middleware's HTML redirect instead of a JSON 401, `response.json()` throws on the HTML, and whichever `loading` ref was in flight never clears. Loaders pair it with `try/finally` for the same reason.
