@@ -10,7 +10,7 @@ on:
 
 jobs:
   gate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     # MySQL here too, the same as development, tests and production. A
     # different engine in CI would hide exactly the differences that matter:
@@ -38,15 +38,15 @@ jobs:
       DB_PASSWORD: root
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: mbstring, pdo_mysql, bcmath, gd, intl
           coverage: none
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm

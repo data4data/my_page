@@ -40,7 +40,7 @@ The workspace sits behind a URL prefix you choose, login page included. There is
 
 ## Stack
 
-PHP 8.3+, Laravel 13, Vue 3, Tailwind 4, PrimeVue, Vite, MySQL 8.
+PHP 8.4+, Laravel 13, Vue 3, Tailwind 4, PrimeVue, Vite, MySQL 8.
 
 MySQL in development, tests and production alike, so strict mode, foreign-key indexing and JSON handling never differ between them.
 
