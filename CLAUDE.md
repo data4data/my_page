@@ -404,6 +404,8 @@ hint — as does everything else in Settings and Insights.
 **Admin shell** (`resources/js/components/admin/`):
 - `AdminLayout.vue` — the rail and the frame the sheet sits in. **There is no header:** the initials badge, the EN/NL switch, the theme switch and sign-out all live at the bottom of the rail, which is what retired `--admin-header`, the `ResizeObserver` that measured it, and the sticky offset the old rail nav hung off.
 
+  **The rail head is the initials badge alone.** It carried a "Content studio" caption beside them, which named the workspace to the one person already inside it — the rail's own sections say what this is. The badge keeps its link to the public page, now with an `aria-label`, since a link holding only initials would otherwise be announced as its URL.
+
   **The rail is two groups.** Destinations at the top; anything flagged `foot: true` in `navItems` is pinned to the bottom above the switchers — the same flag-on-the-item convention the tab strip uses for `right`. Settings carries it.
 
   **A fixed panel inside a placeholder aside.** `.admin-rail` reserves `--admin-rail` in the flex row and `.admin-rail-panel` is drawn fixed at that same width, so opening the rail below `lg` overlays the sheet rather than reflowing it — content under an open rail must not slide sideways while you are pointing at something. One token moves both halves, so they cannot disagree about where the sheet starts.

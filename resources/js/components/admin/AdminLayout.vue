@@ -70,14 +70,15 @@ onBeforeUnmount(releaseTheme);
              so widening it on hover overlays the sheet instead of reflowing it. -->
         <aside class="admin-rail" :class="{ pinned }">
             <div class="admin-rail-panel">
-                <a href="/" class="admin-rail-brand">
+                <!-- The badge alone: the rail says which sections there are,
+                     and a name above them said nothing the initials do not. -->
+                <a href="/" class="admin-rail-brand" :aria-label="copy('viewPublicPage')">
                     <span class="admin-rail-badge">{{ initials }}</span>
-                    <span class="admin-rail-label admin-rail-caption">{{ copy('contentStudio') }}</span>
                 </a>
 
                 <div class="admin-rail-divider"></div>
 
-                <nav class="admin-rail-nav" :aria-label="copy('contentStudio')">
+                <nav class="admin-rail-nav" :aria-label="copy('workspaceSections')">
                     <button
                         v-for="item in primaryItems"
                         :key="item.key"

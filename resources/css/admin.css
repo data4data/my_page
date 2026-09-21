@@ -48,11 +48,6 @@
         color: var(--color-rail-brand-text);
     }
 
-    .admin-rail-caption {
-        @apply whitespace-nowrap text-xs;
-        color: var(--color-rail-faint);
-    }
-
     .admin-rail-divider {
         @apply mx-2.5 h-px flex-none;
         background: var(--color-rail-divider);
