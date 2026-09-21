@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\VisualStyle;
 use App\Rules\SafeUrl;
 use App\Support\PortfolioFields;
 use Illuminate\Foundation\Http\FormRequest;
@@ -81,7 +82,10 @@ class UpdatePortfolioRequest extends FormRequest
             'projects' => ['present', 'array'],
             'projects.*.tags' => ['nullable', 'array'],
             'projects.*.tags.*' => ['string', 'max:60'],
-            'projects.*.visual_style' => ['nullable', 'string', 'max:255'],
+            // A list, not free text: an unknown style draws a blank panel.
+            // Required like metrics.*.value, because the column is NOT NULL
+            // and ConvertEmptyStringsToNull would otherwise reach the insert.
+            'projects.*.visual_style' => ['required', Rule::enum(VisualStyle::class)],
             'projects.*.is_visible' => ['sometimes', 'boolean'],
 
             'process_steps' => ['present', 'array'],

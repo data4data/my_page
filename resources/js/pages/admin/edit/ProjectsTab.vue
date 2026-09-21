@@ -1,11 +1,14 @@
 <script setup>
+import { computed } from 'vue';
 import { Plus } from '@lucide/vue';
 import AppInput from '../../../components/ui/AppInput.vue';
+import AppSelect from '../../../components/ui/AppSelect.vue';
 import AppTextarea from '../../../components/ui/AppTextarea.vue';
 import AppButton from '../../../components/ui/AppButton.vue';
 import AppLanguageCards from '../../../components/ui/AppLanguageCards.vue';
 import EditableCard from '../../../components/EditableCard.vue';
 import { copy, t } from '../../../shared/i18n';
+import { VISUAL_STYLES } from '../../../shared/portfolio';
 
 defineProps({
     projects: {
@@ -25,6 +28,20 @@ defineProps({
 const emit = defineEmits(['add', 'move', 'remove']);
 
 const COLLECTION = 'projects';
+
+// One key per style rather than a built string, so a missing translation is
+// visible in the dictionary rather than only at runtime.
+const VISUAL_STYLE_LABELS = {
+    dashboard: 'visualStyleDashboard',
+    flow: 'visualStyleFlow',
+    cms: 'visualStyleCms',
+};
+
+// computed, so the labels re-render on the EN/NL toggle.
+const visualStyleOptions = computed(() => VISUAL_STYLES.map((value) => ({
+    value,
+    label: copy(VISUAL_STYLE_LABELS[value]),
+})));
 
 // What "add" starts from. In the script, not inside the click handler: a whole
 // object written into markup is a default nobody finds when they go looking.
@@ -53,7 +70,7 @@ const blank = () => ({
             @update:visible="item.is_visible = $event"
         >
             <div class="lang-grid">
-                <label class="field-label">{{ copy('fieldVisualStyle') }}<AppInput v-model="item.visual_style" placeholder="dashboard, flow, cms" /></label>
+                <label class="field-label">{{ copy('fieldVisualStyle') }}<AppSelect v-model="item.visual_style" :options="visualStyleOptions" /></label>
                 <label class="field-label">{{ copy('fieldTags') }}<AppInput :model-value="item.tags?.join(', ')" @update:model-value="(value) => updateTags(item, value)" /></label>
             </div>
 

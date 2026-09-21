@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { translatableProfile, translatableItemFields } from '../../js/shared/portfolio';
+import { translatableProfile, translatableItemFields, VISUAL_STYLES } from '../../js/shared/portfolio';
 
 /**
  * Which fields are {en, nl} pairs is written twice — once in PHP, where the
@@ -37,5 +37,19 @@ describe('the translated field lists match their PHP constants', () => {
         );
 
         expect(fromPhp).toEqual(translatableItemFields);
+    });
+});
+
+/**
+ * The same problem one file over: the project's visual style is a list in PHP,
+ * where it is validated, and a list in JavaScript, where the select is built
+ * from it. A case added to one side alone fails here.
+ */
+describe('the visual styles match the PHP enum', () => {
+    it('offers exactly the cases VisualStyle declares', () => {
+        const enumFile = readFileSync(join(process.cwd(), 'app/Enums/VisualStyle.php'), 'utf8');
+        const cases = [...enumFile.matchAll(/case \w+ = '([^']+)';/g)].map((match) => match[1]);
+
+        expect(cases).toEqual(VISUAL_STYLES);
     });
 });

@@ -182,6 +182,8 @@ Separate from the portfolio, all scoped to the signed-in user:
   set. See *Time handling* below for the one query that reads it.
 - `Reflection` — one note per (user, period_type, period_start). `period_end` is a **generated** column derived from the type and the start, so the two cannot disagree; `scopeForPeriod()` therefore looks up on the first three and the controller neither writes nor matches on the fourth.
 
+`App\Enums\VisualStyle` (dashboard, flow, cms) is the project card's decorative panel — each case is a class on `.project-visual` in `public.css`, so a value with no rule behind it draws a blank panel. That is why `visual_style` is validated with `Rule::enum` and edited with a select rather than typed. `VISUAL_STYLES` in `resources/js/shared/portfolio.js` mirrors it, `portfolio-fields.test.js` reads the PHP file and fails on drift, and `normalizePortfolio()` rewrites anything unrecognised to the first case so an older row cannot make the editor save a payload the rules reject.
+
 Enums in `app/Enums/`: `TaskStatus` (planned, in_progress, paused, done, skipped), `TaskSource` (manual, seeder, ai_chat — the last reserved for future AI-assisted task creation and unused today), `ReflectionPeriodType` (week, month, plus `startFor()`/`endFor()`, which own the period boundaries the report and the reflection upsert both key on). Statuses are plain string columns validated against the enum, not DB enums, because adding a case to a DB enum needs an `ALTER TABLE`. **`TASK_STATUSES` in `resources/js/shared/planning.js` mirrors `TaskStatus` — keep them in step.**
 
 ### Auth
