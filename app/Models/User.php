@@ -13,17 +13,29 @@ use Illuminate\Support\Carbon;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
+ * @property string $timezone
  * @property ?string $two_factor_secret
  * @property ?array<int, string> $two_factor_recovery_codes
  * @property ?Carbon $two_factor_confirmed_at
  */
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'timezone'])]
 // Password equivalents: never serialized, never mass-assignable.
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
+
+    /**
+     * Matches the column default. Eloquent does not re-read the row after an
+     * insert, so without this a just-created User carries a null timezone for
+     * the rest of the request — and the report reads it straight away.
+     *
+     * @var array<string, string>
+     */
+    protected $attributes = [
+        'timezone' => 'UTC',
+    ];
 
     /**
      * @return array<string, string>

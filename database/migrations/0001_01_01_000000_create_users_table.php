@@ -14,6 +14,11 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            // The zone the planner's weeks and months are measured in. Task
+            // times are wall-clock, time logs are real instants, and the
+            // report needs this to line the two up. UTC until it is set, so
+            // an install that never touches it behaves as it always did.
+            $table->string('timezone')->default('UTC');
             // Encrypted casts on the model and in its #[Hidden] list, so
             // neither ever serialises.
             $table->text('two_factor_secret')->nullable();

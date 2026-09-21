@@ -9,6 +9,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SecurityEventController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TimeLogController;
+use App\Http\Controllers\TimezoneController;
 use App\Http\Controllers\TwoFactorController;
 use App\Http\Middleware\SetPublicLocale;
 use App\Http\Middleware\SetWorkspaceLocale;
@@ -62,6 +63,10 @@ Route::prefix(config('admin.path'))->middleware(['auth', 'role:admin', SetWorksp
     Route::get('/inquiries', [DeveloperInquiryController::class, 'index']);
 
     Route::get('/security-events', [SecurityEventController::class, 'index']);
+
+    // The owner's zone: what the report measures a week in.
+    Route::get('/timezone', [TimezoneController::class, 'show']);
+    Route::put('/timezone', [TimezoneController::class, 'update']);
 
     // Turning it off asks for the password again, not just an open session.
     Route::get('/two-factor', [TwoFactorController::class, 'show']);

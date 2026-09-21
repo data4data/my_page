@@ -30,10 +30,22 @@ class ReportController extends Controller
         $start = $periodType->startFor(Carbon::parse($data['period_start']));
         $end = $periodType->endFor($start);
 
+        // The window above is wall-clock, which is what start_datetime holds,
+        // so tasks compare against it directly. started_at is a real instant,
+        // so the same window has to be read in the owner's own zone and
+        // converted: a timer run at 00:30 on Monday in Amsterdam is stored as
+        // 22:30 on Sunday, and counted raw its minutes fall in last week.
+        // shiftTimezone keeps the digits and changes the zone; ->utc() then
+        // converts. A zone whose clocks jump at midnight has no such instant,
+        // and PHP moves it to the hour that does exist.
+        $zone = $request->user()->timezone;
+        $trackedFrom = $start->copy()->shiftTimezone($zone)->utc();
+        $trackedTo = $end->copy()->shiftTimezone($zone)->utc();
+
         // Minutes counted by when they were tracked, not by when the task they
         // belong to was scheduled. Summing a task's whole history put last
         // month's minutes in this week's total.
-        $loggedInPeriod = fn ($query) => $query->whereBetween('started_at', [$start, $end]);
+        $loggedInPeriod = fn ($query) => $query->whereBetween('started_at', [$trackedFrom, $trackedTo]);
 
         $tasks = Task::query()
             ->where('user_id', $request->user()->id)

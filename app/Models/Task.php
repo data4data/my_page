@@ -7,6 +7,7 @@ use App\Enums\TaskStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Task extends Model
 {
@@ -48,6 +49,22 @@ class Task extends Model
     public function timeLogs(): HasMany
     {
         return $this->hasMany(TimeLog::class);
+    }
+
+    /**
+     * The open log, if a timer is running on this task. At most one exists:
+     * time_logs carries a UNIQUE index on running_user_id, so the database
+     * refuses a second open log for one owner.
+     *
+     * The board only ever asks whether a timer is running and since when, so
+     * this is what a task carries instead of its whole history — a month of
+     * tasks with every log attached is a payload nothing reads.
+     *
+     * @return HasOne<TimeLog, $this>
+     */
+    public function runningTimeLog(): HasOne
+    {
+        return $this->hasOne(TimeLog::class)->whereNull('ended_at');
     }
 
     /**

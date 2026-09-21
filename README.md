@@ -24,7 +24,7 @@ All the content lives in the database, so you change it in the app rather than i
 - **My agenda** — day, week and month views. Tasks with a status and a planned duration. One timer at a time, so minutes never count twice. Filters by category and status. Weekly and monthly reports of planned against tracked time, with a reflection note per period.
 - **Insights** — messages from the connect form, and every sign-in attempt grouped by address.
 - **Edit page** — the public content, a tab per section.
-- **Settings** — language, two-step sign-in, and a version history you can roll back to.
+- **Settings** — language, your timezone, two-step sign-in, and a version history you can roll back to. Set the timezone once: it is what decides which week a tracked minute belongs to, and it starts at UTC.
 
 ## Security
 
@@ -112,9 +112,26 @@ Then edit the public content under **Edit page**, your categories under **My age
 
 ## Running it
 
-`composer run dev` starts the server, queue worker, log tailer and Vite together.
+`composer run dev` starts five things together: the server, a queue worker, the scheduler, a log tailer and Vite.
 
 The public visit card is at `/`, and the other language at `/nl`. Everything else lives under the path you set in `ADMIN_PATH`, starting with its login page, and the left nav takes you between the four sections from there.
+
+### On a real server
+
+Two of those five are not optional, and neither of them complains when it is missing:
+
+- **A queue worker.** Mail is queued (`QUEUE_CONNECTION=database`, so the jobs sit in the `jobs` table), which is what lets the connect form answer a visitor whether or not your mail provider is reachable. With nothing draining that table the message is saved and you are never told about it — the form still returns a cheerful 200.
+- **The scheduler.** It runs one job: pruning the sign-in trail, which holds IP addresses, after 30 days. Without it that table grows forever and the retention this README promises is not happening.
+
+```bash
+php artisan queue:work --tries=3        # under supervisor or systemd, restarted on exit
+```
+
+```cron
+* * * * * cd /path/to/the/app && php artisan schedule:run >> /dev/null 2>&1
+```
+
+Run `php artisan queue:restart` as part of deploying, or workers keep serving the code they booted with. Mail itself needs `MAIL_MAILER` and its credentials set — it is `log` out of the box, which writes the message to `storage/logs` and sends nothing.
 
 ## Checks
 

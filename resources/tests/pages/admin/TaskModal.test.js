@@ -166,7 +166,7 @@ describe('TaskModal: the timer', () => {
     it('appears only for a task that has been saved', () => {
         expect(mountModal().find('.timer-button').exists()).toBe(false);
 
-        const saved = mountModal({ task: { id: 7, title: 'Saved', start_datetime: '2026-06-10 09:00:00', time_logs: [] } });
+        const saved = mountModal({ task: { id: 7, title: 'Saved', start_datetime: '2026-06-10 09:00:00', running_log: null } });
 
         expect(saved.find('.timer-button').exists()).toBe(true);
     });
@@ -177,14 +177,14 @@ describe('TaskModal: the timer', () => {
                 id: 7,
                 title: 'Running',
                 start_datetime: '2026-06-10 09:00:00',
-                time_logs: [{ id: 1, started_at: new Date().toISOString(), ended_at: null }],
+                running_log: { id: 1, started_at: new Date().toISOString() },
             },
         });
 
         await running.find('.timer-button').trigger('click');
         expect(running.emitted('stop-timer')).toHaveLength(1);
 
-        const idle = mountModal({ task: { id: 8, title: 'Idle', start_datetime: '2026-06-10 09:00:00', time_logs: [] } });
+        const idle = mountModal({ task: { id: 8, title: 'Idle', start_datetime: '2026-06-10 09:00:00', running_log: null } });
 
         await idle.find('.timer-button').trigger('click');
         expect(idle.emitted('start-timer')).toHaveLength(1);

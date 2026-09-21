@@ -135,20 +135,14 @@ describe('formatMinutes', () => {
 });
 
 describe('runningTimeLog', () => {
-    it('finds the log that has not been stopped', () => {
-        const task = {
-            time_logs: [
-                { id: 1, ended_at: '2026-06-10 10:00:00' },
-                { id: 2, ended_at: null },
-            ],
-        };
+    it('reads the one open log the server sends', () => {
+        const task = { running_log: { id: 2, started_at: '2026-06-10 09:00:00Z' } };
 
         expect(runningTimeLog(task).id).toBe(2);
     });
 
-    it('returns null when everything is closed, or there is nothing at all', () => {
-        expect(runningTimeLog({ time_logs: [{ id: 1, ended_at: '2026-06-10 10:00:00' }] })).toBeNull();
-        expect(runningTimeLog({ time_logs: [] })).toBeNull();
+    it('returns null when no timer is running, or there is nothing at all', () => {
+        expect(runningTimeLog({ running_log: null })).toBeNull();
         expect(runningTimeLog({})).toBeNull();
         expect(runningTimeLog(null)).toBeNull();
     });

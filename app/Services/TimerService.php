@@ -36,7 +36,7 @@ class TimerService
                 $started = true;
             }
 
-            return $task->fresh(['category', 'timeLogs']);
+            return $task->fresh(['category', 'runningTimeLog']);
         });
 
         // Only when a timer actually opened: a no-op is not news.
@@ -59,7 +59,7 @@ class TimerService
             $running?->update(['ended_at' => Carbon::now()]);
             $stopped = $running !== null;
 
-            return $task->fresh(['category', 'timeLogs']);
+            return $task->fresh(['category', 'runningTimeLog']);
         });
 
         if ($stopped) {

@@ -19,7 +19,7 @@ cp .env.example .env && php artisan key:generate
 php artisan migrate --seed              # placeholder content + categories (+ demo login and week, local only)
 php artisan app:install                 # a real admin account and the profile — asks for them
 
-composer run dev                        # serve + queue + logs + vite, all concurrently
+composer run dev                        # serve + queue + schedule + logs + vite, all concurrently
 php artisan serve                       # backend only
 npm run dev                             # vite only
 npm run build                           # production frontend assets
@@ -178,6 +178,8 @@ Separate from the portfolio, all scoped to the signed-in user:
 - `Task` — `title`, `start_datetime`, optional `end_datetime`, `planned_duration_minutes`, `status`, `result_notes`, `source`, `external_ref`, optional `category_id`. UNIQUE on `(user_id, source, external_ref)`, so an overlapping calendar sync or a retry cannot import one remote event twice; manual tasks hold a NULL `external_ref` and NULLs never collide.
 - `Category` — self-referencing `parent_id` for **exactly one** level of nesting (a child never has children). `user_id` null = a shared/global seeded category.
 - `TimeLog` — `started_at` / `ended_at` per task, plus a `user_id` denormalised from it. `duration_minutes` and `running_user_id` are generated columns; see *Two rules worth knowing* below.
+- `User.timezone` — the zone the report measures a period in, `UTC` until it is
+  set. See *Time handling* below for the one query that reads it.
 - `Reflection` — one note per (user, period_type, period_start). `period_end` is a **generated** column derived from the type and the start, so the two cannot disagree; `scopeForPeriod()` therefore looks up on the first three and the controller neither writes nor matches on the fourth.
 
 Enums in `app/Enums/`: `TaskStatus` (planned, in_progress, paused, done, skipped), `TaskSource` (manual, seeder, ai_chat — the last reserved for future AI-assisted task creation and unused today), `ReflectionPeriodType` (week, month, plus `startFor()`/`endFor()`, which own the period boundaries the report and the reflection upsert both key on). Statuses are plain string columns validated against the enum, not DB enums, because adding a case to a DB enum needs an `ALTER TABLE`. **`TASK_STATUSES` in `resources/js/shared/planning.js` mirrors `TaskStatus` — keep them in step.**
@@ -206,7 +208,7 @@ Login is rate-limited by the named `login` limiter defined in `AppServiceProvide
 
 **Two-factor is opt-in.** The workspace works with a password alone until the owner turns it on from Insights → Security, so a fresh install or a fork never depends on having an authenticator to hand. `TwoFactorService` (TOTP via `pragmarx/google2fa`, QR via `bacon/bacon-qr-code`) owns the whole lifecycle; `users.two_factor_secret` and `two_factor_recovery_codes` are `encrypted` casts and are in the model's `#[Hidden]` list, so they never serialize. Enrolment is two steps on purpose: a secret alone is never enforced, and `two_factor_confirmed_at` is set only once a real code has been checked, so a mis-scanned QR is a retry rather than a lockout. `AuthController::store()` uses `Auth::validate()` rather than `Auth::attempt()` — it checks the password without starting a session, so an account with two-factor on is never briefly signed in, and the `Login` event the trail records as "signed in" fires only once the second factor has passed too. Recovery codes are single-use, and `php artisan two-factor:disable {email}` is the way back in when the phone and the codes are both gone.
 
-**Every sign-in attempt is recorded.** `SecurityEvent` holds one row per attempt with its outcome (`SecurityEventType`), address and the email that was typed. `RecordSignIn` and `RecordFailedSignIn` in `app/Listeners/` handle Laravel's `Login` and `Failed` events, and the limiter's own `response()` callback records the blocked ones — those never reach a controller, so without that hook the trail would go quiet exactly when an attack got loud. Rows carry IP addresses and pile up fastest when something is wrong, so they expire: `MassPrunable` plus a daily `model:prune` scheduled in `routes/console.php`, keeping `SecurityEvent::RETENTION_DAYS`.
+**Every sign-in attempt is recorded.** `SecurityEvent` holds one row per attempt with its outcome (`SecurityEventType`), address and the email that was typed. `RecordSignIn` and `RecordFailedSignIn` in `app/Listeners/` handle Laravel's `Login` and `Failed` events, and the limiter's own `response()` callback records the blocked ones — those never reach a controller, so without that hook the trail would go quiet exactly when an attack got loud. Rows carry IP addresses and pile up fastest when something is wrong, so they expire: `MassPrunable` plus a daily `model:prune` scheduled in `routes/console.php`, keeping `SecurityEvent::RETENTION_DAYS`. **That needs a scheduler running** — `schedule:work` locally (it is one of the five processes `composer run dev` starts) and a `schedule:run` cron entry on a server, as README's *On a real server* says. Without one the retention is a comment rather than a behaviour, and the same goes for the queue worker `MailTheInquiry` waits on.
 
 `config/filesystems.php` sets `'serve' => false` on the `local` disk, against Laravel's default. `true` registers `GET` and `PUT` at `/storage/{path}` with no middleware; both are gated by a signed URL so neither is a hole, but nothing here uses `Storage` at all. `RouteProtectionTest` reads the route table and fails on any route carrying neither `auth` nor `guest` that is not on its short list of deliberately public ones — which is how those two were found.
 
@@ -275,6 +277,8 @@ What they drop per child row is `id`, `portfolio_profile_id`, the timestamps and
 The public connect form has three layers against spam: `throttle:10,1` on the route, a `website` honeypot field that is off-screen and `aria-hidden` (a filled one gets the same 200 a real submission does, and is discarded before validation so probing cannot tell them apart), and the validation rules themselves.
 
 - `GET|POST {admin}/tasks`, `PUT|DELETE {admin}/tasks/{task}` — index requires `start`/`end` date params and rejects a span wider than a year; the calendar fetches by visible range.
+
+  **Every one of these returns `TaskResource`, and a task carries `running_log`, not `time_logs`.** The board asks one question of a timer — is it running, and since when — and the answer is one row: `Task::runningTimeLog()` is a `hasOne` filtered to the open log, which the UNIQUE index on `running_user_id` makes at most one per owner. It used to eager-load the whole relation, so a month grid shipped every finished sitting of every task on it, and a year-wide range shipped a year of them. Closed logs are report input, and the report sums them in SQL without sending one. `runningTimeLog()` in `resources/js/shared/planning.js` reads that field; `TaskPayloadShapeTest` holds the key list.
 - `POST {admin}/tasks/{task}/timer/start|stop`.
 - `GET|POST {admin}/categories`, `PUT|DELETE {admin}/categories/{category}` — the index applies "mine or global" to **both** levels. A global parent is shared by everyone, so eager-loading its `children` unfiltered handed every user the others' private subcategories; that is what it did until 2026-09-21.
 - `GET {admin}/reports?period_type=week|month&period_start=Y-m-d` — totals come from `withSum` on `time_logs.duration_minutes`, so the stored column is summed in SQL rather than in PHP. `by_category` groups by `category_id`, not by name, and leaves the uncategorized bucket's label to the frontend.
@@ -285,6 +289,10 @@ The public connect form has three layers against spam: `throttle:10,1` on the ro
 - `GET|PUT {admin}/reflections` (upsert by period).
 - `GET|POST {admin}/two-factor`, `POST {admin}/two-factor/confirm`, `POST {admin}/two-factor/recovery-codes`, `DELETE {admin}/two-factor` — enrolment. The delete takes the password in its body rather than relying on the open session, so a machine left unlocked cannot strip the account back to one factor.
 - `POST {admin}/two-factor-challenge` — the second step at sign-in, throttled by the same `login` limiter as the password step.
+- `GET|PUT {admin}/timezone` — the owner's zone, and the list of zones the save
+  accepts, so the picker cannot offer one it would then reject. Saved the
+  moment it is picked rather than through the Edit page's payload: it belongs
+  to the account, not to the public page.
 - `GET {admin}/security-events` — the sign-in trail: a per-address rollup over the last 12 hours, outcome totals for that window, and the 50 most recent attempts. Rendered by the **Security** tab under Insights.
 - `GET {admin}/inquiries?page=N` — intentionally **view-only**; no update/destroy exists. `simplePaginate`d into `{inquiries, page, has_more}`, since the public form that fills it is throttled per minute rather than in total.
 
@@ -307,7 +315,7 @@ Controllers validate, authorize, delegate, and return JSON. Rules that outlive a
 - **`app/Services/`** — `PortfolioContentService`, `PortfolioPayload`, `PortfolioHistory`, `PortfolioSeeder` and `TimerService`.
 
   The portfolio's three are one job each, split out of a class that had four reasons to change. **`PortfolioContentService` is the single write path** — `save()`, `seedDefaults()` and `restore()` in one transaction, which is the property the class exists for and the one a split could quietly lose (`PortfolioHistoryTest` has a test that a failed save takes its revision back with it). **`PortfolioPayload`** decides the shape of a read. **`PortfolioHistory`** owns the undo snapshots and their cap. What a profile and its children are *made of* lives in neither: `App\Support\PortfolioFields` holds the lists, so the read and the write cannot disagree about which fields exist. **`PortfolioSeeder`** writes the starting content, taking the words themselves from the `PortfolioSeedContent` contract — only one of those two is worth replacing, since a fork wants its own copy, not its own way of inserting rows. Plain concrete classes injected via `__construct()`; the container resolves them by reflection, so **`AppServiceProvider` registers no bindings** — no interfaces, no singletons. Add one only when a second implementation actually exists. Its `boot()` holds the `login` rate limiter and nothing else.
-- **`app/Http/Resources/`** — `PortfolioProfileResource` and `PortfolioItemResource`, the two classes that decide what leaves the app. Only the portfolio has them: tasks and categories are read by their own owner behind the login, so there is nothing to withhold. See *One payload shape* above.
+- **`app/Http/Resources/`** — `PortfolioProfileResource`, `PortfolioItemResource` and `TaskResource`, the classes that decide what leaves the app. See *One payload shape* above for the portfolio's two. `TaskResource` is there for a different reason: not to withhold anything from an owner reading their own rows, but because a task used to be handed over as the model, and a model carries its whole `timeLogs` relation. Categories still go out as models — a category is four columns and its children, and nothing about it grows with use.
 - **`app/Http/Requests/`** — `Store`/`Update` pairs for Task and Category, plus `UpdatePortfolioRequest`. Pairs, not single classes: the partial-update path swaps `required` for `sometimes`, so one rule set genuinely cannot serve both.
 - **`app/Policies/`** — ownership, as above.
 - **The models themselves** — `Task::plannedMinutes()`, `Reflection::scopeForPeriod()` (the read and the upsert must find a row identically, and the `whereDate()` reasoning belongs in one place).
@@ -359,9 +367,13 @@ The CSS is still one entry (`app.css`) for both. Splitting it would save bytes, 
 | Agenda | the planner |
 | Insights | connect-form messages, news, and the sign-in trail — `Security` last and `right: true`, since it is a log you check rather than a feed you read |
 | Edit page | the public page's content, and nothing else — the six content tabs plus **Shared**, trailing, for the values that are the same in both languages (initials, the CTA URLs, the accent word lists) |
-| Settings | Language, two-step sign-in, Content versions — changed rarely, and none of it is page copy |
+| Settings | Language & time, two-step sign-in, Content versions — changed rarely, and none of it is page copy |
 
-Only the Edit page and Settings' Language tab put content in the unsaved payload. Everything else in Settings and Insights persists through its own endpoint the moment you act on it.
+Only the Edit page and Settings' Language & time tab put content in the unsaved
+payload — and within that tab, only its two language rows. The timezone sitting
+under them is a property of the account rather than of the page, so it persists
+through `{admin}/timezone` the moment it is picked, and says so in its own
+hint — as does everything else in Settings and Insights.
 
 **Those two share one payload, so it is the one thing the shell still owns.** `usePortfolioEditor.js` holds the unsaved payload, `dirty`, `save()`, the two restores and the revision list; `AdminPage` calls `providePortfolioEditor()` once and `EditPage`/`SettingsPage` `inject()` it, so an edit made on one survives walking over to the other. Per-section instances would each fetch, and switching sections would throw the edit away.
 
@@ -423,6 +435,24 @@ The backend runs `APP_TIMEZONE=UTC` and Eloquent serializes datetimes with a `Z`
 - `TimeLog.started_at` **is** a genuine instant (server `Carbon::now()`). Parse with `parseServerInstant()` (plain `new Date`), which is what elapsed-time maths needs.
 
 Send datetimes back with `formatForApi()`.
+
+**The two kinds meet in the report, and that is what `users.timezone` is for.**
+A week is a wall-clock idea — Monday 00:00 to Sunday 23:59 where the owner is
+standing — so the period boundaries compare to `start_datetime` as they are.
+`started_at` is an instant, so the same boundaries have to be read in the
+owner's zone and converted to UTC before they can be compared to it:
+`shiftTimezone($zone)->utc()` in `ReportController`, which keeps the digits and
+then converts. Without it a timer run at 00:30 on Monday in Amsterdam is stored
+as 22:30 on Sunday and its minutes land in the week before the one they were
+spent in — and at the far edge, a UTC window runs six hours into the next week
+and claims Monday morning for the week that ended. `TimezoneTest` holds all
+three edges, east and west of UTC.
+
+The column **defaults to `UTC`**, which is exactly the behaviour every install
+had before it existed, and it is set under **Settings → Language & time**. It
+is on `users` rather than in config because it travels with the person, not
+with the install. Nothing else in the app reads it: the calendar is wall-clock
+end to end, and the sign-in trail's window is relative.
 
 Weeks are Monday-based everywhere: Carbon's default `startOfWeek()` server-side, `startOfWeek()` in `planning.js`, and `locale: { firstDayOfWeek: 1 }` in the PrimeVue config so the DatePicker agrees.
 

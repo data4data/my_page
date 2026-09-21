@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\TaskResource;
 use App\Models\Task;
 use App\Services\TimerService;
 use Illuminate\Http\JsonResponse;
@@ -14,13 +15,13 @@ class TimeLogController extends Controller
     {
         $this->authorize('update', $task);
 
-        return response()->json(['task' => $this->timer->start($task)]);
+        return response()->json(['task' => new TaskResource($this->timer->start($task))]);
     }
 
     public function stop(Task $task): JsonResponse
     {
         $this->authorize('update', $task);
 
-        return response()->json(['task' => $this->timer->stop($task)]);
+        return response()->json(['task' => new TaskResource($this->timer->stop($task))]);
     }
 }

@@ -179,6 +179,12 @@
         color: var(--color-faint);
     }
 
+    /* A row whose control is a field rather than a switch. Bounded, so a long
+       timezone name does not push the explanation into a single column. */
+    .setting-row-field {
+        @apply w-full max-w-[16rem];
+    }
+
     /* Saved-version list. Deliberately lighter than .item-card — these rows
        are a log to scan, not content to edit. */
     .history-row {
