@@ -7,6 +7,7 @@ use App\Models\Reflection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 class ReflectionController extends Controller
@@ -36,7 +37,7 @@ class ReflectionController extends Controller
             $reflection = Reflection::create([
                 'user_id' => $request->user()->id,
                 'period_type' => $data['period_type'],
-                'period_start' => $data['period_start'],
+                'period_start' => $this->periodStart($data),
                 'notes' => $data['notes'] ?? null,
             ]);
         }
@@ -53,8 +54,6 @@ class ReflectionController extends Controller
         return [
             'period_type' => ['required', Rule::enum(ReflectionPeriodType::class)],
             'period_start' => ['required', 'date'],
-            // Accepted and sanity-checked, but the column is derived: not stored.
-            'period_end' => ['sometimes', 'date', 'after_or_equal:period_start'],
             ...$extra,
         ];
     }
@@ -65,7 +64,21 @@ class ReflectionController extends Controller
         return Reflection::forPeriod(
             $request->user()->id,
             $data['period_type'],
-            $data['period_start'],
+            $this->periodStart($data),
         );
+    }
+
+    /**
+     * The first day of the period asked for. Normalised, or a Wednesday and
+     * the Monday before it would key two reflections to one week — and the
+     * report beside them already counts that week whole.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function periodStart(array $data): string
+    {
+        return ReflectionPeriodType::from($data['period_type'])
+            ->startFor(Carbon::parse($data['period_start']))
+            ->toDateString();
     }
 }

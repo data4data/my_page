@@ -204,10 +204,10 @@ export function usePlanning() {
         message: 'Could not delete the task.',
     });
 
-    // The pair the report response handed back, so a reflection stays keyed to
-    // the period it summarises.
-    const fetchReflection = async (periodType, periodStart, periodEnd) => {
-        const query = new URLSearchParams({ period_type: periodType, period_start: periodStart, period_end: periodEnd });
+    // Keyed on the start alone: the backend derives the end from it, and
+    // normalises the start to the period's first day.
+    const fetchReflection = async (periodType, periodStart) => {
+        const query = new URLSearchParams({ period_type: periodType, period_start: periodStart });
 
         return (await apiFetch(`${adminUrl('/reflections')}?${query}`, {
             message: 'Could not load the reflection.',

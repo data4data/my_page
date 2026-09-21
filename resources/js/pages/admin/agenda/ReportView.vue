@@ -51,9 +51,9 @@ const load = async () => {
     try {
         report.value = await fetchReport(periodType.value, periodStart.value);
 
-        // The period the backend derived, so the note is keyed to the range
+        // The start the backend normalised, so the note is keyed to the range
         // being summarised.
-        const reflection = await fetchReflection(periodType.value, report.value.period_start, report.value.period_end);
+        const reflection = await fetchReflection(periodType.value, report.value.period_start);
         reflectionNotes.value = reflection?.notes ?? '';
     } catch (error) {
         report.value = null;
@@ -72,7 +72,6 @@ const storeReflection = async () => {
         await saveReflection({
             period_type: periodType.value,
             period_start: report.value.period_start,
-            period_end: report.value.period_end,
             notes: reflectionNotes.value || null,
         });
         toast.success(copy('reflectionSaved'));

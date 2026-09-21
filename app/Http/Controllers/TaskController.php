@@ -19,7 +19,7 @@ class TaskController extends Controller
     // The calendar views fetch by visible range rather than one big dump.
     public function index(Request $request): JsonResponse
     {
-        $data = $request->validate([
+        $request->validate([
             'start' => ['required', 'date'],
             'end' => [
                 'required',
@@ -40,9 +40,11 @@ class TaskController extends Controller
 
         $tasks = Task::query()
             ->where('user_id', $request->user()->id)
+            // Parsed, not concatenated: 'date' accepts "1 January 2020" too,
+            // and that string glued to a time is not a datetime MySQL reads.
             ->whereBetween('start_datetime', [
-                $data['start'].' 00:00:00',
-                $data['end'].' 23:59:59',
+                $request->date('start')->startOfDay(),
+                $request->date('end')->endOfDay(),
             ])
             ->with(['category', 'timeLogs'])
             ->orderBy('start_datetime')

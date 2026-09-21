@@ -11,8 +11,12 @@ use Illuminate\Validation\Rule;
 
 class ReportController extends Controller
 {
-    // period_start is expected to already be that period's first day; the
-    // end is derived from it here.
+    /**
+     * Two different questions, answered over the same rows: what was planned
+     * for this period, and what was actually tracked during it. A task and its
+     * time logs can fall in different periods, so neither number may be read
+     * off the other's row.
+     */
     public function show(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -21,20 +25,35 @@ class ReportController extends Controller
         ]);
 
         $periodType = ReflectionPeriodType::from($data['period_type']);
-        $start = Carbon::parse($data['period_start'])->startOfDay();
-        $end = $periodType === ReflectionPeriodType::Week
-            ? $start->copy()->endOfWeek()
-            : $start->copy()->endOfMonth();
+        // Normalised rather than trusted: a mid-week date would otherwise
+        // report from that day to Sunday and call it the week.
+        $start = $periodType->startFor(Carbon::parse($data['period_start']));
+        $end = $periodType->endFor($start);
+
+        // Minutes counted by when they were tracked, not by when the task they
+        // belong to was scheduled. Summing a task's whole history put last
+        // month's minutes in this week's total.
+        $loggedInPeriod = fn ($query) => $query->whereBetween('started_at', [$start, $end]);
 
         $tasks = Task::query()
             ->where('user_id', $request->user()->id)
-            ->whereBetween('start_datetime', [$start, $end])
+            // Scheduled here, tracked here, or both: a task worked on outside
+            // its own week still owns the minutes it was given.
+            ->where(fn ($query) => $query
+                ->whereBetween('start_datetime', [$start, $end])
+                ->orWhereHas('timeLogs', $loggedInPeriod))
             ->with('category')
             // duration_minutes is stored, so this sums in SQL.
-            ->withSum('timeLogs as tracked_minutes', 'duration_minutes')
+            ->withSum(['timeLogs as tracked_minutes' => $loggedInPeriod], 'duration_minutes')
             ->get();
 
         $tracked = fn (Task $task) => (int) ($task->tracked_minutes ?? 0);
+
+        // Zero for a task that merely collected minutes here: its plan belongs
+        // to the period it was scheduled in, and is counted there.
+        $planned = fn (Task $task) => $task->start_datetime?->between($start, $end)
+            ? $task->plannedMinutes()
+            : 0;
 
         // Grouped by id, not name: a global and a personal category can share
         // a name. `null` is the uncategorized bucket, labelled by the frontend.
@@ -42,7 +61,7 @@ class ReportController extends Controller
 
         $byCategory = $tasks
             ->groupBy(fn (Task $task) => $task->category_id)
-            ->map(function ($group, $categoryId) use ($tracked, $categories) {
+            ->map(function ($group, $categoryId) use ($tracked, $planned, $categories) {
                 $category = $categories[$categoryId] ?? null;
 
                 return [
@@ -50,7 +69,7 @@ class ReportController extends Controller
                     'category' => $category?->name,
                     'color' => $category->color ?? '#9b9b9b',
                     'minutes' => $group->sum($tracked),
-                    'planned_minutes' => $group->sum(fn (Task $task) => $task->plannedMinutes()),
+                    'planned_minutes' => $group->sum($planned),
                     'tasks' => $group->count(),
                 ];
             })
@@ -65,7 +84,7 @@ class ReportController extends Controller
             'period_start' => $start->toDateString(),
             'period_end' => $end->toDateString(),
             'total_minutes' => $tasks->sum($tracked),
-            'total_planned_minutes' => $tasks->sum(fn (Task $task) => $task->plannedMinutes()),
+            'total_planned_minutes' => $tasks->sum($planned),
             'task_count' => $tasks->count(),
             'by_category' => $byCategory,
             'by_status' => $byStatus,
