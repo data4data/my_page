@@ -327,9 +327,22 @@
         color: var(--color-body);
     }
 
+    /* Sits between the two reorder arrows, so the number and the buttons that
+       change it are one control rather than two things in a row. */
     .item-card-position {
-        @apply flex-none text-xs tabular-nums;
+        @apply flex-none px-0.5 text-xs tabular-nums;
         color: var(--color-mute);
+    }
+
+    /* A field promoted into the card head, beside the title. Bounded, so a
+       long head still wraps rather than pushing the tools off the row. */
+    .item-card-head-field {
+        @apply flex min-w-0 flex-none items-center gap-2 text-xs;
+        color: var(--color-mute);
+    }
+
+    .item-card-head-field :where(input) {
+        @apply w-24;
     }
 
     .item-card-tools {

@@ -39,7 +39,10 @@ defineEmits(['move', 'remove', 'update:visible']);
             <slot name="lead" />
 
             <strong class="item-card-title">{{ title }}</strong>
-            <span class="item-card-position">{{ index + 1 }} {{ copy('positionOf') }} {{ total }}</span>
+
+            <!-- A field that belongs beside the name rather than below it —
+                 a metric's value, which is what the card is really about. -->
+            <slot name="head-field" />
 
             <div class="item-card-tools">
                 <AppCheckbox
@@ -60,6 +63,10 @@ defineEmits(['move', 'remove', 'update:visible']);
                 >
                     <ChevronUp :size="14" aria-hidden="true" />
                 </button>
+
+                <!-- Between the two arrows, where it says what they would do
+                     next rather than sitting away from them as a label. -->
+                <span class="item-card-position">{{ index + 1 }} {{ copy('positionOf') }} {{ total }}</span>
 
                 <button
                     type="button"

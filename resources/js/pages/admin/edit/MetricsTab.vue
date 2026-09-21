@@ -7,8 +7,9 @@ import EditableCard from '../../../components/EditableCard.vue';
 import { copy, t } from '../../../shared/i18n';
 
 // No intro paragraph: the sheet's subtitle says what the tab is for, and the
-// split itself says the rest — the value sits outside the language cards
-// because it is the same in both, the label sits inside because it is not.
+// split itself says the rest — the value sits in the card head because it is
+// the same in both languages and is what the card is about, the label sits
+// inside the language cards because it is not.
 defineProps({
     metrics: {
         type: Array,
@@ -47,7 +48,12 @@ const blank = () => ({
             @remove="(at) => emit('remove', COLLECTION, at)"
             @update:visible="item.is_visible = $event"
         >
-            <label class="field-label max-w-[12rem]">{{ copy('fieldValue') }}<AppInput v-model="item.value" /></label>
+            <template #head-field>
+                <label class="item-card-head-field">
+                    {{ copy('fieldValue') }}
+                    <AppInput v-model="item.value" />
+                </label>
+            </template>
 
             <AppLanguageCards :default-language="profile.default_language">
                 <template #default="{ locale }">
