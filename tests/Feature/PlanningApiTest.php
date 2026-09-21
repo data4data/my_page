@@ -791,4 +791,43 @@ class PlanningApiTest extends TestCase
 
         $this->assertCount(1, $tasks);
     }
+
+    // A global parent is shared by everyone, so its children must still be
+    // filtered — otherwise one user's private subcategories reach another's.
+    public function test_the_category_list_hides_another_users_subcategories(): void
+    {
+        $admin = $this->admin();
+        $stranger = User::factory()->create();
+
+        $global = Category::create(['name' => 'Work', 'color' => '#c5a064']);
+        Category::create(['name' => 'Mine', 'color' => '#2f75a8', 'user_id' => $admin->id, 'parent_id' => $global->id]);
+        Category::create(['name' => 'Theirs', 'color' => '#2f75a8', 'user_id' => $stranger->id, 'parent_id' => $global->id]);
+
+        $categories = $this->actingAs($admin)
+            ->getJson($this->adminUrl('/categories'))
+            ->assertOk()
+            ->json('categories');
+
+        $names = collect($categories)->firstWhere('id', $global->id)['children'];
+
+        $this->assertSame(['Mine'], collect($names)->pluck('name')->all());
+    }
+
+    // A global subcategory is shared like its parent.
+    public function test_the_category_list_keeps_global_subcategories(): void
+    {
+        $admin = $this->admin();
+
+        $global = Category::create(['name' => 'Work', 'color' => '#c5a064']);
+        Category::create(['name' => 'Shared child', 'color' => '#c5a064', 'parent_id' => $global->id]);
+
+        $categories = $this->actingAs($admin)
+            ->getJson($this->adminUrl('/categories'))
+            ->assertOk()
+            ->json('categories');
+
+        $children = collect($categories)->firstWhere('id', $global->id)['children'];
+
+        $this->assertSame(['Shared child'], collect($children)->pluck('name')->all());
+    }
 }
