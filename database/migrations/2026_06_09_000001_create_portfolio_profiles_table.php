@@ -29,8 +29,8 @@ return new class extends Migration
             // mailing nowhere, and a picture-less preview card is a blank slab.
             $table->string('contact_email', 190)->nullable();
             $table->string('social_image_url')->nullable();
-            $table->json('location_note')->nullable();
-            $table->json('availability_note')->nullable();
+            $table->json('footer_note_left')->nullable();
+            $table->json('footer_note_right')->nullable();
             $table->json('quote')->nullable();
             $table->json('quote_author')->nullable();
             // Which language owns the bare URL, and whether the switch renders.

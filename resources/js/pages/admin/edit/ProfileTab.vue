@@ -27,8 +27,8 @@ defineProps({
             <label class="field-label">{{ copy('fieldSecondaryCtaLabel') }}<AppInput v-model="profile.secondary_cta_label[locale]" /></label>
 
             <span class="field-section-heading">{{ copy('groupFooter') }}</span>
-            <label class="field-label">{{ copy('fieldFooterLeft') }}<AppInput v-model="profile.location_note[locale]" /></label>
-            <label class="field-label">{{ copy('fieldFooterRight') }}<AppInput v-model="profile.availability_note[locale]" /></label>
+            <label class="field-label">{{ copy('fieldFooterLeft') }}<AppInput v-model="profile.footer_note_left[locale]" /></label>
+            <label class="field-label">{{ copy('fieldFooterRight') }}<AppInput v-model="profile.footer_note_right[locale]" /></label>
             <label class="field-label">{{ copy('fieldQuote') }}<AppTextarea v-model="profile.quote[locale]" rows="2" /></label>
             <label class="field-label">{{ copy('fieldQuoteAuthor') }}<AppInput v-model="profile.quote_author[locale]" /></label>
         </template>

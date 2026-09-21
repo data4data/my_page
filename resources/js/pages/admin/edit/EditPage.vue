@@ -37,7 +37,7 @@ const tab = ref('profile');
 // computed, so the labels re-render on the EN/NL toggle.
 const tabs = computed(() => [
     { value: 'profile', label: copy('tabProfile') },
-    { value: 'metrics', label: copy('tabExperience') },
+    { value: 'metrics', label: copy('tabMetrics') },
     { value: 'expertise', label: copy('tabExpertise') },
     { value: 'process', label: copy('tabProcess') },
     { value: 'projects', label: copy('tabProjects') },

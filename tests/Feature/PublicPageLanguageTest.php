@@ -123,7 +123,7 @@ class PublicPageLanguageTest extends TestCase
         $user->assignRole('admin');
 
         $this->actingAs($user)
-            ->get($this->adminUrl('/mijn-agenda'))
+            ->get($this->adminUrl('/agenda'))
             ->assertOk()
             ->assertDontSee('hreflang', false);
     }
