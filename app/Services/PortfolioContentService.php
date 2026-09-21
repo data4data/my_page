@@ -33,10 +33,7 @@ class PortfolioContentService
         }
 
         return PortfolioProfile::query()
-            ->with(array_map(
-                fn (string $relation) => fn ($query) => $query->orderBy('sort_order'),
-                array_combine(PortfolioFields::RELATIONS, PortfolioFields::RELATIONS),
-            ))
+            ->with(PortfolioProfile::orderedChildren())
             ->firstOrFail();
     }
 
@@ -49,8 +46,9 @@ class PortfolioContentService
     }
 
     /**
-     * Replace-on-save: the admin always submits complete collection state,
-     * so each child relation is deleted and recreated from the payload.
+     * Replace-on-save: the admin always submits complete collection state, so
+     * each child relation is deleted and recreated from the payload — which is
+     * why UpdatePortfolioRequest marks all five `present`.
      *
      * @param  array<string, mixed>  $data
      */
@@ -64,13 +62,16 @@ class PortfolioContentService
             $profile->update(Arr::only($data['profile'] ?? [], PortfolioFields::PROFILE));
 
             foreach (PortfolioFields::RELATIONS as $payloadKey => $relation) {
-                $this->replaceOrdered($profile, $relation, $data[$payloadKey] ?? [], PortfolioFields::CHILDREN[$relation]);
+                $profile->replaceChildren($relation, $data[$payloadKey] ?? []);
             }
 
-            $fresh = $this->activeProfile();
-            $this->history->record($fresh, $author);
+            // Reload rather than re-query: the rows the eager-loaded relations
+            // hold were just deleted, and the snapshot below must be of what
+            // was written.
+            $profile->load(PortfolioProfile::orderedChildren());
+            $this->history->record($profile, $author);
 
-            return $fresh;
+            return $profile;
         });
 
         // After the commit: a listener must not read a version a rollback undoes.
@@ -105,27 +106,5 @@ class PortfolioContentService
     public function restore(PortfolioRevision $revision, ?User $author): PortfolioProfile
     {
         return $this->save($revision->payload, $author, restored: true);
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $items
-     * @param  list<string>  $keys
-     */
-    private function replaceOrdered(PortfolioProfile $profile, string $relation, array $items, array $keys): void
-    {
-        $profile->{$relation}()->delete();
-
-        foreach (array_values($items) as $index => $item) {
-            $payload = Arr::only($item, $keys);
-            $payload['sort_order'] = $index + 1;
-
-            // Social links derive is_visible, and MySQL rejects an INSERT
-            // naming a generated column.
-            if (in_array('is_visible', $keys, true)) {
-                $payload['is_visible'] = $item['is_visible'] ?? true;
-            }
-
-            $profile->{$relation}()->create($payload);
-        }
     }
 }

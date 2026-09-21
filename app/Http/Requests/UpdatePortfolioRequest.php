@@ -3,42 +3,34 @@
 namespace App\Http\Requests;
 
 use App\Rules\SafeUrl;
+use App\Support\PortfolioFields;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
  * Checks types and lengths, not presence: the editor lets a field be cleared.
  * Presence is demanded only where the column is NOT NULL.
+ *
+ * The five child collections are the exception. Saving replaces each one
+ * whole, so a payload that merely *omits* one would delete every row in it —
+ * `present` makes a half-built payload a 422 instead of a silent wipe. Not
+ * `required`, which rejects an empty array: having no projects is allowed,
+ * forgetting to mention them is not.
  */
 class UpdatePortfolioRequest extends FormRequest
 {
     private const TEXT_MAX = 5000;
 
-    private const TRANSLATED_PROFILE_FIELDS = [
-        'role',
-        'headline',
-        'summary',
-        'primary_cta_label',
-        'secondary_cta_label',
-        'location_note',
-        'availability_note',
-        'quote',
-        'quote_author',
-    ];
-
-    // Translated child fields, split by whether the column accepts null.
-    private const REQUIRED_CHILD_TEXT = [
-        'metrics.*.label',
-        'expertise_items.*.title',
-        'expertise_items.*.description',
-        'projects.*.title',
-        'projects.*.summary',
-        'process_steps.*.title',
-    ];
-
+    /**
+     * The translated child fields whose column accepts null. Everything else
+     * in PortfolioFields::TRANSLATED_CHILDREN is NOT NULL, so listing the
+     * short exception keeps the field lists themselves in one place.
+     *
+     * @var array<string, list<string>>
+     */
     private const OPTIONAL_CHILD_TEXT = [
-        'projects.*.result',
-        'process_steps.*.description',
+        'projects' => ['result'],
+        'process_steps' => ['description'],
     ];
 
     public function authorize(): bool
@@ -67,7 +59,7 @@ class UpdatePortfolioRequest extends FormRequest
             // Absolute http(s): a crawler on another host has to fetch it.
             'profile.social_image_url' => ['nullable', 'string', 'url:http,https', 'max:255'],
 
-            'social_links' => ['array'],
+            'social_links' => ['present', 'array'],
             'social_links.*.label' => ['nullable', 'string', 'max:60'],
             'social_links.*.url' => ['required', 'string', 'max:255', new SafeUrl],
             // Resolved via iconMap; an unknown key renders nothing.
@@ -76,38 +68,41 @@ class UpdatePortfolioRequest extends FormRequest
             'social_links.*.in_rail' => ['sometimes', 'boolean'],
             'social_links.*.in_footer' => ['sometimes', 'boolean'],
 
-            'metrics' => ['array'],
+            'metrics' => ['present', 'array'],
             // NOT NULL, and a cleared field arrives as null: 422 beats a 500.
             'metrics.*.value' => ['required', 'string', 'max:24'],
             'metrics.*.is_visible' => ['sometimes', 'boolean'],
 
-            'expertise_items' => ['array'],
+            'expertise_items' => ['present', 'array'],
             'expertise_items.*.icon' => ['nullable', 'string', 'max:60'],
             'expertise_items.*.category' => ['nullable', 'string', 'max:255'],
             'expertise_items.*.is_visible' => ['sometimes', 'boolean'],
 
-            'projects' => ['array'],
+            'projects' => ['present', 'array'],
             'projects.*.tags' => ['nullable', 'array'],
             'projects.*.tags.*' => ['string', 'max:60'],
             'projects.*.visual_style' => ['nullable', 'string', 'max:255'],
             'projects.*.is_visible' => ['sometimes', 'boolean'],
 
-            'process_steps' => ['array'],
+            'process_steps' => ['present', 'array'],
             'process_steps.*.group' => ['nullable', 'string', 'max:255'],
             'process_steps.*.icon' => ['nullable', 'string', 'max:60'],
             'process_steps.*.is_visible' => ['sometimes', 'boolean'],
         ];
 
-        foreach (self::TRANSLATED_PROFILE_FIELDS as $field) {
+        foreach (PortfolioFields::TRANSLATED_PROFILE as $field) {
             $rules += $this->translatedRules("profile.{$field}", required: false);
         }
 
-        foreach (self::REQUIRED_CHILD_TEXT as $field) {
-            $rules += $this->translatedRules($field, required: true);
-        }
+        foreach (PortfolioFields::TRANSLATED_CHILDREN as $collection => $fields) {
+            $optional = self::OPTIONAL_CHILD_TEXT[$collection] ?? [];
 
-        foreach (self::OPTIONAL_CHILD_TEXT as $field) {
-            $rules += $this->translatedRules($field, required: false);
+            foreach ($fields as $field) {
+                $rules += $this->translatedRules(
+                    "{$collection}.*.{$field}",
+                    required: ! in_array($field, $optional, true),
+                );
+            }
         }
 
         return $rules;

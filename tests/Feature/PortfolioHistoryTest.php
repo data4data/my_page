@@ -47,6 +47,9 @@ class PortfolioHistoryTest extends TestCase
             'expertise_items' => [],
             'projects' => [],
             'process_steps' => [],
+            // Every collection is named: saving replaces each one whole, so an
+            // omitted key would ask to delete it.
+            'social_links' => [],
         ];
     }
 

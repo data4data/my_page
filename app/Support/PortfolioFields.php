@@ -44,6 +44,39 @@ final class PortfolioFields
     ];
 
     /**
+     * The profile fields stored as an {en, nl} pair rather than a flat value.
+     * Read by UpdatePortfolioRequest for its rules and mirrored by
+     * `translatableProfile` in resources/js/shared/portfolio.js, which cannot
+     * import from here — `portfolio-fields.test.js` compares the two.
+     *
+     * @var list<string>
+     */
+    public const TRANSLATED_PROFILE = [
+        'role',
+        'headline',
+        'summary',
+        'primary_cta_label',
+        'secondary_cta_label',
+        'location_note',
+        'availability_note',
+        'quote',
+        'quote_author',
+    ];
+
+    /**
+     * The same, per child collection, keyed by payload key. Mirrored by
+     * `translatableItemFields` in resources/js/shared/portfolio.js.
+     *
+     * @var array<string, list<string>>
+     */
+    public const TRANSLATED_CHILDREN = [
+        'metrics' => ['label'],
+        'expertise_items' => ['title', 'description'],
+        'projects' => ['title', 'summary', 'result'],
+        'process_steps' => ['title', 'description'],
+    ];
+
+    /**
      * Payload keys (snake_case) -> relation names on PortfolioProfile.
      *
      * @var array<string, string>
