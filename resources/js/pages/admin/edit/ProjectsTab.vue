@@ -1,11 +1,11 @@
 <script setup>
 import { Plus } from '@lucide/vue';
-import AppInput from '../../components/ui/AppInput.vue';
-import AppTextarea from '../../components/ui/AppTextarea.vue';
-import AppButton from '../../components/ui/AppButton.vue';
-import AppLanguageCards from '../../components/ui/AppLanguageCards.vue';
-import EditableCard from '../../components/EditableCard.vue';
-import { copy, t } from '../../shared/i18n';
+import AppInput from '../../../components/ui/AppInput.vue';
+import AppTextarea from '../../../components/ui/AppTextarea.vue';
+import AppButton from '../../../components/ui/AppButton.vue';
+import AppLanguageCards from '../../../components/ui/AppLanguageCards.vue';
+import EditableCard from '../../../components/EditableCard.vue';
+import { copy, t } from '../../../shared/i18n';
 
 defineProps({
     projects: {
@@ -16,22 +16,24 @@ defineProps({
         type: Object,
         required: true,
     },
-    addItem: {
-        type: Function,
-        required: true,
-    },
-    removeItem: {
-        type: Function,
-        required: true,
-    },
-    moveItem: {
-        type: Function,
-        required: true,
-    },
     updateTags: {
         type: Function,
         required: true,
     },
+});
+
+const emit = defineEmits(['add', 'move', 'remove']);
+
+const COLLECTION = 'projects';
+
+// What "add" starts from. In the script, not inside the click handler: a whole
+// object written into markup is a default nobody finds when they go looking.
+const blank = () => ({
+    title: { en: 'New project', nl: 'Nieuw project' },
+    summary: { en: 'Describe the system and result.', nl: 'Beschrijf het systeem en resultaat.' },
+    result: { en: 'What improved.', nl: 'Wat is verbeterd.' },
+    tags: ['Laravel'],
+    visual_style: 'dashboard',
 });
 </script>
 
@@ -45,10 +47,9 @@ defineProps({
             :title="t(item.title) || copy('untitled')"
             :index="index"
             :total="projects.length"
-            collection="projects"
             :visible="item.is_visible !== false"
-            @move="moveItem"
-            @remove="removeItem"
+            @move="(from, direction) => emit('move', COLLECTION, from, direction)"
+            @remove="(at) => emit('remove', COLLECTION, at)"
             @update:visible="item.is_visible = $event"
         >
             <div class="lang-grid">
@@ -68,7 +69,7 @@ defineProps({
         <AppButton
             variant="solid"
             class="self-start"
-            @click="addItem('projects', { title: { en: 'New project', nl: 'Nieuw project' }, summary: { en: 'Describe the system and result.', nl: 'Beschrijf het systeem en resultaat.' }, result: { en: 'What improved.', nl: 'Wat is verbeterd.' }, tags: ['Laravel'], visual_style: 'dashboard' })"
+            @click="emit('add', COLLECTION, blank())"
         >
             <Plus :size="14" aria-hidden="true" />
             {{ copy('addProject') }}

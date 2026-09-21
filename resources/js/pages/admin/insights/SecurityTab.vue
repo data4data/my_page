@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { copy } from '../../shared/i18n';
+import { copy } from '../../../shared/i18n';
 
 const props = defineProps({
     events: {

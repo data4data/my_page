@@ -182,4 +182,41 @@ describe('page smoke tests', () => {
         expect(wrapper.text()).toContain('Content versions');
         expect(wrapper.text()).toContain('Two-step sign-in');
     });
+
+    // Each section loads what it shows. Opening the agenda used to fetch the
+    // messages, the sign-in trail and the saved versions as well.
+    it('AdminPage asks only for what the section on screen needs', async () => {
+        routeName.current = 'admin-agenda';
+
+        mountPage(AdminPage);
+        await flush();
+
+        const asked = global.fetch.mock.calls.map(([url]) => url);
+
+        expect(asked.some((url) => url.includes('/tasks'))).toBe(true);
+        expect(asked.some((url) => url.includes('/inquiries'))).toBe(false);
+        expect(asked.some((url) => url.includes('/security-events'))).toBe(false);
+    });
+
+    /*
+     * A page with no content and a page that failed to arrive both draw an
+     * empty editor. Saving that one would replace the live page with nothing,
+     * so the button stays out of reach and the failure says so.
+     */
+    it('AdminPage offers a retry instead of an empty editor it could save', async () => {
+        global.fetch = vi.fn(() => Promise.resolve({
+            ok: false,
+            status: 500,
+            json: () => Promise.resolve(null),
+        }));
+
+        const wrapper = mountPage(AdminPage);
+        await flush();
+
+        expect(wrapper.text()).toContain('Try again');
+
+        const save = wrapper.findAll('button').find((button) => button.text() === 'Save changes');
+
+        expect(save.attributes('disabled')).toBeDefined();
+    });
 });

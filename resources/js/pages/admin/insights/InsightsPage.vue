@@ -1,37 +1,60 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { ExternalLink, Newspaper } from '@lucide/vue';
-import AdminSheet from '../../components/admin/AdminSheet.vue';
-import AppButton from '../../components/ui/AppButton.vue';
+import AdminSheet from '../../../components/admin/AdminSheet.vue';
+import AppButton from '../../../components/ui/AppButton.vue';
 import SecurityTab from './SecurityTab.vue';
-import { copy } from '../../shared/i18n';
+import { copy } from '../../../shared/i18n';
+import { adminUrl } from '../../../shared/admin-path';
+import { apiFetch, reportError } from '../../../shared/api';
 
-const props = defineProps({
-    inquiries: {
-        type: Array,
-        required: true,
-    },
-    inquiriesLoading: {
-        type: Boolean,
-        required: true,
-    },
-    inquiriesHasMore: {
-        type: Boolean,
-        default: false,
-    },
-    securityEvents: {
-        type: Object,
-        default: null,
-    },
-    securityLoading: {
-        type: Boolean,
-        default: false,
-    },
-});
+/*
+ * This section loads what it shows. Nothing else in the workspace reads the
+ * messages or the sign-in trail, so asking for them from the shell meant
+ * opening Agenda still fetched both.
+ */
+const inquiries = ref([]);
+const inquiriesLoading = ref(true);
+// The connect form is public, so this list arrives a page at a time.
+const inquiriesHasMore = ref(false);
+const inquiriesPage = ref(1);
 
-defineEmits(['load-more']);
+const securityEvents = ref(null);
+const securityLoading = ref(true);
 
 const tab = ref('connections');
+
+// Each load clears its own flag, so one failing leaves the others alone.
+const fetchInquiries = async (page = 1) => {
+    inquiriesLoading.value = true;
+
+    try {
+        const body = await apiFetch(`${adminUrl('/inquiries')}?page=${page}`);
+        const rows = body.inquiries ?? [];
+
+        inquiries.value = page === 1 ? rows : [...inquiries.value, ...rows];
+        inquiriesHasMore.value = body.has_more ?? false;
+        inquiriesPage.value = body.page ?? page;
+    } finally {
+        inquiriesLoading.value = false;
+    }
+};
+
+const fetchSecurityEvents = async () => {
+    securityLoading.value = true;
+
+    try {
+        securityEvents.value = await apiFetch(adminUrl('/security-events'));
+    } finally {
+        securityLoading.value = false;
+    }
+};
+
+const loadInquiries = (page = 1) => fetchInquiries(page)
+    .catch((error) => reportError(error, copy('inquiryLoadError')));
+
+loadInquiries();
+fetchSecurityEvents().catch((error) => reportError(error, copy('securityLoadError')));
 
 // Security sits last and to the right: it is a log you check, not a feed you
 // read.
@@ -52,12 +75,12 @@ const subtitle = computed(() => copy(SUBTITLES[tab.value] ?? ''));
 // Only the connections tab has a count worth stating; the others say nothing
 // rather than filling the bar with something untrue.
 const status = computed(() => {
-    if (tab.value !== 'connections' || props.inquiriesLoading) {
+    if (tab.value !== 'connections' || inquiriesLoading.value) {
         return '';
     }
 
     // The label as translated: which words keep a capital is a language rule.
-    return `${props.inquiries.length}${props.inquiriesHasMore ? '+' : ''} · ${copy('insightsConnections')}`;
+    return `${inquiries.value.length}${inquiriesHasMore.value ? '+' : ''} · ${copy('insightsConnections')}`;
 });
 
 const formatDate = (value) => new Date(value).toLocaleString(undefined, {
@@ -112,7 +135,7 @@ const formatDate = (value) => new Date(value).toLocaleString(undefined, {
                 variant="outline"
                 class="self-start"
                 :disabled="inquiriesLoading"
-                @click="$emit('load-more')"
+                @click="loadInquiries(inquiriesPage + 1)"
             >
                 {{ inquiriesLoading ? copy('insightsLoading') : copy('insightsLoadMore') }}
             </AppButton>

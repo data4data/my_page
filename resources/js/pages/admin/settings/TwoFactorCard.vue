@@ -1,12 +1,12 @@
 <script setup>
 import { onMounted, ref } from 'vue';
-import AppButton from '../../components/ui/AppButton.vue';
-import AppInput from '../../components/ui/AppInput.vue';
-import { copy } from '../../shared/i18n';
-import { adminUrl } from '../../shared/admin-path';
-import { apiFetch, errorMessage, reportError } from '../../shared/api';
-import { useToast } from '../../shared/toast';
-import { useConfirm } from '../../shared/confirm';
+import AppButton from '../../../components/ui/AppButton.vue';
+import AppInput from '../../../components/ui/AppInput.vue';
+import { copy } from '../../../shared/i18n';
+import { adminUrl } from '../../../shared/admin-path';
+import { apiFetch, errorMessage, reportError } from '../../../shared/api';
+import { useToast } from '../../../shared/toast';
+import { useConfirm } from '../../../shared/confirm';
 
 const toast = useToast();
 const { confirm } = useConfirm();

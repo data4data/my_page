@@ -1,14 +1,14 @@
 <script setup>
 import { computed } from 'vue';
 import { Plus } from '@lucide/vue';
-import AppTextarea from '../../components/ui/AppTextarea.vue';
-import AppInput from '../../components/ui/AppInput.vue';
-import AppIconSelect from '../../components/ui/AppIconSelect.vue';
-import AppSelect from '../../components/ui/AppSelect.vue';
-import AppButton from '../../components/ui/AppButton.vue';
-import AppLanguageCards from '../../components/ui/AppLanguageCards.vue';
-import EditableCard from '../../components/EditableCard.vue';
-import { copy, t } from '../../shared/i18n';
+import AppTextarea from '../../../components/ui/AppTextarea.vue';
+import AppInput from '../../../components/ui/AppInput.vue';
+import AppIconSelect from '../../../components/ui/AppIconSelect.vue';
+import AppSelect from '../../../components/ui/AppSelect.vue';
+import AppButton from '../../../components/ui/AppButton.vue';
+import AppLanguageCards from '../../../components/ui/AppLanguageCards.vue';
+import EditableCard from '../../../components/EditableCard.vue';
+import { copy, t } from '../../../shared/i18n';
 
 defineProps({
     processSteps: {
@@ -17,18 +17,6 @@ defineProps({
     },
     profile: {
         type: Object,
-        required: true,
-    },
-    addItem: {
-        type: Function,
-        required: true,
-    },
-    removeItem: {
-        type: Function,
-        required: true,
-    },
-    moveItem: {
-        type: Function,
         required: true,
     },
 });
@@ -40,6 +28,19 @@ const processGroupOptions = computed(() => [
     { label: copy('processGroupCore'), value: 'core' },
     { label: copy('processGroupOutput'), value: 'output' },
 ]);
+
+const emit = defineEmits(['add', 'move', 'remove']);
+
+const COLLECTION = 'process_steps';
+
+// What "add" starts from. In the script, not inside the click handler: a whole
+// object written into markup is a default nobody finds when they go looking.
+const blank = () => ({
+    group: 'core',
+    title: { en: 'New step', nl: 'Nieuwe stap' },
+    description: { en: 'Short description', nl: 'Korte beschrijving' },
+    icon: 'sparkles',
+});
 </script>
 
 <template>
@@ -52,10 +53,9 @@ const processGroupOptions = computed(() => [
             :title="t(item.title) || copy('untitled')"
             :index="index"
             :total="processSteps.length"
-            collection="process_steps"
             :visible="item.is_visible !== false"
-            @move="moveItem"
-            @remove="removeItem"
+            @move="(from, direction) => emit('move', COLLECTION, from, direction)"
+            @remove="(at) => emit('remove', COLLECTION, at)"
             @update:visible="item.is_visible = $event"
         >
             <div class="lang-grid">
@@ -74,7 +74,7 @@ const processGroupOptions = computed(() => [
         <AppButton
             variant="solid"
             class="self-start"
-            @click="addItem('process_steps', { group: 'core', title: { en: 'New step', nl: 'Nieuwe stap' }, description: { en: 'Short description', nl: 'Korte beschrijving' }, icon: 'sparkles' })"
+            @click="emit('add', COLLECTION, blank())"
         >
             <Plus :size="14" aria-hidden="true" />
             {{ copy('addProcessStep') }}
