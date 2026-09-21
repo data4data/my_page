@@ -23,7 +23,7 @@ composer install && npm install
 cp .env.example .env && php artisan key:generate
 php artisan migrate --seed        # placeholder content, categories, and a local-only demo login
 php artisan app:install           # a real admin account and the profile — asks for them
-composer run dev                  # serve + queue + logs + vite
+composer run dev                  # serve + queue + schedule + logs + vite
 ```
 
 On a development machine `migrate --seed` leaves a demo login behind —
