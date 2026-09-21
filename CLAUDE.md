@@ -268,7 +268,7 @@ The public connect form has three layers against spam: `throttle:10,1` on the ro
 
 - `GET|POST {admin}/tasks`, `PUT|DELETE {admin}/tasks/{task}` — index requires `start`/`end` date params and rejects a span wider than a year; the calendar fetches by visible range.
 - `POST {admin}/tasks/{task}/timer/start|stop`.
-- `GET|POST {admin}/categories`, `PUT|DELETE {admin}/categories/{category}`.
+- `GET|POST {admin}/categories`, `PUT|DELETE {admin}/categories/{category}` — the index applies "mine or global" to **both** levels. A global parent is shared by everyone, so eager-loading its `children` unfiltered handed every user the others' private subcategories; that is what it did until 2026-09-21.
 - `GET {admin}/reports?period_type=week|month&period_start=Y-m-d` — totals come from `withSum` on `time_logs.duration_minutes`, so the stored column is summed in SQL rather than in PHP. `by_category` groups by `category_id`, not by name, and leaves the uncategorized bucket's label to the frontend.
 
   **Tracked and planned are counted over different rows, on purpose.** A task and the minutes spent on it can fall in different periods, so the `withSum` is *constrained to logs started inside the period* and the task set is "scheduled here **or** tracked here". Summing a task's whole history instead — which is what it did until 2026-09-21 — put last month's minutes in this week's total and hid minutes tracked this week on last week's task. Planned time is the mirror rule: a task that merely collected minutes here contributes 0, because its plan is counted in the period it was scheduled in.

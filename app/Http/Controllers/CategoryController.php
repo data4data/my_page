@@ -13,12 +13,19 @@ class CategoryController extends Controller
     // Global categories (user_id null) plus this user's own, one level deep.
     public function index(Request $request): JsonResponse
     {
+        $userId = $request->user()->id;
+
+        // The same rule on both levels. Without it on the children, a global
+        // parent is shared by everyone and hands each of them every other
+        // user's subcategories hanging off it.
+        $mineOrGlobal = fn ($query) => $query->where(
+            fn ($inner) => $inner->whereNull('user_id')->orWhere('user_id', $userId)
+        );
+
         $categories = Category::query()
-            ->where(function ($query) use ($request) {
-                $query->whereNull('user_id')->orWhere('user_id', $request->user()->id);
-            })
+            ->tap($mineOrGlobal)
             ->whereNull('parent_id')
-            ->with(['children' => fn ($query) => $query->orderBy('name')])
+            ->with(['children' => fn ($query) => $mineOrGlobal($query)->orderBy('name')])
             ->orderBy('name')
             ->get();
 
