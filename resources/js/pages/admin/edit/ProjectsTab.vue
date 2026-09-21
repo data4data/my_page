@@ -1,11 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { Plus } from '@lucide/vue';
 import AppInput from '../../../components/ui/AppInput.vue';
 import AppSelect from '../../../components/ui/AppSelect.vue';
 import AppMultiSelect from '../../../components/ui/AppMultiSelect.vue';
 import AppTextarea from '../../../components/ui/AppTextarea.vue';
-import AppButton from '../../../components/ui/AppButton.vue';
 import AppLanguageCards from '../../../components/ui/AppLanguageCards.vue';
 import EditableCard from '../../../components/EditableCard.vue';
 import { copy, t } from '../../../shared/i18n';
@@ -25,7 +23,7 @@ defineProps({
     },
 });
 
-const emit = defineEmits(['add', 'move', 'remove']);
+const emit = defineEmits(['move', 'remove']);
 
 const COLLECTION = 'projects';
 
@@ -80,15 +78,6 @@ const addTag = async (item) => {
     }
 };
 
-// What "add" starts from. In the script, not inside the click handler: a whole
-// object written into markup is a default nobody finds when they go looking.
-const blank = () => ({
-    title: { en: 'New project', nl: 'Nieuw project' },
-    summary: { en: 'Describe the system and result.', nl: 'Beschrijf het systeem en resultaat.' },
-    result: { en: 'What improved.', nl: 'Wat is verbeterd.' },
-    tags: ['Laravel'],
-    visual_style: 'dashboard',
-});
 </script>
 
 <template>
@@ -138,14 +127,5 @@ const blank = () => ({
                 </template>
             </AppLanguageCards>
         </EditableCard>
-
-        <AppButton
-            variant="solid"
-            class="self-start"
-            @click="emit('add', COLLECTION, blank())"
-        >
-            <Plus :size="14" aria-hidden="true" />
-            {{ copy('addProject') }}
-        </AppButton>
     </div>
 </template>

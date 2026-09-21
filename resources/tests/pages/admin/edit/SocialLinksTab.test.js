@@ -31,7 +31,6 @@ const mountTab = (links = []) => ({
 });
 
 const cards = (wrapper) => wrapper.findAll('.item-card');
-const addButton = (wrapper) => wrapper.findAll('button').at(-1);
 
 describe('SocialLinksTab', () => {
     it('lists one card per link, ones shown nowhere included', () => {
@@ -46,18 +45,6 @@ describe('SocialLinksTab', () => {
 
     it('renders no cards when there are none', () => {
         expect(cards(mountTab().wrapper)).toHaveLength(0);
-    });
-
-    // A child collection, so the tab asks the editor to change the list rather
-    // than editing an array on the profile in place.
-    it('asks for a new link, shown in both places', async () => {
-        const { wrapper } = mountTab([]);
-
-        await addButton(wrapper).trigger('click');
-
-        expect(wrapper.emitted('add')[0]).toEqual(['social_links', {
-            label: '', url: '', icon: 'link', in_rail: true, in_footer: true,
-        }]);
     });
 
     it('toggles the two places independently', async () => {

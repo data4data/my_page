@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import AdminSheet from '../../../components/admin/AdminSheet.vue';
+import { Plus } from '@lucide/vue';
 import AppButton from '../../../components/ui/AppButton.vue';
 import ProfileTab from './ProfileTab.vue';
 import MetricsTab from './MetricsTab.vue';
@@ -11,6 +12,7 @@ import SocialLinksTab from './SocialLinksTab.vue';
 import GeneralTab from './GeneralTab.vue';
 import { copy } from '../../../shared/i18n';
 import { usePortfolioEditor } from '../usePortfolioEditor';
+import { addActionFor } from './new-item';
 
 const {
     profile,
@@ -57,6 +59,11 @@ const SUBTITLES = {
 };
 
 const subtitle = computed(() => copy(SUBTITLES[tab.value] ?? ''));
+
+// In the action bar rather than under the list: the bar is sticky, so adding
+// a tenth project does not mean scrolling past nine to find the button. Null
+// on the two tabs that edit the profile itself and have no list to add to.
+const addAction = computed(() => addActionFor(tab.value));
 </script>
 
 <template>
@@ -76,7 +83,6 @@ const subtitle = computed(() => copy(SUBTITLES[tab.value] ?? ''));
                 v-else-if="tab === 'metrics'"
                 :metrics="metrics"
                 :profile="profile"
-                @add="addItem"
                 @remove="removeItem"
                 @move="moveItem"
             />
@@ -84,7 +90,6 @@ const subtitle = computed(() => copy(SUBTITLES[tab.value] ?? ''));
                 v-else-if="tab === 'expertise'"
                 :expertise="expertise"
                 :profile="profile"
-                @add="addItem"
                 @remove="removeItem"
                 @move="moveItem"
             />
@@ -92,7 +97,6 @@ const subtitle = computed(() => copy(SUBTITLES[tab.value] ?? ''));
                 v-else-if="tab === 'process'"
                 :process-steps="processSteps"
                 :profile="profile"
-                @add="addItem"
                 @remove="removeItem"
                 @move="moveItem"
             />
@@ -100,14 +104,12 @@ const subtitle = computed(() => copy(SUBTITLES[tab.value] ?? ''));
                 v-else-if="tab === 'projects'"
                 :projects="projects"
                 :profile="profile"
-                @add="addItem"
                 @remove="removeItem"
                 @move="moveItem"
             />
             <SocialLinksTab
                 v-else-if="tab === 'social'"
                 :links="socialLinks"
-                @add="addItem"
                 @remove="removeItem"
                 @move="moveItem"
             />
@@ -117,6 +119,18 @@ const subtitle = computed(() => copy(SUBTITLES[tab.value] ?? ''));
         <template #status>{{ saveStatus }}</template>
 
         <template #actions>
+            <!-- First, and quieter than Save: it is the tab's own action, not
+                 the sheet's. Disabled until the payload is there to add to. -->
+            <AppButton
+                v-if="addAction"
+                variant="outline"
+                :disabled="!ready"
+                @click="addItem(addAction.collection, addAction.blank())"
+            >
+                <Plus :size="14" aria-hidden="true" />
+                {{ addAction.label }}
+            </AppButton>
+
             <AppButton variant="outline" :disabled="!dirty || saving" @click="reload">
                 {{ copy('cancel') }}
             </AppButton>

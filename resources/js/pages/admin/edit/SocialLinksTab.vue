@@ -1,9 +1,7 @@
 <script setup>
-import { Plus } from '@lucide/vue';
 import AppInput from '../../../components/ui/AppInput.vue';
 import AppIconSelect from '../../../components/ui/AppIconSelect.vue';
 import AppCheckbox from '../../../components/ui/AppCheckbox.vue';
-import AppButton from '../../../components/ui/AppButton.vue';
 import EditableCard from '../../../components/EditableCard.vue';
 import { copy } from '../../../shared/i18n';
 import { iconMap } from '../../../shared/icons';
@@ -17,11 +15,9 @@ defineProps({
     },
 });
 
-const emit = defineEmits(['add', 'move', 'remove']);
+const emit = defineEmits(['move', 'remove']);
 
 const COLLECTION = 'social_links';
-
-const blank = () => ({ label: '', url: '', icon: 'link', in_rail: true, in_footer: true });
 </script>
 
 <template>
@@ -62,10 +58,5 @@ const blank = () => ({ label: '', url: '', icon: 'link', in_rail: true, in_foote
                 </div>
             </div>
         </EditableCard>
-
-        <AppButton variant="solid" class="self-start" @click="emit('add', COLLECTION, blank())">
-            <Plus :size="14" aria-hidden="true" />
-            {{ copy('socialAdd') }}
-        </AppButton>
     </div>
 </template>
