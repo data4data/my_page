@@ -27,6 +27,7 @@ composer run dev                  # serve + queue + logs + vite
 ```
 
 On a development machine `migrate --seed` leaves a demo login behind —
+`DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD` in `.env`, defaulting to
 `demo@my-page.test` / `demo-workspace` — so `migrate:fresh --seed` does not lock
 you out. It is `local`-only and refuses to replace an account that already
 exists; see the seeding section of `CLAUDE.md`. Run `app:install` instead for

@@ -7,6 +7,7 @@ use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoAdminSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -40,14 +41,14 @@ class DemoAdminSeederTest extends TestCase
     {
         $this->runIn('local');
 
-        $user = User::query()->where('email', DemoAdminSeeder::EMAIL)->firstOrFail();
+        $user = User::query()->where('email', DemoAdminSeeder::email())->firstOrFail();
 
         $this->assertTrue($user->hasRole('admin'));
-        $this->assertTrue(Hash::check(DemoAdminSeeder::PASSWORD, $user->password));
+        $this->assertTrue(Hash::check(DemoAdminSeeder::password(), $user->password));
 
         $this->postJson($this->adminUrl('/login'), [
-            'email' => DemoAdminSeeder::EMAIL,
-            'password' => DemoAdminSeeder::PASSWORD,
+            'email' => DemoAdminSeeder::email(),
+            'password' => DemoAdminSeeder::password(),
         ])->assertOk();
 
         $this->assertAuthenticated();
@@ -72,7 +73,7 @@ class DemoAdminSeederTest extends TestCase
         $this->runIn('local');
 
         $this->assertSame(1, User::query()->count());
-        $this->assertNull(User::query()->where('email', DemoAdminSeeder::EMAIL)->first());
+        $this->assertNull(User::query()->where('email', DemoAdminSeeder::email())->first());
         $this->assertTrue(Hash::check('a real password', $owner->fresh()->password));
     }
 
@@ -91,10 +92,51 @@ class DemoAdminSeederTest extends TestCase
         $this->runIn('local', fn () => $this->seed(DatabaseSeeder::class));
 
         $this->postJson($this->adminUrl('/login'), [
-            'email' => DemoAdminSeeder::EMAIL,
-            'password' => DemoAdminSeeder::PASSWORD,
+            'email' => DemoAdminSeeder::email(),
+            'password' => DemoAdminSeeder::password(),
         ])->assertOk();
 
         $this->assertAuthenticated();
+    }
+
+    // The reason the credentials live in config: changing them should not mean
+    // editing a seeder.
+    public function test_it_uses_the_credentials_from_the_configuration(): void
+    {
+        config([
+            'admin.demo.email' => 'someone@my-page.test',
+            'admin.demo.password' => 'a-chosen-password',
+        ]);
+
+        $this->runIn('local');
+
+        $user = User::query()->where('email', 'someone@my-page.test')->firstOrFail();
+
+        $this->assertTrue($user->hasRole('admin'));
+        $this->assertTrue(Hash::check('a-chosen-password', $user->password));
+    }
+
+    /**
+     * A key present but left blank in .env is a likelier mistake than a key
+     * left out, and either an empty address or an empty password would make an
+     * account nobody can sign in to.
+     *
+     * @return array<int, array{0: string|null}>
+     */
+    public static function blankValues(): array
+    {
+        return [[''], ['   '], [null]];
+    }
+
+    #[DataProvider('blankValues')]
+    public function test_a_blank_setting_falls_back_to_the_default(?string $value): void
+    {
+        config(['admin.demo.email' => $value, 'admin.demo.password' => $value]);
+
+        $this->runIn('local');
+
+        $user = User::query()->where('email', DemoAdminSeeder::DEFAULT_EMAIL)->firstOrFail();
+
+        $this->assertTrue(Hash::check(DemoAdminSeeder::DEFAULT_PASSWORD, $user->password));
     }
 }
