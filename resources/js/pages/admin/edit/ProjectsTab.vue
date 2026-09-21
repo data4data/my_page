@@ -1,14 +1,18 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { Plus } from '@lucide/vue';
 import AppInput from '../../../components/ui/AppInput.vue';
 import AppSelect from '../../../components/ui/AppSelect.vue';
+import AppMultiSelect from '../../../components/ui/AppMultiSelect.vue';
 import AppTextarea from '../../../components/ui/AppTextarea.vue';
 import AppButton from '../../../components/ui/AppButton.vue';
 import AppLanguageCards from '../../../components/ui/AppLanguageCards.vue';
 import EditableCard from '../../../components/EditableCard.vue';
 import { copy, t } from '../../../shared/i18n';
 import { VISUAL_STYLES } from '../../../shared/portfolio';
+import { useTags } from '../../../shared/tags';
+import { reportError } from '../../../shared/api';
+import { useToast } from '../../../shared/toast';
 
 defineProps({
     projects: {
@@ -17,10 +21,6 @@ defineProps({
     },
     profile: {
         type: Object,
-        required: true,
-    },
-    updateTags: {
-        type: Function,
         required: true,
     },
 });
@@ -42,6 +42,43 @@ const visualStyleOptions = computed(() => VISUAL_STYLES.map((value) => ({
     value,
     label: copy(VISUAL_STYLE_LABELS[value]),
 })));
+
+const { tags, loadTags, createTag } = useTags();
+const toast = useToast();
+
+// One shared list for every card on the tab, so a tag added on one is offered
+// by the next without a reload.
+const tagOptions = computed(() => tags.value.map((name) => ({ value: name, label: name })));
+
+onMounted(() => loadTags().catch((failure) => reportError(failure, copy('tagsLoadError'))));
+
+// What was typed into the dropdown's search box. Kept so the "add" row can
+// offer that exact word when nothing matches it.
+const tagSearch = ref('');
+const addingTag = ref(false);
+
+const addTag = async (item) => {
+    const name = tagSearch.value.trim();
+
+    if (!name || addingTag.value) {
+        return;
+    }
+
+    addingTag.value = true;
+
+    try {
+        const created = await createTag(name);
+        // Selected on the card it was added from: adding a word you are not
+        // then given is a second step for no reason.
+        item.tags = [...(item.tags ?? []), created];
+        tagSearch.value = '';
+        toast.success(copy('tagAdded'));
+    } catch (failure) {
+        reportError(failure, copy('tagAddError'));
+    } finally {
+        addingTag.value = false;
+    }
+};
 
 // What "add" starts from. In the script, not inside the click handler: a whole
 // object written into markup is a default nobody finds when they go looking.
@@ -71,7 +108,26 @@ const blank = () => ({
         >
             <div class="lang-grid">
                 <label class="field-label">{{ copy('fieldVisualStyle') }}<AppSelect v-model="item.visual_style" :options="visualStyleOptions" /></label>
-                <label class="field-label">{{ copy('fieldTags') }}<AppInput :model-value="item.tags?.join(', ')" @update:model-value="(value) => updateTags(item, value)" /></label>
+                <label class="field-label">
+                    {{ copy('fieldTags') }}
+                    <AppMultiSelect
+                        :model-value="item.tags ?? []"
+                        :options="tagOptions"
+                        filterable
+                        :placeholder="copy('fieldTagsPlaceholder')"
+                        :filter-placeholder="copy('tagSearch')"
+                        @update:model-value="item.tags = $event"
+                        @filter="tagSearch = $event.value"
+                    >
+                        <!-- Searched for and not found: the one moment the
+                             offer to create it is worth making. -->
+                        <template #emptyfilter>
+                            <button type="button" class="field-select-add" :disabled="addingTag" @click="addTag(item)">
+                                {{ copy('tagAdd') }} “{{ tagSearch }}”
+                            </button>
+                        </template>
+                    </AppMultiSelect>
+                </label>
             </div>
 
             <AppLanguageCards :default-language="profile.default_language">

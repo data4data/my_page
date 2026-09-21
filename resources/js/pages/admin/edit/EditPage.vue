@@ -57,10 +57,6 @@ const SUBTITLES = {
 };
 
 const subtitle = computed(() => copy(SUBTITLES[tab.value] ?? ''));
-
-const updateTags = (project, value) => {
-    project.tags = value.split(',').map((tag) => tag.trim()).filter(Boolean);
-};
 </script>
 
 <template>
@@ -104,7 +100,6 @@ const updateTags = (project, value) => {
                 v-else-if="tab === 'projects'"
                 :projects="projects"
                 :profile="profile"
-                :update-tags="updateTags"
                 @add="addItem"
                 @remove="removeItem"
                 @move="moveItem"

@@ -112,8 +112,15 @@ for most rows.
 - **The `{en, nl}` JSON columns.** A translations table turns every read into a
   join and a pivot, for two languages on a page always read whole. Revisit if a
   translated value must be sorted or filtered in SQL.
-- **`portfolio_projects.tags`.** Free text, never shared between projects,
-  never queried. Revisit when something wants "every project tagged Laravel".
+- **`portfolio_projects.tags`.** Still a JSON list of names on the project,
+  and still never queried in SQL - but **the names are now picked, not typed**.
+  The `tags` table is the vocabulary the editor offers (`TagSeeder` starts it,
+  and the Projects tab can add to it); the project keeps the words it chose.
+  That split is deliberate: `save()` replaces each collection whole and
+  `PortfolioRevision` stores the payload as a snapshot, so a project pointing
+  at tag *rows* would restore differently depending on which rows still
+  existed. Names restore identically forever. Revisit the JSON column itself
+  when something wants "every project tagged Laravel" out of the database.
 - **`headline_highlights`.** A short list tied to one string.
 - **`portfolio_revisions.payload`.** The snapshot is what makes `restore()` the
   same code path as `save()`.
@@ -137,7 +144,7 @@ Not `php artisan schema:dump`: it squashes to a MySQL dump, which pins the repo 
 
 - **Roles are code.** `admin` is a name `role:admin` refers to — a constant that happens to live in a table. Created idempotently, never asked for.
 - **The admin account and the profile are this install's identity.** `php artisan app:install` creates them, prompting for the email, the password and the initials. It replaced `AdminUserSeeder`, which read credentials from `.env` and then spent sixty lines refusing the weak ones it might be handed; a command can simply ask, so a real password never sits in a file and a placeholder one can never reach a live install. There is no `ADMIN_EMAIL` or `ADMIN_PASSWORD` any more. Safe to run twice: it updates rather than duplicating, and leaves edited content alone.
-- **Placeholder content, the demo login and the demo week are samples.** `DatabaseSeeder` runs `DefaultPortfolioContent::seed()` and `CategorySeeder`, plus `DemoAdminSeeder` and `DemoWeekSeeder` **only when `app()->environment('local')`** — a `git pull` + `migrate --seed` on a live instance must never bury real planning data under sample rows, nor leave behind a login whose password is in this repository.
+- **Placeholder content, the demo login and the demo week are samples.** `DatabaseSeeder` runs `DefaultPortfolioContent::seed()`, `CategorySeeder` and `TagSeeder`, plus `DemoAdminSeeder` and `DemoWeekSeeder` **only when `app()->environment('local')`** — a `git pull` + `migrate --seed` on a live instance must never bury real planning data under sample rows, nor leave behind a login whose password is in this repository.
 
   **`DemoAdminSeeder` exists because `migrate:fresh --seed` drops the users table**, and `app:install` cannot be part of a seed run: it asks for a password. So development gets `DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD` from `.env` (via `config/admin.php`, defaulting to `demo@my-page.test` / `demo-workspace`) and a real install still gets a typed password. **These are not the `ADMIN_EMAIL`/`ADMIN_PASSWORD` that were removed:** those configured the real admin on *any* install, which is how a placeholder could reach a live one. The seeder normalises both — blank falls back to `DEFAULT_EMAIL`/`DEFAULT_PASSWORD` — because a key present in `.env` but left empty is a likelier mistake than one left out, and either blank makes an account nobody can sign in to. Three things keep the two apart: the environment check is **repeated inside the seeder**, so `db:seed --class=DemoAdminSeeder` on a live box does nothing rather than trusting its caller; it **refuses when any admin already exists**, so re-running the seeders can never hand a real account a password from a repository; and the address is on `.test`, which cannot resolve. `DemoAdminSeederTest` is mostly tests of those refusals rather than of the account it makes.
 
@@ -295,6 +302,11 @@ The public connect form has three layers against spam: `throttle:10,1` on the ro
   accepts, so the picker cannot offer one it would then reject. Saved the
   moment it is picked rather than through the Edit page's payload: it belongs
   to the account, not to the public page.
+- `GET|POST {admin}/tags` - the tag vocabulary as plain names, alphabetical,
+  and adding one to it. Separate from saving the page because a tag has to
+  exist before a project can be given it, and because the page's own save
+  replaces collections whole. `resources/js/shared/tags.js` holds one list for
+  the whole Projects tab, so a tag added on one card is offered by the next.
 - `GET {admin}/security-events` — the sign-in trail: a per-address rollup over the last 12 hours, outcome totals for that window, and the 50 most recent attempts. Rendered by the **Security** tab under Insights.
 - `GET {admin}/inquiries?page=N` — intentionally **view-only**; no update/destroy exists. `simplePaginate`d into `{inquiries, page, has_more}`, since the public form that fills it is throttled per minute rather than in total.
 

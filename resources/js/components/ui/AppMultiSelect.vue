@@ -10,6 +10,15 @@ defineProps({
         type: String,
         default: '',
     },
+    // A search box above the list, for the ones long enough to need it.
+    filterable: {
+        type: Boolean,
+        default: false,
+    },
+    filterPlaceholder: {
+        type: String,
+        default: 'Search...',
+    },
 });
 
 const model = defineModel({ type: Array, default: () => [] });
@@ -42,6 +51,8 @@ const headerCheckboxPt = {
         option-value="value"
         :placeholder="placeholder"
         :max-selected-labels="99"
+        :filter="filterable"
+        :filter-placeholder="filterPlaceholder"
         unstyled
         :pt="{
             root: 'field-select-root',
@@ -52,8 +63,15 @@ const headerCheckboxPt = {
             listContainer: 'field-select-list',
             option: 'field-select-option flex items-center gap-2',
             header: 'field-select-filter-header',
+            pcFilterContainer: 'field-select-filter-field',
+            pcFilter: { root: 'field-input' },
+            pcFilterIconContainer: 'field-select-filter-icon',
             pcHeaderCheckbox: headerCheckboxPt,
             pcOptionCheckbox: optionCheckboxPt,
         }"
-    />
+    >
+        <!-- Forwarded so a caller can offer to create what was searched for
+             and not found, which is where that offer belongs. -->
+        <template v-if="$slots.emptyfilter" #emptyfilter><slot name="emptyfilter" /></template>
+    </MultiSelect>
 </template>
