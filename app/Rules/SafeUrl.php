@@ -24,14 +24,14 @@ class SafeUrl implements ValidationRule
         }
 
         if (! is_string($value)) {
-            $fail('The :attribute must be a string.');
+            $fail('rules.safe_url_string')->translate();
 
             return;
         }
 
         // Browsers strip control characters first, so "java\nscript:..." runs.
         if (preg_match('/[\x00-\x1F\x7F]/', $value)) {
-            $fail('The :attribute must not contain control characters.');
+            $fail('rules.safe_url_control_characters')->translate();
 
             return;
         }
@@ -41,7 +41,7 @@ class SafeUrl implements ValidationRule
         }
 
         if (! in_array(strtolower($matches[1]), self::ALLOWED_SCHEMES, true)) {
-            $fail('The :attribute must be a link, an email address or a phone number.');
+            $fail('rules.safe_url')->translate();
         }
     }
 }

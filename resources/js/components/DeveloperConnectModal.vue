@@ -58,7 +58,6 @@ const submit = async () => {
     await apiFetch(localeFromPath(route.path) ? `/${localeFromPath(route.path)}/hi-developer` : '/hi-developer', {
             method: 'POST',
             body: form.value,
-            message: copy('connectError'),
         });
 
         submitted.value = true;

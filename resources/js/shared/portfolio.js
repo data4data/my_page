@@ -72,7 +72,7 @@ export function usePortfolioSource(endpoint) {
         loading.value = true;
 
         try {
-            data.value = normalizePortfolio(await apiFetch(endpoint, { message: 'Could not load the page content.' }));
+            data.value = normalizePortfolio(await apiFetch(endpoint));
         } finally {
             // A failed load must still clear the flag.
             loading.value = false;

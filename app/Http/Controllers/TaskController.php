@@ -32,7 +32,7 @@ class TaskController extends Controller
 
                     // abs(): Carbon 3 returns a signed difference.
                     if ($start && abs($start->diffInDays(Carbon::parse($value))) > self::MAX_RANGE_DAYS) {
-                        $fail('The requested range is too wide.');
+                        $fail(__('rules.range_too_wide'));
                     }
                 },
             ],

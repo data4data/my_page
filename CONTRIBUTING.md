@@ -57,6 +57,7 @@ Each of these fails **silently**, not loudly:
 | Change | Also update |
 |---|---|
 | A new UI string | **both** `en` and `nl`, in whichever of `i18n.js`, `i18n-public.js` or `i18n-admin.js` its half belongs to |
+| A message from one of our own validation rules | `lang/en/rules.php` **and** `lang/nl/rules.php` — a literal `$fail('...')` is English whatever language was asked for |
 | A new `icon` value in DB or seed data | `iconMap` in `resources/js/shared/icons.js`, or it renders nothing |
 | A new `TaskStatus` case | `TASK_STATUSES` in `resources/js/shared/planning.js` |
 | A profile/child field | migration → `$fillable`/`$casts` → the matching list in `App\Support\PortfolioFields` → rule in `UpdatePortfolioRequest` → `DefaultPortfolioContent::content()` |

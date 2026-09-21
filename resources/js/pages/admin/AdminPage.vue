@@ -163,17 +163,19 @@ const fetchSecurityEvents = async () => {
     }
 };
 
-const loadMoreInquiries = () => fetchInquiries(inquiriesPage.value + 1).catch(reportError);
+const loadMoreInquiries = () => fetchInquiries(inquiriesPage.value + 1)
+    .catch((error) => reportError(error, copy('inquiryLoadError')));
 
 // Snapshot once the payload lands, so `dirty` has something to compare to.
 const loadPortfolio = () => fetchPortfolio().then(() => {
     savedPayload.value = JSON.stringify(data.value);
 });
 
-loadPortfolio().catch(reportError);
-fetchInquiries().catch(reportError);
-fetchRevisions().catch(reportError);
-fetchSecurityEvents().catch(reportError);
+// Each says what failed to arrive, in the language on screen.
+loadPortfolio().catch((error) => reportError(error, copy('contentLoadError')));
+fetchInquiries().catch((error) => reportError(error, copy('inquiryLoadError')));
+fetchRevisions().catch((error) => reportError(error, copy('historyLoadError')));
+fetchSecurityEvents().catch((error) => reportError(error, copy('securityLoadError')));
 
 const savePortfolio = async () => {
     saving.value = true;
@@ -182,7 +184,6 @@ const savePortfolio = async () => {
         await apiFetch(adminUrl('/portfolio'), {
             method: 'PUT',
             body: data.value,
-            message: copy('error'),
         });
 
         await loadPortfolio();
@@ -190,7 +191,7 @@ const savePortfolio = async () => {
         await fetchRevisions();
         toast.success(copy('saved'));
     } catch (error) {
-        reportError(error);
+        reportError(error, copy('error'));
     } finally {
         saving.value = false;
     }
@@ -205,13 +206,13 @@ const restoreDefaults = async () => {
     restoring.value = true;
 
     try {
-        await apiFetch(adminUrl('/portfolio/seed-defaults'), { method: 'POST', message: copy('error') });
+        await apiFetch(adminUrl('/portfolio/seed-defaults'), { method: 'POST' });
 
         await loadPortfolio();
         await fetchRevisions();
         toast.success(copy('restored'));
     } catch (error) {
-        reportError(error);
+        reportError(error, copy('restoreError'));
     } finally {
         restoring.value = false;
     }
@@ -226,13 +227,13 @@ const restoreRevision = async (id) => {
     restoringId.value = id;
 
     try {
-        await apiFetch(adminUrl(`/portfolio/revisions/${id}/restore`), { method: 'POST', message: copy('error') });
+        await apiFetch(adminUrl(`/portfolio/revisions/${id}/restore`), { method: 'POST' });
 
         await loadPortfolio();
         await fetchRevisions();
         toast.success(copy('historyRestored'));
     } catch (error) {
-        reportError(error);
+        reportError(error, copy('restoreError'));
     } finally {
         restoringId.value = null;
     }
@@ -306,7 +307,7 @@ const updateTags = (project, value) => {
             <template v-if="showSaveButton" #status>{{ saveStatus }}</template>
 
             <template v-if="showSaveButton" #actions>
-                <AppButton variant="outline" :disabled="!dirty || saving" @click="loadPortfolio().catch(reportError)">
+                <AppButton variant="outline" :disabled="!dirty || saving" @click="loadPortfolio().catch((error) => reportError(error, copy('contentLoadError')))">
                     {{ copy('cancel') }}
                 </AppButton>
                 <AppButton variant="solid" :disabled="saving" @click="savePortfolio">
@@ -333,7 +334,7 @@ const updateTags = (project, value) => {
             <template #status>{{ saveStatus }}</template>
 
             <template #actions>
-                <AppButton variant="outline" :disabled="!dirty || saving" @click="loadPortfolio().catch(reportError)">
+                <AppButton variant="outline" :disabled="!dirty || saving" @click="loadPortfolio().catch((error) => reportError(error, copy('contentLoadError')))">
                     {{ copy('cancel') }}
                 </AppButton>
                 <AppButton variant="solid" :disabled="saving" @click="savePortfolio">

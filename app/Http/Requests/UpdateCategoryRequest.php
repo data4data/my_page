@@ -29,7 +29,7 @@ class UpdateCategoryRequest extends FormRequest
                     }
 
                     if ($value == $category->id) {
-                        $fail('A category cannot be its own parent.');
+                        $fail(__('rules.category_own_parent'));
 
                         return;
                     }
@@ -37,7 +37,7 @@ class UpdateCategoryRequest extends FormRequest
                     // A parent for a category that has children makes a
                     // three-level tree, and index() loads only one level.
                     if ($category->children()->exists()) {
-                        $fail('A category with subcategories cannot itself become a subcategory.');
+                        $fail(__('rules.category_has_children'));
                     }
                 },
             ],

@@ -11,6 +11,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TimeLogController;
 use App\Http\Controllers\TwoFactorController;
 use App\Http\Middleware\SetPublicLocale;
+use App\Http\Middleware\SetWorkspaceLocale;
 use Illuminate\Support\Facades\Route;
 
 // Every path below renders the same Vue shell; the bundle's router picks the page.
@@ -36,7 +37,7 @@ Route::post('/hi-developer', [DeveloperInquiryController::class, 'store'])->midd
 // The workspace sits behind a per-install prefix (ADMIN_PATH), never a literal.
 // Login and logout share it but carry no auth — you cannot be signed in yet —
 // and there is nothing at the standard /login for a scanner to find.
-Route::prefix(config('admin.path'))->group(function () {
+Route::prefix(config('admin.path'))->middleware(SetWorkspaceLocale::class)->group(function () {
     Route::get('/login', [PortfolioController::class, 'app'])->name('login')->middleware('guest');
     Route::post('/login', [AuthController::class, 'store'])->name('login.attempt')->middleware(['guest', 'throttle:login']);
     // Throttled like the password step: six digits is cheap to guess.
@@ -44,7 +45,7 @@ Route::prefix(config('admin.path'))->group(function () {
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout')->middleware('auth');
 });
 
-Route::prefix(config('admin.path'))->middleware(['auth', 'role:admin'])->group(function () {
+Route::prefix(config('admin.path'))->middleware(['auth', 'role:admin', SetWorkspaceLocale::class])->group(function () {
     // Shell routes: each section has a real, bookmarkable URL.
     Route::get('/', [PortfolioController::class, 'app']);
     Route::get('/mijn-agenda', [PortfolioController::class, 'app']);

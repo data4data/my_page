@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError, apiFetch, errorMessage } from '../../js/shared/api';
-import { copy } from '../../js/shared/i18n';
+import { copy, lang } from '../../js/shared/i18n';
 
 const jsonResponse = (status, body) => ({
     ok: status >= 200 && status < 300,
@@ -27,6 +27,8 @@ describe('apiFetch', () => {
         const [, options] = fetchMock.mock.calls[0];
         expect(options.headers.Accept).toBe('application/json');
         expect(options.headers['X-CSRF-TOKEN']).toBe('test-token');
+        // The language on screen, so the server's own messages come back in it.
+        expect(options.headers['X-App-Language']).toBe(lang.value);
         // No body, so no Content-Type.
         expect(options.headers['Content-Type']).toBeUndefined();
         expect(options.body).toBeUndefined();
@@ -47,16 +49,22 @@ describe('apiFetch', () => {
     it('throws instead of returning an unparsed error body', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(500, null)));
 
-        await expect(apiFetch('/tasks', { message: 'Could not load the tasks.' }))
-            .rejects.toThrow('Could not load the tasks.');
+        await expect(apiFetch('/tasks')).rejects.toBeInstanceOf(ApiError);
     });
 
-    it('prefers the server field message over the caller generic one', async () => {
+    // It carries no words of its own, so the caller's translated ones survive.
+    it('leaves the message empty when the server said nothing showable', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(500, { message: 'SQLSTATE[42S22]' })));
+
+        await apiFetch('/tasks').catch((error) => expect(error.message).toBe(''));
+    });
+
+    it('keeps the server field message, which names what to fix', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
             jsonResponse(422, { errors: { title: ['The title field is required.'] } }),
         ));
 
-        await expect(apiFetch('/tasks', { method: 'POST', body: {}, message: 'Could not create the task.' }))
+        await expect(apiFetch('/tasks', { method: 'POST', body: {} }))
             .rejects.toThrow('The title field is required.');
     });
 
@@ -74,8 +82,7 @@ describe('apiFetch', () => {
             json: () => Promise.reject(new SyntaxError('Unexpected token <')),
         }));
 
-        await expect(apiFetch('/tasks', { message: 'Could not load the tasks.' }))
-            .rejects.toThrow('Could not load the tasks.');
+        await expect(apiFetch('/tasks')).rejects.toBeInstanceOf(ApiError);
     });
 });
 
@@ -98,8 +105,23 @@ describe('errorMessage', () => {
     it('never shows a server error message, only the caller\u2019s words', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(500, { message: 'SQLSTATE[42S22]: Column not found' })));
 
-        await expect(apiFetch('/x', { message: 'Could not load the report.' }))
-            .rejects.toThrow('Could not load the report.');
+        const failure = await apiFetch('/x').catch((error) => error);
+
+        expect(errorMessage(failure, 'Kon het rapport niet laden.')).toBe('Kon het rapport niet laden.');
+    });
+
+    /*
+     * The regression this contract exists for. apiFetch used to invent a
+     * message, which is always truthy, so every translated fallback a caller
+     * passed was unreachable and a Dutch workspace reported failures in
+     * English.
+     */
+    it('shows the caller\u2019s words when the server offered none', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(503, null)));
+
+        const failure = await apiFetch('/x').catch((error) => error);
+
+        expect(errorMessage(failure, 'Kon de taken niet laden.')).toBe('Kon de taken niet laden.');
     });
 
     it('says nothing for a 401, which is already bouncing to the login page', () => {
