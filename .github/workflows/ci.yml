@@ -1,0 +1,81 @@
+# The gate in CONTRIBUTING.md § 4, run by a machine. Not a replacement for
+# § 5 — saving every editor tab and looking at a real calendar are checks no
+# runner can make.
+name: Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+
+    # MySQL here too, the same as development, tests and production. A
+    # different engine in CI would hide exactly the differences that matter:
+    # strict mode, foreign-key indexing, date functions, JSON handling.
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          # phpunit.xml pins the name; the host and credentials come from the
+          # environment, which is what these two lines are.
+          MYSQL_DATABASE: my_page_testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: root
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, bcmath, gd, intl
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Prepare the environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      # The five commands, in the order CONTRIBUTING.md runs them. --test
+      # rather than a rewrite: CI reports style, it does not fix it.
+      - name: Style
+        run: vendor/bin/pint --test
+
+      - name: Static analysis
+        run: composer analyse
+
+      - name: PHP tests
+        run: composer test
+
+      - name: Frontend tests
+        run: npm test
+
+      # Catches template and import errors the tests never reach.
+      - name: Build
+        run: npm run build

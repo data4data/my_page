@@ -18,7 +18,7 @@ This skill exists only to give the sequence a name and an entry point.
 |---|---|
 | 1. Branch **before** the first commit | § 2 Branch first |
 | 2. Make the change — check what must travel with it | § 3 Make the change |
-| 3. Run all four gate commands | § 4 Run the gate |
+| 3. Run all five gate commands | § 4 Run the gate |
 | 4. Do the by-hand checks tests cannot make | § 5 Check what tests cannot |
 | 5. Commit short, no trailers | § 6 Commit short |
 | 6. Merge `main` **into the branch**, re-run the gate | § 7 Catch up with `main` |
@@ -28,7 +28,7 @@ This skill exists only to give the sequence a name and an entry point.
 
 Named here only so they are not missed — each section says why.
 
-- **Step 3 is all four commands**, not the two that feel relevant.
+- **Step 3 is all five commands**, not the two that feel relevant.
 - **Step 4 applies to every content and date change.** Green tests are not
   sufficient there.
 - **Step 6 comes before step 7**, not after.

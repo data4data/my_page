@@ -97,6 +97,11 @@ npm test
 npm run build         # catches template and import errors the tests never reach
 ```
 
+**A machine runs these five too**, on every push to `main` and every pull
+request — `.github/workflows/ci.yml`, against MySQL 8 like everywhere else.
+Run them here anyway: a red tick ten minutes after you pushed costs more than
+the two minutes they take locally, and CI cannot do step 5 at all.
+
 `composer analyse` must come out clean. If it reports something, fix the cause
 rather than adding an ignore or a baseline entry — the config already turns off
 the two checks that gave wrong advice here, with the reasons written down in

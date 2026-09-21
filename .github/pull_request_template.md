@@ -6,7 +6,7 @@
 
 ## Checks
 
-- [ ] All four gate commands pass — [CONTRIBUTING.md § 4](../CONTRIBUTING.md#4-run-the-gate)
+- [ ] All five gate commands pass — [CONTRIBUTING.md § 4](../CONTRIBUTING.md#4-run-the-gate)
 - [ ] Everything that had to travel with this change did — [§ 3](../CONTRIBUTING.md#changes-that-must-travel-together)
 
 ## Checked by hand — [§ 5](../CONTRIBUTING.md#5-check-what-tests-cannot)
