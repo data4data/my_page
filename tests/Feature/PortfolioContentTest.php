@@ -51,6 +51,9 @@ class PortfolioContentTest extends TestCase
             'expertise_items' => [],
             'projects' => [],
             'process_steps' => [],
+            // Every collection is named, empty or not: saving replaces each one
+            // whole, so omitting a key would ask to delete it.
+            'social_links' => [],
         ];
 
         // The profile merges one level deep; collections are replaced whole.
@@ -572,5 +575,44 @@ class PortfolioContentTest extends TestCase
             'https://cdn.example.com/card.png',
             PortfolioProfile::query()->first()->social_image_url,
         );
+    }
+
+    /**
+     * Saving replaces each collection whole, so a payload that merely forgets
+     * one used to delete every row in it without saying so.
+     *
+     * @return array<int, array{0: string}>
+     */
+    public static function childCollections(): array
+    {
+        return [['metrics'], ['expertise_items'], ['projects'], ['process_steps'], ['social_links']];
+    }
+
+    #[DataProvider('childCollections')]
+    public function test_omitting_a_collection_is_rejected_rather_than_emptying_it(string $collection): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $payload = $this->payload();
+        unset($payload[$collection]);
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $payload)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors([$collection]);
+    }
+
+    // Having none of something is still allowed — only forgetting to say so is not.
+    public function test_an_empty_collection_is_accepted(): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload(['metrics' => []]))
+            ->assertOk();
+
+        $this->assertSame(0, PortfolioProfile::query()->firstOrFail()->metrics()->count());
     }
 }

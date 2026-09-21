@@ -29,30 +29,12 @@ class PortfolioSeeder
             );
 
             foreach (PortfolioFields::RELATIONS as $payloadKey => $relation) {
-                $this->replace($profile, $relation, $content[$payloadKey] ?? []);
+                // The same writer a save uses, so seeded content and saved
+                // content cannot be built differently.
+                $profile->replaceChildren($relation, $content[$payloadKey] ?? []);
             }
 
             return $profile;
         });
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $items
-     */
-    private function replace(PortfolioProfile $profile, string $relation, array $items): void
-    {
-        $profile->{$relation}()->delete();
-
-        foreach (array_values($items) as $index => $item) {
-            // Social links derive is_visible, and MySQL rejects an INSERT
-            // naming a generated column.
-            $defaults = ['sort_order' => $index + 1];
-
-            if (in_array('is_visible', PortfolioFields::CHILDREN[$relation], true)) {
-                $defaults['is_visible'] = true;
-            }
-
-            $profile->{$relation}()->create($item + $defaults);
-        }
     }
 }
