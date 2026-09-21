@@ -7,6 +7,7 @@ use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ReflectionController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SecurityEventController;
+use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TimeLogController;
 use App\Http\Controllers\TimezoneController;
@@ -79,6 +80,10 @@ Route::prefix(config('admin.path'))->middleware(['auth', 'role:admin', SetWorksp
     Route::post('/categories', [CategoryController::class, 'store']);
     Route::put('/categories/{category}', [CategoryController::class, 'update']);
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+
+    // The vocabulary the Projects editor offers; a project stores the names.
+    Route::get('/tags', [TagController::class, 'index']);
+    Route::post('/tags', [TagController::class, 'store']);
 
     Route::get('/tasks', [TaskController::class, 'index']);
     Route::post('/tasks', [TaskController::class, 'store']);

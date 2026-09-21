@@ -67,6 +67,7 @@ Each of these fails **silently**, not loudly:
 | A message from one of our own validation rules | `lang/en/rules.php` **and** `lang/nl/rules.php` — a literal `$fail('...')` is English whatever language was asked for |
 | A new `icon` value in DB or seed data | `iconMap` in `resources/js/shared/icons.js`, or it renders nothing |
 | A new `TaskStatus` case | `TASK_STATUSES` in `resources/js/shared/planning.js` |
+| A new `VisualStyle` case | a `.project-visual` rule in `resources/css/public.css` **and** `VISUAL_STYLES` in `resources/js/shared/portfolio.js` |
 | A profile/child field | migration → `$fillable`/`$casts` → the matching list in `App\Support\PortfolioFields` → rule in `UpdatePortfolioRequest` → `DefaultPortfolioContent::content()` |
 | A translated profile/child field | `PortfolioFields::TRANSLATED_*` **and** `translatableProfile`/`translatableItemFields` in `resources/js/shared/portfolio.js` |
 | A new layer, endpoint or architectural decision | `CLAUDE.md` |

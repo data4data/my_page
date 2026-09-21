@@ -75,6 +75,35 @@ class PortfolioContentTest extends TestCase
         ];
     }
 
+    // The style is a class on .project-visual, so one with no rule behind it
+    // renders a blank panel rather than failing loudly.
+    public function test_a_project_visual_style_outside_the_list_is_rejected(): void
+    {
+        $admin = $this->admin();
+        $this->seededProfile();
+
+        $project = [
+            'title' => ['en' => 'Project', 'nl' => 'Project'],
+            'summary' => ['en' => 'Summary', 'nl' => 'Samenvatting'],
+            'result' => ['en' => 'Result', 'nl' => 'Resultaat'],
+            'tags' => ['Laravel'],
+            'is_visible' => true,
+        ];
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'projects' => [$project + ['visual_style' => 'grid']],
+            ]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['projects.0.visual_style']);
+
+        $this->actingAs($admin)
+            ->putJson($this->adminUrl('/portfolio'), $this->payload([
+                'projects' => [$project + ['visual_style' => 'flow']],
+            ]))
+            ->assertOk();
+    }
+
     // CTA URLs go straight into :href, so an executable scheme is stored XSS.
     #[DataProvider('dangerousUrls')]
     public function test_a_cta_url_with_an_executable_scheme_is_rejected(string $url): void

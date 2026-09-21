@@ -60,6 +60,9 @@ describe('bundle split', () => {
         expect(reachable.filter((file) => file.startsWith('pages/admin/'))).toEqual([]);
         expect(reachable.filter((file) => file.startsWith('components/admin/'))).toEqual([]);
         expect(reachable).not.toContain('shared/planning.js');
+        // Admin-only too: it reads the workspace prefix out of the meta tag,
+        // which the public shell does not emit.
+        expect(reachable).not.toContain('shared/tags.js');
         // Strings naming what the workspace holds — "Two-step sign-in",
         // "Recovery codes" — which i18n.js used to import for both halves.
         expect(reachable).not.toContain('shared/i18n-admin.js');

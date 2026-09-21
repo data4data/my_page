@@ -112,8 +112,15 @@ for most rows.
 - **The `{en, nl}` JSON columns.** A translations table turns every read into a
   join and a pivot, for two languages on a page always read whole. Revisit if a
   translated value must be sorted or filtered in SQL.
-- **`portfolio_projects.tags`.** Free text, never shared between projects,
-  never queried. Revisit when something wants "every project tagged Laravel".
+- **`portfolio_projects.tags`.** Still a JSON list of names on the project,
+  and still never queried in SQL - but **the names are now picked, not typed**.
+  The `tags` table is the vocabulary the editor offers (`TagSeeder` starts it,
+  and the Projects tab can add to it); the project keeps the words it chose.
+  That split is deliberate: `save()` replaces each collection whole and
+  `PortfolioRevision` stores the payload as a snapshot, so a project pointing
+  at tag *rows* would restore differently depending on which rows still
+  existed. Names restore identically forever. Revisit the JSON column itself
+  when something wants "every project tagged Laravel" out of the database.
 - **`headline_highlights`.** A short list tied to one string.
 - **`portfolio_revisions.payload`.** The snapshot is what makes `restore()` the
   same code path as `save()`.
@@ -137,7 +144,7 @@ Not `php artisan schema:dump`: it squashes to a MySQL dump, which pins the repo 
 
 - **Roles are code.** `admin` is a name `role:admin` refers to — a constant that happens to live in a table. Created idempotently, never asked for.
 - **The admin account and the profile are this install's identity.** `php artisan app:install` creates them, prompting for the email, the password and the initials. It replaced `AdminUserSeeder`, which read credentials from `.env` and then spent sixty lines refusing the weak ones it might be handed; a command can simply ask, so a real password never sits in a file and a placeholder one can never reach a live install. There is no `ADMIN_EMAIL` or `ADMIN_PASSWORD` any more. Safe to run twice: it updates rather than duplicating, and leaves edited content alone.
-- **Placeholder content, the demo login and the demo week are samples.** `DatabaseSeeder` runs `DefaultPortfolioContent::seed()` and `CategorySeeder`, plus `DemoAdminSeeder` and `DemoWeekSeeder` **only when `app()->environment('local')`** — a `git pull` + `migrate --seed` on a live instance must never bury real planning data under sample rows, nor leave behind a login whose password is in this repository.
+- **Placeholder content, the demo login and the demo week are samples.** `DatabaseSeeder` runs `DefaultPortfolioContent::seed()`, `CategorySeeder` and `TagSeeder`, plus `DemoAdminSeeder` and `DemoWeekSeeder` **only when `app()->environment('local')`** — a `git pull` + `migrate --seed` on a live instance must never bury real planning data under sample rows, nor leave behind a login whose password is in this repository.
 
   **`DemoAdminSeeder` exists because `migrate:fresh --seed` drops the users table**, and `app:install` cannot be part of a seed run: it asks for a password. So development gets `DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD` from `.env` (via `config/admin.php`, defaulting to `demo@my-page.test` / `demo-workspace`) and a real install still gets a typed password. **These are not the `ADMIN_EMAIL`/`ADMIN_PASSWORD` that were removed:** those configured the real admin on *any* install, which is how a placeholder could reach a live one. The seeder normalises both — blank falls back to `DEFAULT_EMAIL`/`DEFAULT_PASSWORD` — because a key present in `.env` but left empty is a likelier mistake than one left out, and either blank makes an account nobody can sign in to. Three things keep the two apart: the environment check is **repeated inside the seeder**, so `db:seed --class=DemoAdminSeeder` on a live box does nothing rather than trusting its caller; it **refuses when any admin already exists**, so re-running the seeders can never hand a real account a password from a repository; and the address is on `.test`, which cannot resolve. `DemoAdminSeederTest` is mostly tests of those refusals rather than of the account it makes.
 
@@ -157,7 +164,7 @@ Both planner seeders are re-runnable: `CategorySeeder` uses `updateOrCreate`; `D
 
 `PortfolioProfile` is the root model with five `hasMany` children: `socialLinks`, `metrics`, `expertiseItems`, `projects`, `processSteps`. There is exactly **one** profile row — `DefaultPortfolioContent::seed()` is the only thing that creates it and matches on a fixed `slug` — so `activeProfile()` is "the first row", not a choice between rows. `is_active` and `activate()` are gone: a column and a method holding a rule for a second profile nothing can create. Each child carries its own `sort_order` and `is_visible`. Free-text fields on profile and children are cast `array` and store `{en: ..., nl: ...}` — there is no translations table. `default_language` and `show_language_toggle` on the profile control what a first-time visitor sees and whether the EN/NL switcher renders at all. **`default_language` also decides which language owns the bare URL** — see *One URL per language* below. `headline_highlights` is a flat `[{text, tone}]` list naming which words in the headline take an accent colour; `tone` is `blue` or `gold`, matching the `.headline-*` classes. It is deliberately not a translated field — both languages' spellings share one list, and only the words in the headline currently on screen can match.
 
-`contact_email` and `social_image_url` are flat, untranslated columns. **Both are seeded null on purpose.** `contact_email` is the address behind the contact band's "get in touch" button — it used to be a `mailto:` written into `PublicPage.vue`, the one thing about the running app that could not be changed from the workspace — and the button hides itself while the column is empty, rather than mailing nowhere. `social_image_url` is the picture a link preview shows; it is validated with `url:http,https` rather than `SafeUrl`, because a crawler on another host has to fetch it, so the fragments and relative paths `SafeUrl` exists to permit are all useless here. `app.blade.php` emits `og:image`/`twitter:image` only when it is set and asks for `summary_large_image` only then — the large card with no picture renders as a blank slab. Both are edited under **Edit page → Shared**.
+`contact_email` and `social_image_url` are flat, untranslated columns. **Both are seeded null on purpose.** `contact_email` is the address behind the contact band's "get in touch" button — it used to be a `mailto:` written into `PublicPage.vue`, the one thing about the running app that could not be changed from the workspace — and the button hides itself while the column is empty, rather than mailing nowhere. `social_image_url` is the picture a link preview shows; it is validated with `url:http,https` rather than `SafeUrl`, because a crawler on another host has to fetch it, so the fragments and relative paths `SafeUrl` exists to permit are all useless here. `app.blade.php` emits `og:image`/`twitter:image` only when it is set and asks for `summary_large_image` only then — the large card with no picture renders as a blank slab. Both are edited under **Edit page → General**.
 
 **Social links are a child table**, `portfolio_social_links`, edited under **Edit page → Social links** and carried in the payload as its own `social_links` collection. Each row is `{label, url, icon, in_rail, in_footer}` plus `sort_order`.
 
@@ -181,6 +188,8 @@ Separate from the portfolio, all scoped to the signed-in user:
 - `User.timezone` — the zone the report measures a period in, `UTC` until it is
   set. See *Time handling* below for the one query that reads it.
 - `Reflection` — one note per (user, period_type, period_start). `period_end` is a **generated** column derived from the type and the start, so the two cannot disagree; `scopeForPeriod()` therefore looks up on the first three and the controller neither writes nor matches on the fourth.
+
+`App\Enums\VisualStyle` (dashboard, flow, cms) is the project card's decorative panel — each case is a class on `.project-visual` in `public.css`, so a value with no rule behind it draws a blank panel. That is why `visual_style` is validated with `Rule::enum` and edited with a select rather than typed. `VISUAL_STYLES` in `resources/js/shared/portfolio.js` mirrors it, `portfolio-fields.test.js` reads the PHP file and fails on drift, and `normalizePortfolio()` rewrites anything unrecognised to the first case so an older row cannot make the editor save a payload the rules reject.
 
 Enums in `app/Enums/`: `TaskStatus` (planned, in_progress, paused, done, skipped), `TaskSource` (manual, seeder, ai_chat — the last reserved for future AI-assisted task creation and unused today), `ReflectionPeriodType` (week, month, plus `startFor()`/`endFor()`, which own the period boundaries the report and the reflection upsert both key on). Statuses are plain string columns validated against the enum, not DB enums, because adding a case to a DB enum needs an `ALTER TABLE`. **`TASK_STATUSES` in `resources/js/shared/planning.js` mirrors `TaskStatus` — keep them in step.**
 
@@ -293,6 +302,11 @@ The public connect form has three layers against spam: `throttle:10,1` on the ro
   accepts, so the picker cannot offer one it would then reject. Saved the
   moment it is picked rather than through the Edit page's payload: it belongs
   to the account, not to the public page.
+- `GET|POST {admin}/tags` - the tag vocabulary as plain names, alphabetical,
+  and adding one to it. Separate from saving the page because a tag has to
+  exist before a project can be given it, and because the page's own save
+  replaces collections whole. `resources/js/shared/tags.js` holds one list for
+  the whole Projects tab, so a tag added on one card is offered by the next.
 - `GET {admin}/security-events` — the sign-in trail: a per-address rollup over the last 12 hours, outcome totals for that window, and the 50 most recent attempts. Rendered by the **Security** tab under Insights.
 - `GET {admin}/inquiries?page=N` — intentionally **view-only**; no update/destroy exists. `simplePaginate`d into `{inquiries, page, has_more}`, since the public form that fills it is throttled per minute rather than in total.
 
@@ -342,7 +356,11 @@ Underneath it, `time_logs` carries a **virtual generated column** `running_user_
 
 `resources/js/pages/` is split by audience: `public/` holds what an anonymous visitor sees, `admin/` everything behind the login (including `LoginPage.vue`, which is the door to it).
 
-**`admin/` is then split by section** — `agenda/`, `edit/`, `insights/`, `settings/` — each holding its own page component and the tabs only it renders. They were one flat folder mixing pages, editor tabs and settings panels while `agenda/` already had its own; now the four look the same.
+**`admin/` is then split by section** - `agenda/`, `edit/`, `insights/`, `settings/` - each holding its own page component and the tabs only it renders. They were one flat folder mixing pages, editor tabs and settings panels while `agenda/` already had its own; now the four look the same.
+
+**A section splits again when it holds both kinds of file.** `agenda/` and `edit/` carry composables as well as components, so each has `components/` and `composables/`; `insights/` and `settings/` have only components, and a `components/` folder holding everything in the folder is nesting that says nothing. The rule is the presence of the second kind, not the size of the first.
+
+**`components/` at the root of `resources/js/` is for what many places use** - `ui/`, the design system, and `admin/`, the shell. It held two files that were not that: `DeveloperConnectModal.vue`, which only `PublicPage` opens, and `EditableCard.vue`, which only the five `edit/` tabs render. Both now live with their one caller.
 
 **Each section loads what it shows.** `AdminPage.vue` is the rail and a `v-if` over four components, and nothing else: opening Agenda used to fetch the connect-form messages, the sign-in trail and the saved-version list too, because one component owned all four loaders.
 
@@ -356,7 +374,7 @@ So a `<!-- -->` next to the markup it explains costs nothing, and that is where 
 
 Each entry has its own router — `router-public.js` and `router-admin.js` — and they share `create-app.js`, which holds the PrimeVue options both need. The split is only worth what enforces it, so two tests do: `bundle-split.test.js` walks the real import graph from each entry and fails if the public one can reach anything under `pages/admin/`, `components/admin/` or `shared/planning.js`; `AdminAccessTest` checks the Blade shell serves the right one to each half.
 
-`router-public.js` maps `/`, `/hi-developer` and their language-prefixed twins to `public/PublicPage.vue` (which also renders `DeveloperConnectModal` on the connect routes). `router-admin.js` maps `admin/LoginPage.vue` and `admin/AdminPage.vue` for every workspace route — `AdminPage` derives its active section from the route name, so each section is a real bookmarkable/refreshable URL.
+`router-public.js` maps `/`, `/hi-developer` and their language-prefixed twins to `public/PublicPage.vue` (which also renders its neighbour `DeveloperConnectModal.vue` on the connect routes). `router-admin.js` maps `admin/LoginPage.vue` and `admin/AdminPage.vue` for every workspace route — `AdminPage` derives its active section from the route name, so each section is a real bookmarkable/refreshable URL.
 
 The CSS is still one entry (`app.css`) for both. Splitting it would save bytes, not secrets: Tailwind generates its utilities by scanning the same sources either way, so the saving is the hand-written partials only.
 
@@ -364,10 +382,10 @@ The CSS is still one entry (`app.css`) for both. Splitting it would save bytes, 
 
 | Section | Holds |
 |---|---|
-| Agenda | the planner |
+| Agenda | the planner - day, week and month, plus **Report**, pinned right because the three before it are one calendar at three widths and the report is a different question about the same tasks |
 | Insights | connect-form messages, news, and the sign-in trail — `Security` last and `right: true`, since it is a log you check rather than a feed you read |
-| Edit page | the public page's content, and nothing else — the six content tabs plus **Shared**, trailing, for the values that are the same in both languages (initials, the CTA URLs, the accent word lists) |
-| Settings | Language & time, two-step sign-in, Content versions — changed rarely, and none of it is page copy |
+| Edit page | the public page's content, and nothing else — the six content tabs plus **General**, trailing, for the values that are the same in both languages (initials, the CTA URLs, the accent word lists) |
+| Settings | Language & time, **Task categories**, two-step sign-in, Content versions - set up once and then used, which is what the sheet has in common |
 
 Only the Edit page and Settings' Language & time tab put content in the unsaved
 payload — and within that tab, only its two language rows. The timezone sitting
@@ -379,10 +397,14 @@ hint — as does everything else in Settings and Insights.
 
 **The Save button is disabled until a payload has actually arrived** (`ready`), and a failed load draws a retry rather than an empty editor. A page with no content and a page that failed to load look identical, and saving the second would replace the live page with nothing.
 
-**The editor tabs emit, they do not call.** `@add` / `@remove` / `@move` carry the collection name, which each tab knows about itself; they used to be functions passed down as props, which is what made `ProjectsTab` take six props, four of them callbacks. `EditableCard` takes no `collection` prop for the same reason — it reports a position, and the tab that rendered it says which list that position is in. **A tab's "add" defaults live in its `blank()`**, in the script, not written into a `@click` in markup where nobody looking for a default would find them.
+**The editor tabs emit, they do not call.** `@remove` / `@move` carry the collection name, which each tab knows about itself; they used to be functions passed down as props, which is what made `ProjectsTab` take six props, four of them callbacks. `EditableCard` takes no `collection` prop for the same reason - it reports a position, and the tab that rendered it says which list that position is in.
+
+**The add button is the sheet's, not the tab's.** It sits first in the action bar, which is sticky, so adding a tenth project does not mean scrolling past nine cards to find it - the job the floating button used to do for Save. `EditPage` renders one button and reads what it should say and build from `addActionFor(tab)` in `edit/new-item.js`, which holds **what "add" starts from for all five collections**. That file exists because the page renders the button and so the page needs the default; the rule it replaced - a `blank()` in each tab - had the same point, which is that a default belongs in a named factory in a script and never in a `@click` in markup. Profile and General get no button: they edit the profile row, and there is no list to add to.
 
 **Admin shell** (`resources/js/components/admin/`):
 - `AdminLayout.vue` — the rail and the frame the sheet sits in. **There is no header:** the initials badge, the EN/NL switch, the theme switch and sign-out all live at the bottom of the rail, which is what retired `--admin-header`, the `ResizeObserver` that measured it, and the sticky offset the old rail nav hung off.
+
+  **The rail head is the initials badge alone.** It carried a "Content studio" caption beside them, which named the workspace to the one person already inside it — the rail's own sections say what this is. The badge keeps its link to the public page, now with an `aria-label`, since a link holding only initials would otherwise be announced as its URL.
 
   **The rail is two groups.** Destinations at the top; anything flagged `foot: true` in `navItems` is pinned to the bottom above the switchers — the same flag-on-the-item convention the tab strip uses for `right`. Settings carries it.
 
@@ -401,11 +423,13 @@ Like its sibling tabs it carries no heading of its own — the sheet's title and
 
 For the sheet to stretch to the bottom of the page, its ancestors must form an unbroken flex column: `.admin-shell` → `.admin-frame` → `.admin-sheet`. Agenda, Insights and Edit each render their own sheet, so a change to that chain needs checking on all three.
 
-**Agenda** (`resources/js/pages/admin/agenda/`): `CalendarView` (mode switching, filters, period navigation, task CRUD wiring) → `DayView` / `WeekView` / `MonthView` / `CategoriesView` / `ReportView`, plus `TaskCard`, `TaskModal`, `CategoryModal`.
+**Agenda** (`resources/js/pages/admin/agenda/`): `components/CalendarView` (mode switching, filters, period navigation, task CRUD wiring) -> `DayView` / `WeekView` / `MonthView` / `ReportView`, plus `TaskCard` and `TaskModal`; `composables/` holds `useCalendarPeriod` and `useTaskFilters`.
+
+**Task categories moved to Settings**, taking `CategoryModal` with them, so `CategoriesTab` and `CategoryModal` now live in `pages/admin/settings/`. They are a thing you set up once and then use, like the rest of that sheet, and the calendar was carrying a tab that was not a period alongside three that are. The tab emitted `changed` so the calendar could refetch; it no longer needs to, because `AdminPage` renders one section at a time and walking back to Agenda mounts `CalendarView` fresh.
 
 **A skip link is the first focusable element in both halves** — `#main-content` on the visit card, `#workspace-content` in the workspace. Both targets carry `tabindex="-1"`, so the next Tab continues from the content rather than restarting at the top of the document; `.skip-link` in `base.css` is off-screen by transform rather than `display:none`, which would take it out of the tab order entirely. `pages.smoke.test.js` checks all three properties on both pages.
 
-**Tests live in `resources/tests/`**, mirroring `resources/js/` — not beside the files they cover. `vitest.config.js` points there and loads `resources/tests/setup.js` first.
+**Tests live in `resources/tests/`**, mirroring `resources/js/` - not beside the files they cover, and the mirror includes the `components/` and `composables/` split. `vitest.config.js` points there and loads `resources/tests/setup.js` first.
 
 **Shared** (`resources/js/shared/`):
 - `api.js` — `apiFetch(url, {method, body})`, `errorMessage()`, `reportError()` and `csrfToken()`. **Every** call to a JSON endpoint goes through `apiFetch`; no component calls `fetch()` directly. It sets `Accept: application/json` and the CSRF header, throws an `ApiError` carrying `status` and the parsed `body` on any non-2xx, and redirects to `/login` on a 401. The `Accept` header is the load-bearing part: without it an expired session takes the auth middleware's HTML redirect instead of a JSON 401, `response.json()` throws on the HTML, and whichever `loading` ref was in flight never clears. Loaders pair it with `try/finally` for the same reason.
@@ -472,7 +496,7 @@ Components: `AppButton`, `AppInput`, `AppTextarea`, `AppSelect` (optional `filte
 
 **`AdminModal`'s action bar sits outside the scrolling body**, so a submit button in it reaches its form by `form="<id>"` rather than by being inside the `<form>`. `TaskModal` and `CategoryModal` both do this; forget the attribute and the button silently stops submitting.
 
-**The other shapes that repeat.** `EditableCard.vue` is one item in an ordered collection: its head carries the item's name, its position, the Visible toggle and the reorder/remove buttons, and its body holds the fields. `AppLanguageCards.vue` renders its slot once per language into two side-by-side cards, which replaced the per-field EN/NL pair — a card with four translated fields used to interleave them, so reading one language end to end meant reading every other row. `AppPillSwitch.vue` is the one switcher shape in the workspace (EN/NL, light/dark, default language, show/hide); it takes its colours from `--pill-*` set by whatever contains it rather than a variant prop.
+**The other shapes that repeat.** `EditableCard.vue` is one item in an ordered collection: its head carries the item's name, the Visible toggle, the reorder/remove buttons and — **between the two arrows** — its position, which is where the number says what those arrows would do next rather than reading as a label parked beside the title. A `head-field` slot promotes one field into the head beside the name, which is where a metric's value belongs: it is the same in both languages and it is what the card is about, so reading the list means reading the heads. `AppLanguageCards.vue` renders its slot once per language into two side-by-side cards, which replaced the per-field EN/NL pair — a card with four translated fields used to interleave them, so reading one language end to end meant reading every other row. `AppPillSwitch.vue` is the one switcher shape in the workspace (EN/NL, light/dark, default language, show/hide); it takes its colours from `--pill-*` set by whatever contains it rather than a variant prop.
 
 **Unstyled mode means PrimeVue ships no CSS at all** — every class comes from our `pt` map, and anything the default theme would have done for us has to be done by hand. Two consequences that have already bitten:
 

@@ -6,7 +6,7 @@ A Laravel + Vue app with two halves behind one login.
 
 **The private side** is a planning workspace: calendar, task timers, categories, weekly and monthly reports, and reflection notes.
 
-All the content lives in the database, so you change it in the app rather than in the code. It ships with placeholder content under the initials `AB`. Swap them under **Edit page → Shared** and nothing is left pointing at whoever set it up.
+All the content lives in the database, so you change it in the app rather than in the code. It ships with placeholder content under the initials `AB`. Swap them under **Edit page → General** and nothing is left pointing at whoever set it up.
 
 ## What's in it
 
@@ -40,7 +40,7 @@ The workspace sits behind a URL prefix you choose, login page included. There is
 
 ## Stack
 
-PHP 8.3+, Laravel 13, Vue 3, Tailwind 4, PrimeVue, Vite, MySQL 8.
+PHP 8.4+, Laravel 13, Vue 3, Tailwind 4, PrimeVue, Vite, MySQL 8.
 
 MySQL in development, tests and production alike, so strict mode, foreign-key indexing and JSON handling never differ between them.
 

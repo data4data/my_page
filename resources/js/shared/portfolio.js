@@ -21,6 +21,14 @@ export const translatableItemFields = {
 };
 
 /**
+ * The decorative panel beside a project card, mirroring App\Enums\VisualStyle
+ * — each value is a class on `.project-visual` in `public.css`, so one that is
+ * not on this list draws a blank panel. `portfolio-fields.test.js` reads the
+ * PHP enum and fails when the two drift.
+ */
+export const VISUAL_STYLES = ['dashboard', 'flow', 'cms'];
+
+/**
  * Where a social link shows. The rail and the footer are independent, so each
  * place draws its own set. A missing placement reads as shown, which only
  * guards against a half-built object in the editor.
@@ -49,6 +57,15 @@ export function normalizePortfolio(payload) {
 
     translatableProfile.forEach((field) => {
         payload.profile[field] = asTranslation(payload.profile[field]);
+    });
+
+    // A style with no class behind it would draw a blank panel, so anything
+    // unrecognised — a value typed in before this was a list — reads as the
+    // first one. The editor then saves a style the rules accept.
+    payload.projects?.forEach((project) => {
+        if (!VISUAL_STYLES.includes(project.visual_style)) {
+            project.visual_style = VISUAL_STYLES[0];
+        }
     });
 
     Object.entries(translatableItemFields).forEach(([collection, fields]) => {

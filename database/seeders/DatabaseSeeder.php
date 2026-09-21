@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
     {
         $seeder->seed();
         $this->call(CategorySeeder::class);
+        $this->call(TagSeeder::class);
 
         // Local only: a `migrate --seed` on a live instance must never bury
         // real planning data under sample rows, and must never leave behind a

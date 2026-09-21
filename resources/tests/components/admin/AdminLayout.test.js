@@ -83,6 +83,17 @@ describe('AdminLayout rail', () => {
         }
     });
 
+    /**
+     * The rail head is the initials and nothing else. A link with no text
+     * needs a name of its own, or it is announced as its URL.
+     */
+    it('leads with the initials badge, named for where it goes', () => {
+        const brand = mountLayout().find('.admin-rail-brand');
+
+        expect(brand.text()).toBe('AB');
+        expect(brand.attributes('aria-label')).toBeTruthy();
+    });
+
     it('names the navigation landmark', () => {
         const wrapper = mountLayout();
 

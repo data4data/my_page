@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { ArrowRight, ChevronLeft, ChevronRight, Moon, Sun } from '@lucide/vue';
 import AppButton from '../../components/ui/AppButton.vue';
 import AppPillSwitch from '../../components/ui/AppPillSwitch.vue';
-import DeveloperConnectModal from '../../components/DeveloperConnectModal.vue';
+import DeveloperConnectModal from './DeveloperConnectModal.vue';
 import { resolveIcon } from '../../shared/icons';
 import { applyLanguagePolicy, copy, lang, LANGUAGES, languageSwitcherShown, localeFromPath, pathForLocale, preferredPath, setLang, t } from '../../shared/i18n';
 import { usePortfolioSource } from '../../shared/portfolio';
