@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
-import SocialLinksTab from '../../../js/pages/admin/SocialLinksTab.vue';
+import SocialLinksTab from '../../../../js/pages/admin/edit/SocialLinksTab.vue';
 
 const stubs = {
     AppInput: {
@@ -26,12 +26,9 @@ const link = (label, extra = {}) => ({
     ...extra,
 });
 
-const mountTab = (links = []) => {
-    const handlers = { addItem: vi.fn(), removeItem: vi.fn(), moveItem: vi.fn() };
-    const wrapper = mount(SocialLinksTab, { props: { links, ...handlers }, global: { stubs } });
-
-    return { wrapper, ...handlers };
-};
+const mountTab = (links = []) => ({
+    wrapper: mount(SocialLinksTab, { props: { links }, global: { stubs } }),
+});
 
 const cards = (wrapper) => wrapper.findAll('.item-card');
 const addButton = (wrapper) => wrapper.findAll('button').at(-1);
@@ -51,16 +48,16 @@ describe('SocialLinksTab', () => {
         expect(cards(mountTab().wrapper)).toHaveLength(0);
     });
 
-    // A child collection now, so the tab asks AdminPage rather than editing an
-    // array on the profile in place.
-    it('adds through the shared helper, shown in both places', async () => {
-        const { wrapper, addItem } = mountTab([]);
+    // A child collection, so the tab asks the editor to change the list rather
+    // than editing an array on the profile in place.
+    it('asks for a new link, shown in both places', async () => {
+        const { wrapper } = mountTab([]);
 
         await addButton(wrapper).trigger('click');
 
-        expect(addItem).toHaveBeenCalledWith('social_links', {
+        expect(wrapper.emitted('add')[0]).toEqual(['social_links', {
             label: '', url: '', icon: 'link', in_rail: true, in_footer: true,
-        });
+        }]);
     });
 
     it('toggles the two places independently', async () => {
@@ -79,16 +76,18 @@ describe('SocialLinksTab', () => {
         expect(links[0].in_footer).toBe(false);
     });
 
-    it('hands reordering and removal to the shared helpers', async () => {
-        const { wrapper, moveItem, removeItem } = mountTab([link('One'), link('Two'), link('Three')]);
+    // The card knows its position, the tab knows the collection, and the two
+    // are put together here rather than passed down as a prop.
+    it('names its collection when it asks for a reorder or a removal', async () => {
+        const { wrapper } = mountTab([link('One'), link('Two'), link('Three')]);
 
         // Each card header carries move up, move down, then remove.
         const buttonsOf = (index) => cards(wrapper)[index].findAll('header button');
 
         await buttonsOf(0)[1].trigger('click');
-        expect(moveItem).toHaveBeenCalledWith('social_links', 0, 1);
+        expect(wrapper.emitted('move')[0]).toEqual(['social_links', 0, 1]);
 
         await buttonsOf(2)[2].trigger('click');
-        expect(removeItem).toHaveBeenCalledWith('social_links', 2);
+        expect(wrapper.emitted('remove')[0]).toEqual(['social_links', 2]);
     });
 });

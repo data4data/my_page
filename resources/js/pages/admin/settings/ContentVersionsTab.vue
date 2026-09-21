@@ -1,8 +1,8 @@
 <script setup>
 import { computed } from 'vue';
 import { RefreshCcw, Undo2 } from '@lucide/vue';
-import AppButton from '../../components/ui/AppButton.vue';
-import { copy } from '../../shared/i18n';
+import AppButton from '../../../components/ui/AppButton.vue';
+import { copy } from '../../../shared/i18n';
 
 const props = defineProps({
     restoring: {

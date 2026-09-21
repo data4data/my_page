@@ -1,8 +1,8 @@
 <script setup>
 import { computed } from 'vue';
 import { Eye, EyeOff } from '@lucide/vue';
-import AppPillSwitch from '../../components/ui/AppPillSwitch.vue';
-import { copy, LANGUAGES } from '../../shared/i18n';
+import AppPillSwitch from '../../../components/ui/AppPillSwitch.vue';
+import { copy, LANGUAGES } from '../../../shared/i18n';
 
 const props = defineProps({
     profile: {

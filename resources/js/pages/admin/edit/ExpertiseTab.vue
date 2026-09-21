@@ -1,12 +1,12 @@
 <script setup>
 import { Plus } from '@lucide/vue';
-import AppInput from '../../components/ui/AppInput.vue';
-import AppTextarea from '../../components/ui/AppTextarea.vue';
-import AppIconSelect from '../../components/ui/AppIconSelect.vue';
-import AppButton from '../../components/ui/AppButton.vue';
-import AppLanguageCards from '../../components/ui/AppLanguageCards.vue';
-import EditableCard from '../../components/EditableCard.vue';
-import { copy, t } from '../../shared/i18n';
+import AppInput from '../../../components/ui/AppInput.vue';
+import AppTextarea from '../../../components/ui/AppTextarea.vue';
+import AppIconSelect from '../../../components/ui/AppIconSelect.vue';
+import AppButton from '../../../components/ui/AppButton.vue';
+import AppLanguageCards from '../../../components/ui/AppLanguageCards.vue';
+import EditableCard from '../../../components/EditableCard.vue';
+import { copy, t } from '../../../shared/i18n';
 
 defineProps({
     expertise: {
@@ -17,18 +17,19 @@ defineProps({
         type: Object,
         required: true,
     },
-    addItem: {
-        type: Function,
-        required: true,
-    },
-    removeItem: {
-        type: Function,
-        required: true,
-    },
-    moveItem: {
-        type: Function,
-        required: true,
-    },
+});
+
+const emit = defineEmits(['add', 'move', 'remove']);
+
+const COLLECTION = 'expertise_items';
+
+// What "add" starts from. In the script, not inside the click handler: a whole
+// object written into markup is a default nobody finds when they go looking.
+const blank = () => ({
+    title: { en: 'New expertise', nl: 'Nieuwe expertise' },
+    description: { en: 'Describe the result and capability.', nl: 'Beschrijf het resultaat en de vaardigheid.' },
+    icon: 'sparkles',
+    category: 'General',
 });
 </script>
 
@@ -42,10 +43,9 @@ defineProps({
             :title="t(item.title) || copy('untitled')"
             :index="index"
             :total="expertise.length"
-            collection="expertise_items"
             :visible="item.is_visible !== false"
-            @move="moveItem"
-            @remove="removeItem"
+            @move="(from, direction) => emit('move', COLLECTION, from, direction)"
+            @remove="(at) => emit('remove', COLLECTION, at)"
             @update:visible="item.is_visible = $event"
         >
             <div class="lang-grid">
@@ -64,7 +64,7 @@ defineProps({
         <AppButton
             variant="solid"
             class="self-start"
-            @click="addItem('expertise_items', { title: { en: 'New expertise', nl: 'Nieuwe expertise' }, description: { en: 'Describe the result and capability.', nl: 'Beschrijf het resultaat en de expertise.' }, icon: 'sparkles', category: 'general' })"
+            @click="emit('add', COLLECTION, blank())"
         >
             <Plus :size="14" aria-hidden="true" />
             {{ copy('addExpertise') }}

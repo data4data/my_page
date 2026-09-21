@@ -328,6 +328,10 @@ Underneath it, `time_logs` carries a **virtual generated column** `running_user_
 
 `resources/js/pages/` is split by audience: `public/` holds what an anonymous visitor sees, `admin/` everything behind the login (including `LoginPage.vue`, which is the door to it).
 
+**`admin/` is then split by section** — `agenda/`, `edit/`, `insights/`, `settings/` — each holding its own page component and the tabs only it renders. They were one flat folder mixing pages, editor tabs and settings panels while `agenda/` already had its own; now the four look the same.
+
+**Each section loads what it shows.** `AdminPage.vue` is the rail and a `v-if` over four components, and nothing else: opening Agenda used to fetch the connect-form messages, the sign-in trail and the saved-version list too, because one component owned all four loaders.
+
 **Template comments are compiled away.** A comment in a `<template>` is markup, so Vue turns it into a real DOM node — readable in the inspector and served in the page. `vue-plugin.js` at the repo root sets `compilerOptions.comments: false` and **both** `vite.config.js` and `vitest.config.js` build their Vue plugin from it, so the app and the tests compile a component the same way. The production build already dropped them; this drops them in development too, which is where they were showing. Vue's own `<!--v-if-->` anchors are a different thing — they mark the place an absent branch would go — and they stay. `template-comments.test.js` covers both halves.
 
 So a `<!-- -->` next to the markup it explains costs nothing, and that is where such a note belongs. What does not belong there is anything the markup already says: a comment earns its place by recording a decision or a trap, not by narrating the next line.
@@ -351,7 +355,13 @@ The CSS is still one entry (`app.css`) for both. Splitting it would save bytes, 
 | Edit page | the public page's content, and nothing else — the six content tabs plus **Shared**, trailing, for the values that are the same in both languages (initials, the CTA URLs, the accent word lists) |
 | Settings | Language, two-step sign-in, Content versions — changed rarely, and none of it is page copy |
 
-Only the Edit page and Settings' Language tab put content in the unsaved payload, so `showSaveButton` in `AdminPage` is what decides whether the save button appears. Everything else in Settings and Insights persists through its own endpoint the moment you act on it.
+Only the Edit page and Settings' Language tab put content in the unsaved payload. Everything else in Settings and Insights persists through its own endpoint the moment you act on it.
+
+**Those two share one payload, so it is the one thing the shell still owns.** `usePortfolioEditor.js` holds the unsaved payload, `dirty`, `save()`, the two restores and the revision list; `AdminPage` calls `providePortfolioEditor()` once and `EditPage`/`SettingsPage` `inject()` it, so an edit made on one survives walking over to the other. Per-section instances would each fetch, and switching sections would throw the edit away.
+
+**The Save button is disabled until a payload has actually arrived** (`ready`), and a failed load draws a retry rather than an empty editor. A page with no content and a page that failed to load look identical, and saving the second would replace the live page with nothing.
+
+**The editor tabs emit, they do not call.** `@add` / `@remove` / `@move` carry the collection name, which each tab knows about itself; they used to be functions passed down as props, which is what made `ProjectsTab` take six props, four of them callbacks. `EditableCard` takes no `collection` prop for the same reason — it reports a position, and the tab that rendered it says which list that position is in. **A tab's "add" defaults live in its `blank()`**, in the script, not written into a `@click` in markup where nobody looking for a default would find them.
 
 **Admin shell** (`resources/js/components/admin/`):
 - `AdminLayout.vue` — the rail and the frame the sheet sits in. **There is no header:** the initials badge, the EN/NL switch, the theme switch and sign-out all live at the bottom of the rail, which is what retired `--admin-header`, the `ResizeObserver` that measured it, and the sticky offset the old rail nav hung off.

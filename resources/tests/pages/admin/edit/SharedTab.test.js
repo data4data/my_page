@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import SharedTab from '../../../js/pages/admin/SharedTab.vue';
-import { copy } from '../../../js/shared/i18n';
+import SharedTab from '../../../../js/pages/admin/edit/SharedTab.vue';
+import { copy } from '../../../../js/shared/i18n';
 
 // One flat [{text, tone}] list, edited as two comma-separated fields.
 const stubs = {

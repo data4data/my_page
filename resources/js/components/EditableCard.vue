@@ -5,6 +5,10 @@ import { copy } from '../shared/i18n';
 
 // One item in an ordered, editable collection: the head carries the item's
 // name, position, visibility and reorder controls, the slot holds its fields.
+//
+// It names no collection: the tab that renders it already knows which one it
+// is looking at, so echoing the name back through a prop only gave the two
+// somewhere to disagree.
 defineProps({
     title: {
         type: String,
@@ -17,10 +21,6 @@ defineProps({
     // Shown as "2 of 5": a position with no total is just a number.
     total: {
         type: Number,
-        required: true,
-    },
-    collection: {
-        type: String,
         required: true,
     },
     // Optional: social links derive visibility from their two placements.
@@ -56,7 +56,7 @@ defineEmits(['move', 'remove', 'update:visible']);
                     :disabled="index === 0"
                     :aria-label="copy('moveUp')"
                     :title="copy('moveUp')"
-                    @click="$emit('move', collection, index, -1)"
+                    @click="$emit('move', index, -1)"
                 >
                     <ChevronUp :size="14" aria-hidden="true" />
                 </button>
@@ -67,7 +67,7 @@ defineEmits(['move', 'remove', 'update:visible']);
                     :disabled="index === total - 1"
                     :aria-label="copy('moveDown')"
                     :title="copy('moveDown')"
-                    @click="$emit('move', collection, index, 1)"
+                    @click="$emit('move', index, 1)"
                 >
                     <ChevronDown :size="14" aria-hidden="true" />
                 </button>
@@ -77,7 +77,7 @@ defineEmits(['move', 'remove', 'update:visible']);
                     class="icon-button icon-button-danger"
                     :aria-label="copy('remove')"
                     :title="copy('remove')"
-                    @click="$emit('remove', collection, index)"
+                    @click="$emit('remove', index)"
                 >
                     <Trash2 :size="14" aria-hidden="true" />
                 </button>

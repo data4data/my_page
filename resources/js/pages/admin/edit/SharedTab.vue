@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
-import AppInput from '../../components/ui/AppInput.vue';
-import { copy } from '../../shared/i18n';
+import AppInput from '../../../components/ui/AppInput.vue';
+import { copy } from '../../../shared/i18n';
 
 // The profile values that are the same in both languages, kept off the Profile
 // tab so a URL field never sits between a headline and its twin.

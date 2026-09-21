@@ -1,8 +1,8 @@
 <script setup>
-import AppInput from '../../components/ui/AppInput.vue';
-import AppTextarea from '../../components/ui/AppTextarea.vue';
-import AppLanguageCards from '../../components/ui/AppLanguageCards.vue';
-import { copy } from '../../shared/i18n';
+import AppInput from '../../../components/ui/AppInput.vue';
+import AppTextarea from '../../../components/ui/AppTextarea.vue';
+import AppLanguageCards from '../../../components/ui/AppLanguageCards.vue';
+import { copy } from '../../../shared/i18n';
 
 // Translated copy only; the untranslated values live on the Shared tab, so a
 // column here reads as one language's page.

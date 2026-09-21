@@ -1,10 +1,10 @@
 <script setup>
 import { Plus } from '@lucide/vue';
-import AppInput from '../../components/ui/AppInput.vue';
-import AppButton from '../../components/ui/AppButton.vue';
-import AppLanguageCards from '../../components/ui/AppLanguageCards.vue';
-import EditableCard from '../../components/EditableCard.vue';
-import { copy, t } from '../../shared/i18n';
+import AppInput from '../../../components/ui/AppInput.vue';
+import AppButton from '../../../components/ui/AppButton.vue';
+import AppLanguageCards from '../../../components/ui/AppLanguageCards.vue';
+import EditableCard from '../../../components/EditableCard.vue';
+import { copy, t } from '../../../shared/i18n';
 
 // No intro paragraph: the sheet's subtitle says what the tab is for, and the
 // split itself says the rest — the value sits outside the language cards
@@ -18,18 +18,17 @@ defineProps({
         type: Object,
         required: true,
     },
-    addItem: {
-        type: Function,
-        required: true,
-    },
-    removeItem: {
-        type: Function,
-        required: true,
-    },
-    moveItem: {
-        type: Function,
-        required: true,
-    },
+});
+
+const emit = defineEmits(['add', 'move', 'remove']);
+
+const COLLECTION = 'metrics';
+
+// What "add" starts from. In the script, not inside the click handler: a whole
+// object written into markup is a default nobody finds when they go looking.
+const blank = () => ({
+    value: '1+',
+    label: { en: 'New metric', nl: 'Nieuwe metriek' },
 });
 </script>
 
@@ -43,10 +42,9 @@ defineProps({
             :title="t(item.label) || copy('untitled')"
             :index="index"
             :total="metrics.length"
-            collection="metrics"
             :visible="item.is_visible !== false"
-            @move="moveItem"
-            @remove="removeItem"
+            @move="(from, direction) => emit('move', COLLECTION, from, direction)"
+            @remove="(at) => emit('remove', COLLECTION, at)"
             @update:visible="item.is_visible = $event"
         >
             <label class="field-label max-w-[12rem]">{{ copy('fieldValue') }}<AppInput v-model="item.value" /></label>
@@ -58,7 +56,7 @@ defineProps({
             </AppLanguageCards>
         </EditableCard>
 
-        <AppButton variant="solid" class="self-start" @click="addItem('metrics', { value: '1+', label: { en: 'New metric', nl: 'Nieuwe metriek' } })">
+        <AppButton variant="solid" class="self-start" @click="emit('add', COLLECTION, blank())">
             <Plus :size="14" aria-hidden="true" />
             {{ copy('addMetric') }}
         </AppButton>

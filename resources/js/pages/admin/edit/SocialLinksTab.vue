@@ -1,33 +1,25 @@
 <script setup>
 import { Plus } from '@lucide/vue';
-import AppInput from '../../components/ui/AppInput.vue';
-import AppIconSelect from '../../components/ui/AppIconSelect.vue';
-import AppCheckbox from '../../components/ui/AppCheckbox.vue';
-import AppButton from '../../components/ui/AppButton.vue';
-import EditableCard from '../../components/EditableCard.vue';
-import { copy } from '../../shared/i18n';
-import { iconMap } from '../../shared/icons';
+import AppInput from '../../../components/ui/AppInput.vue';
+import AppIconSelect from '../../../components/ui/AppIconSelect.vue';
+import AppCheckbox from '../../../components/ui/AppCheckbox.vue';
+import AppButton from '../../../components/ui/AppButton.vue';
+import EditableCard from '../../../components/EditableCard.vue';
+import { copy } from '../../../shared/i18n';
+import { iconMap } from '../../../shared/icons';
 
-// An ordinary child collection now, so it goes through AdminPage's helpers
-// like every other tab rather than editing an array on the profile in place.
+// An ordinary child collection, so it asks the editor to change the list like
+// every other tab rather than editing an array on the profile in place.
 defineProps({
     links: {
         type: Array,
         required: true,
     },
-    addItem: {
-        type: Function,
-        required: true,
-    },
-    removeItem: {
-        type: Function,
-        required: true,
-    },
-    moveItem: {
-        type: Function,
-        required: true,
-    },
 });
+
+const emit = defineEmits(['add', 'move', 'remove']);
+
+const COLLECTION = 'social_links';
 
 const blank = () => ({ label: '', url: '', icon: 'link', in_rail: true, in_footer: true });
 </script>
@@ -47,9 +39,8 @@ const blank = () => ({ label: '', url: '', icon: 'link', in_rail: true, in_foote
             :title="link.label || copy('socialLink')"
             :index="index"
             :total="links.length"
-            collection="social_links"
-            @move="moveItem"
-            @remove="removeItem"
+            @move="(from, direction) => emit('move', COLLECTION, from, direction)"
+            @remove="(at) => emit('remove', COLLECTION, at)"
         >
             <template #lead>
                 <span class="item-card-lead">
@@ -72,7 +63,7 @@ const blank = () => ({ label: '', url: '', icon: 'link', in_rail: true, in_foote
             </div>
         </EditableCard>
 
-        <AppButton variant="solid" class="self-start" @click="addItem('social_links', blank())">
+        <AppButton variant="solid" class="self-start" @click="emit('add', COLLECTION, blank())">
             <Plus :size="14" aria-hidden="true" />
             {{ copy('socialAdd') }}
         </AppButton>
