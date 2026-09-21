@@ -16,8 +16,8 @@ The public page is fully open; everything else is authenticated and lives at an 
 ```bash
 composer install && npm install         # install deps
 cp .env.example .env && php artisan key:generate
-php artisan migrate --seed              # placeholder content + categories (+ demo week, local only)
-php artisan app:install                 # the admin account and the profile — asks for them
+php artisan migrate --seed              # placeholder content + categories (+ demo login and week, local only)
+php artisan app:install                 # a real admin account and the profile — asks for them
 
 composer run dev                        # serve + queue + logs + vite, all concurrently
 php artisan serve                       # backend only
@@ -35,6 +35,7 @@ npm run test:watch                      # same, in watch mode
 vendor/bin/pint                         # PHP code style (Laravel Pint)
 
 php artisan db:seed --class=DemoWeekSeeder   # refresh the demo week onto the current week
+php artisan db:seed --class=DemoAdminSeeder  # the local-only demo login, if it is missing
 ```
 
 Note: **MySQL everywhere** — development, tests and production. `phpunit.xml` pins only the database *name* (`my_page_testing`, deliberately not derived from whatever the working database is called), so host and credentials come from your own `.env` and the suite never touches your development data. Running tests on a different engine from production hides exactly the differences that matter: strict mode, foreign-key indexing, date functions and JSON handling all differ. Run `php artisan app:install` to create the one admin login. `ADMIN_PATH` sets the URL prefix the whole private workspace sits behind (see Auth below); it is per-install and never hardcoded.
@@ -136,7 +137,11 @@ Not `php artisan schema:dump`: it squashes to a MySQL dump, which pins the repo 
 
 - **Roles are code.** `admin` is a name `role:admin` refers to — a constant that happens to live in a table. Created idempotently, never asked for.
 - **The admin account and the profile are this install's identity.** `php artisan app:install` creates them, prompting for the email, the password and the initials. It replaced `AdminUserSeeder`, which read credentials from `.env` and then spent sixty lines refusing the weak ones it might be handed; a command can simply ask, so a real password never sits in a file and a placeholder one can never reach a live install. There is no `ADMIN_EMAIL` or `ADMIN_PASSWORD` any more. Safe to run twice: it updates rather than duplicating, and leaves edited content alone.
-- **Placeholder content and the demo week are samples.** `DatabaseSeeder` runs `DefaultPortfolioContent::seed()` and `CategorySeeder`, plus `DemoWeekSeeder` **only when `app()->environment('local')`** — a `git pull` + `migrate --seed` on a live instance must never bury real planning data under sample rows.
+- **Placeholder content, the demo login and the demo week are samples.** `DatabaseSeeder` runs `DefaultPortfolioContent::seed()` and `CategorySeeder`, plus `DemoAdminSeeder` and `DemoWeekSeeder` **only when `app()->environment('local')`** — a `git pull` + `migrate --seed` on a live instance must never bury real planning data under sample rows, nor leave behind a login whose password is in this repository.
+
+  **`DemoAdminSeeder` exists because `migrate:fresh --seed` drops the users table**, and `app:install` cannot be part of a seed run: it asks for a password. So development gets `demo@my-page.test` / `demo-workspace` and a real install still gets a typed password. Three things keep the two apart: the environment check is **repeated inside the seeder**, so `db:seed --class=DemoAdminSeeder` on a live box does nothing rather than trusting its caller; it **refuses when any admin already exists**, so re-running the seeders can never hand a real account a password from a repository; and the address is on `.test`, which cannot resolve. `DemoAdminSeederTest` is mostly tests of those refusals rather than of the account it makes.
+
+  It runs **before** `DemoWeekSeeder`, which needs an admin to hang its sample tasks off and skips with a warning when there is none.
 
 `App\Rules\StrongPassword` is the bar the command applies: 12 characters and not one of the usual suspects. Deliberately not `Password::uncompromised()`, which asks haveibeenpwned over the network — installing should not pause, or behave differently, because the machine is offline.
 
