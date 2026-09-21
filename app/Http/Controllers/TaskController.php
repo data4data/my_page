@@ -6,6 +6,7 @@ use App\Enums\TaskSource;
 use App\Enums\TaskStatus;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
+use App\Http\Resources\TaskResource;
 use App\Models\Task;
 use Closure;
 use Illuminate\Http\JsonResponse;
@@ -46,12 +47,16 @@ class TaskController extends Controller
                 $request->date('start')->startOfDay(),
                 $request->date('end')->endOfDay(),
             ])
-            ->with(['category', 'timeLogs'])
+            // The open log only, never the closed ones: a year of tasks with
+            // every log attached is a payload nothing on the board reads. The
+            // unique index on running_user_id means this is at most one row
+            // across the whole range.
+            ->with(['category', 'runningTimeLog'])
             ->orderBy('start_datetime')
             ->orderBy('sort_order')
             ->get();
 
-        return response()->json(['tasks' => $tasks]);
+        return response()->json(['tasks' => TaskResource::collection($tasks)]);
     }
 
     public function store(StoreTaskRequest $request): JsonResponse
@@ -65,14 +70,14 @@ class TaskController extends Controller
 
         $task = Task::create($data);
 
-        return response()->json(['task' => $task->load(['category', 'timeLogs'])], 201);
+        return response()->json(['task' => new TaskResource($task->load(['category', 'runningTimeLog']))], 201);
     }
 
     public function update(UpdateTaskRequest $request, Task $task): JsonResponse
     {
         $task->update($request->validated());
 
-        return response()->json(['task' => $task->load(['category', 'timeLogs'])]);
+        return response()->json(['task' => new TaskResource($task->load(['category', 'runningTimeLog']))]);
     }
 
     // No request body, so no Form Request — the policy check stays here.

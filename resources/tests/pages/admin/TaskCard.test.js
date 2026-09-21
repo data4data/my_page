@@ -12,7 +12,7 @@ const task = {
     start_datetime: '2026-08-21 09:00:00',
     end_datetime: '2026-08-21 10:30:00',
     category: { name: 'Backend', color: '#2f75a8', icon: null },
-    time_logs: [],
+    running_log: null,
 };
 
 const mountCard = (overrides = {}) => mount(TaskCard, {
@@ -56,7 +56,7 @@ describe('TaskCard', () => {
     });
 
     it('stops the timer when one is already running', async () => {
-        const wrapper = mountCard({ time_logs: [{ id: 9, started_at: '2026-08-21T09:00:00Z', ended_at: null }] });
+        const wrapper = mountCard({ running_log: { id: 9, started_at: '2026-08-21T09:00:00Z' } });
 
         await wrapper.find('.timer-button').trigger('click');
 

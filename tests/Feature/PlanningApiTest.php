@@ -420,8 +420,8 @@ class PlanningApiTest extends TestCase
 
         $response->assertOk();
         $this->assertSame(TaskStatus::InProgress->value, $response->json('task.status'));
-        $this->assertCount(1, $response->json('task.time_logs'));
-        $this->assertNull($response->json('task.time_logs.0.ended_at'));
+        $this->assertNotNull($response->json('task.running_log.started_at'));
+        $this->assertSame(1, $task->timeLogs()->whereNull('ended_at')->count());
     }
 
     public function test_timer_start_does_not_duplicate_an_already_running_log(): void
@@ -432,7 +432,8 @@ class PlanningApiTest extends TestCase
         $this->actingAs($admin)->postJson($this->adminUrl("/tasks/{$task->id}/timer/start"));
         $response = $this->actingAs($admin)->postJson($this->adminUrl("/tasks/{$task->id}/timer/start"));
 
-        $this->assertCount(1, $response->json('task.time_logs'));
+        $response->assertOk();
+        $this->assertSame(1, $task->timeLogs()->count());
     }
 
     public function test_starting_a_timer_stops_and_pauses_any_other_running_task(): void
@@ -482,8 +483,10 @@ class PlanningApiTest extends TestCase
         $response = $this->actingAs($admin)->postJson($this->adminUrl("/tasks/{$task->id}/timer/stop"));
 
         $response->assertOk();
-        $this->assertNotNull($response->json('task.time_logs.0.ended_at'));
-        $this->assertEqualsWithDelta(25, $response->json('task.time_logs.0.duration_minutes'), 1);
+        // Nothing is running any more, and the closed log kept the minutes.
+        $this->assertNull($response->json('task.running_log'));
+        $this->assertNotNull($task->timeLogs()->first()->ended_at);
+        $this->assertEqualsWithDelta(25, $task->timeLogs()->first()->duration_minutes, 1);
     }
 
     public function test_timer_stop_is_a_safe_no_op_when_nothing_is_running(): void

@@ -83,8 +83,9 @@ export const formatMinutes = (minutes) => {
     return hours > 0 ? `${hours}h ${rest}m` : `${rest}m`;
 };
 
-// The open (not yet stopped) time log on a task, if any.
-export const runningTimeLog = (task) => task?.time_logs?.find((log) => !log.ended_at) ?? null;
+// The open (not yet stopped) time log on a task, if any. The server sends that
+// one log and no others, so there is nothing to search through here.
+export const runningTimeLog = (task) => task?.running_log ?? null;
 
 // Live "M:SS" / "H:MM:SS" label for a running timer. Shared by TaskCard and
 // TaskModal, so the two cannot drift.
