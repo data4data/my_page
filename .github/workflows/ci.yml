@@ -3,9 +3,12 @@
 # runner can make.
 name: Gate
 
+# Every branch, not just main: work here reaches main by a local merge, so a
+# gate that only runs on main runs after the fact. pull_request stays for one
+# arriving from a fork.
 on:
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
 
 jobs:
