@@ -61,7 +61,7 @@ class AdminAccessTest extends TestCase
         $default = 'change-me-before-going-live';
 
         $this->actingAs($user)->get("/{$default}")->assertNotFound();
-        $this->actingAs($user)->get("/{$default}/mijn-agenda")->assertNotFound();
+        $this->actingAs($user)->get("/{$default}/agenda")->assertNotFound();
         $this->actingAs($user)->get("/{$default}/tasks")->assertNotFound();
     }
 
@@ -153,14 +153,14 @@ class AdminAccessTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('admin');
 
-        foreach ([$this->adminUrl('/mijn-agenda'), $this->adminUrl('/insights'), $this->adminUrl('/edit-content'), $this->adminUrl('/settings')] as $path) {
+        foreach ([$this->adminUrl('/agenda'), $this->adminUrl('/insights'), $this->adminUrl('/edit-content'), $this->adminUrl('/settings')] as $path) {
             $this->actingAs($user)->get($path)->assertOk();
         }
     }
 
     public function test_guest_is_redirected_to_login_from_each_admin_section_path(): void
     {
-        foreach ([$this->adminUrl('/mijn-agenda'), $this->adminUrl('/insights'), $this->adminUrl('/edit-content'), $this->adminUrl('/settings')] as $path) {
+        foreach ([$this->adminUrl('/agenda'), $this->adminUrl('/insights'), $this->adminUrl('/edit-content'), $this->adminUrl('/settings')] as $path) {
             $this->get($path)->assertRedirect($this->adminUrl('/login'));
         }
     }

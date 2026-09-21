@@ -36,9 +36,9 @@ class DefaultPortfolioContent implements PortfolioSeedContent
                 // the owner fills this in.
                 'contact_email' => null,
                 'social_image_url' => null,
-                'location_note' => ['en' => 'Based in Europe', 'nl' => 'Gevestigd in Europa'],
+                'footer_note_left' => ['en' => 'Based in Europe', 'nl' => 'Gevestigd in Europa'],
                 // Free text; the column name is left over from when it held availability.
-                'availability_note' => ['en' => 'Since 2024', 'nl' => 'Sinds 2024'],
+                'footer_note_right' => ['en' => 'Since 2024', 'nl' => 'Sinds 2024'],
                 'quote' => [
                     'en' => 'Simplicity is the ultimate sophistication.',
                     'nl' => 'Eenvoud is de ultieme verfijning.',

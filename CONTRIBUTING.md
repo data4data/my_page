@@ -100,7 +100,8 @@ the two checks that gave wrong advice here, with the reasons written down in
 Green is not enough for these two. Both have produced real bugs here.
 
 **Public-page content changed?** Start the app and save *every* tab in the admin
-editor — Profile, Experience, Expertise, Process, Projects, Language.
+editor — Profile, Metrics, Expertise, Process, Projects, Social links, Shared,
+and Settings' Language tab.
 `UpdatePortfolioRequest` can reject a payload the editor legitimately produces,
 and nothing automated will tell you.
 

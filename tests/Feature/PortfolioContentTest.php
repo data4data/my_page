@@ -270,7 +270,7 @@ class PortfolioContentTest extends TestCase
 
         $translatable = [
             'role', 'headline', 'summary', 'primary_cta_label', 'secondary_cta_label',
-            'location_note', 'availability_note', 'quote', 'quote_author',
+            'footer_note_left', 'footer_note_right', 'quote', 'quote_author',
         ];
 
         foreach ($translatable as $field) {

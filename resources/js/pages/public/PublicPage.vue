@@ -350,7 +350,7 @@ const scrollExpertise = (direction) => {
         <!-- Three tracks, so the links sit in the true centre whatever length
              the two notes are. -->
         <footer class="site-footer">
-            <span class="site-footer-note">{{ t(profile.location_note) }}</span>
+            <span class="site-footer-note">{{ t(profile.footer_note_left) }}</span>
 
             <nav v-if="footerLinks.length" class="social-footer" :aria-label="copy('socialFollow')">
                 <a
@@ -367,7 +367,7 @@ const scrollExpertise = (direction) => {
             <!-- Holds the middle track open, so the two notes stay at the edges. -->
             <span v-else class="site-footer-spacer" aria-hidden="true"></span>
 
-            <span class="site-footer-note">{{ t(profile.availability_note) }}</span>
+            <span class="site-footer-note">{{ t(profile.footer_note_right) }}</span>
         </footer>
 
         <DeveloperConnectModal v-if="showConnectModal" />

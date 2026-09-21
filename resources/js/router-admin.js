@@ -9,10 +9,10 @@ import { adminUrl } from './shared/admin-path';
 const routes = [
     {
         path: adminUrl(),
-        redirect: adminUrl('/mijn-agenda'),
+        redirect: adminUrl('/agenda'),
     },
     {
-        path: adminUrl('/mijn-agenda'),
+        path: adminUrl('/agenda'),
         name: 'admin-agenda',
         component: () => import('./pages/admin/AdminPage.vue'),
     },

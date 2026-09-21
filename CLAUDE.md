@@ -98,9 +98,10 @@ would add a layer and buy nothing.
 wherever that is missed. The differences between a hand-made task and a synced
 one are guard rules (the remote owns the schedule, deleting unlinks rather than
 deletes, it cannot be created by hand), and `TaskPolicy` and
-`UpdateTaskRequest` are where rules live. They belong on the `TaskSource` enum
-— `ownsSchedule()`, `canBeEditedHere()`, `deletesRemotely()` — one `match` per
-rule in one file. **Revisit on columns, not behaviour:** if synced tasks need a
+`UpdateTaskRequest` are where rules live. They **would** belong on the
+`TaskSource` enum — one `match` per rule in one file — and none of them exist
+yet, because nothing syncs: the enum holds its three cases and no methods. See
+`TODO.md` item 3, which is where that design is written down. **Revisit on columns, not behaviour:** if synced tasks need a
 recurrence rule, attendees or a meeting link, that is a one-to-one
 `task_calendar_details` table, not a subclass and not nullable columns empty
 for most rows.
@@ -159,7 +160,7 @@ Both planner seeders are re-runnable: `CategorySeeder` uses `updateOrCreate`; `D
 
 They were a JSON column on the profile until 2026-09-19, which is why `PortfolioContentService` used to carry a `withVisibleSocialLinks()` that filtered them on a *clone* — the child-collection filtering could not reach into a column. Both that method and the PHP half of the `showsIn()` pair are gone; `showsIn()` survives in `resources/js/shared/portfolio.js` only as a guard against a half-built object in the editor.
 
-The public page renders them twice: in the desktop side rail, and in the middle of the page footer between its two free-text notes (`location_note` and `availability_note`, the latter named for what it used to hold). That footer is a three-track grid rather than `justify-between`, so the links sit in the true centre whatever length those two notes are, and `.site-footer-spacer` holds the middle track open when there are none. `icon` resolves through `iconMap`, so `AppIconSelect` is the editor rather than a free-text field.
+The public page renders them twice: in the desktop side rail, and in the middle of the page footer between its two free-text notes (`footer_note_left` and `footer_note_right`, named for where they sit — they were `location_note` and `availability_note`, and the second had not held availability for some time). That footer is a three-track grid rather than `justify-between`, so the links sit in the true centre whatever length those two notes are, and `.site-footer-spacer` holds the middle track open when there are none. `icon` resolves through `iconMap`, so `AppIconSelect` is the editor rather than a free-text field.
 
 `PortfolioRevision` is the page's undo history: one row per save holding the **complete** payload as a JSON snapshot, plus who saved it and when. Snapshots rather than soft deletes, because `update()` *updates* the profile row rather than deleting it — soft-deleted child rows would have left the 15 profile fields with no history at all, and carry nothing that groups them into a version. `user_id` is null only for the baseline snapshot taken before the very first save, which is what makes that first save undoable. Capped at the newest 20 per profile.
 
@@ -174,7 +175,7 @@ Separate from the portfolio, all scoped to the signed-in user:
 - `TimeLog` — `started_at` / `ended_at` per task, plus a `user_id` denormalised from it. `duration_minutes` and `running_user_id` are generated columns; see *Two rules worth knowing* below.
 - `Reflection` — one note per (user, period_type, period_start). `period_end` is a **generated** column derived from the type and the start, so the two cannot disagree; `scopeForPeriod()` therefore looks up on the first three and the controller neither writes nor matches on the fourth.
 
-Enums in `app/Enums/`: `TaskStatus` (planned, in_progress, paused, done, skipped), `TaskSource` (manual, seeder, ai_chat — the last reserved for future AI-assisted task creation), `ReflectionPeriodType` (week, month). Statuses are plain string columns validated against the enum, not DB enums, because adding a case to a DB enum needs an `ALTER TABLE`. **`TASK_STATUSES` in `resources/js/shared/planning.js` mirrors `TaskStatus` — keep them in step.**
+Enums in `app/Enums/`: `TaskStatus` (planned, in_progress, paused, done, skipped), `TaskSource` (manual, seeder, ai_chat — the last reserved for future AI-assisted task creation and unused today), `ReflectionPeriodType` (week, month, plus `startFor()`/`endFor()`, which own the period boundaries the report and the reflection upsert both key on). Statuses are plain string columns validated against the enum, not DB enums, because adding a case to a DB enum needs an `ALTER TABLE`. **`TASK_STATUSES` in `resources/js/shared/planning.js` mirrors `TaskStatus` — keep them in step.**
 
 ### Auth
 
@@ -232,7 +233,7 @@ The workspace renders the same shell and gets the opposite treatment: `noindex, 
 
 No `/api` prefix — admin JSON endpoints live under `{admin}/...` alongside the SPA shell routes.
 
-**SPA shell** (all render the same Blade view; the bundle's router picks the page — see *Two bundles* below): `/`, `/hi-developer`, `{admin}/login`, `{admin}`, `{admin}/mijn-agenda`, `{admin}/insights`, `{admin}/edit-content`, `{admin}/settings`.
+**SPA shell** (all render the same Blade view; the bundle's router picks the page — see *Two bundles* below): `/`, `/hi-developer`, `{admin}/login`, `{admin}`, `{admin}/agenda`, `{admin}/insights`, `{admin}/edit-content`, `{admin}/settings`.
 
 **Portfolio** (`PortfolioController`):
 - `GET /portfolio` → public payload, `is_visible = true` only. No login, so the shape is deliberate — see *One payload shape* below.

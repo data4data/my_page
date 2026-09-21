@@ -48,7 +48,7 @@ Route::prefix(config('admin.path'))->middleware(SetWorkspaceLocale::class)->grou
 Route::prefix(config('admin.path'))->middleware(['auth', 'role:admin', SetWorkspaceLocale::class])->group(function () {
     // Shell routes: each section has a real, bookmarkable URL.
     Route::get('/', [PortfolioController::class, 'app']);
-    Route::get('/mijn-agenda', [PortfolioController::class, 'app']);
+    Route::get('/agenda', [PortfolioController::class, 'app']);
     Route::get('/insights', [PortfolioController::class, 'app']);
     Route::get('/edit-content', [PortfolioController::class, 'app']);
     Route::get('/settings', [PortfolioController::class, 'app']);
