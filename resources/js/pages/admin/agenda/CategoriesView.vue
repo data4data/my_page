@@ -38,8 +38,13 @@ const columns = computed(() => [
 
 const load = async () => {
     loading.value = true;
-    await fetchCategories();
-    loading.value = false;
+
+    try {
+        await fetchCategories();
+    } finally {
+        // A failed load must still clear the flag, or the spinner never stops.
+        loading.value = false;
+    }
 };
 
 const openCreate = (parentId = null) => {
@@ -102,7 +107,7 @@ const handleDelete = async (category) => {
     }
 };
 
-load();
+load().catch((error) => reportError(error, copy('categoryLoadError')));
 </script>
 
 <template>

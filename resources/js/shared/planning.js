@@ -138,6 +138,11 @@ export const taskStatusLabelKey = {
     skipped: 'taskStatusSkipped',
 };
 
+/*
+ * None of these carry error text. What a person is told is decided by the
+ * component that called them, in the language on screen — see errorMessage()
+ * in api.js.
+ */
 // A fresh instance per call, not a module-level singleton.
 export function usePlanning() {
     const tasks = ref([]);
@@ -149,7 +154,7 @@ export function usePlanning() {
 
         try {
             const query = new URLSearchParams({ start: toDateKey(start), end: toDateKey(end) });
-            const body = await apiFetch(`${adminUrl('/tasks')}?${query}`, { message: 'Could not load the tasks.' });
+            const body = await apiFetch(`${adminUrl('/tasks')}?${query}`);
             tasks.value = body.tasks ?? [];
         } finally {
             // A failed load must still clear the flag.
@@ -158,7 +163,7 @@ export function usePlanning() {
     };
 
     const fetchCategories = async () => {
-        const body = await apiFetch(adminUrl('/categories'), { message: 'Could not load the categories.' });
+        const body = await apiFetch(adminUrl('/categories'));
         categories.value = body.categories ?? [];
     };
 
@@ -167,67 +172,52 @@ export function usePlanning() {
     const fetchReport = (periodType, periodStart) => {
         const query = new URLSearchParams({ period_type: periodType, period_start: toDateKey(periodStart) });
 
-        return apiFetch(`${adminUrl('/reports')}?${query}`, { message: 'Could not load the report.' });
+        return apiFetch(`${adminUrl('/reports')}?${query}`);
     };
 
     const createCategory = async (payload) => (await apiFetch(adminUrl('/categories'), {
         method: 'POST',
         body: payload,
-        message: 'Could not create the category.',
     })).category;
 
     const updateCategory = async (id, payload) => (await apiFetch(`${adminUrl('/categories')}/${id}`, {
         method: 'PUT',
         body: payload,
-        message: 'Could not save the category.',
     })).category;
 
-    const deleteCategory = (id) => apiFetch(`${adminUrl('/categories')}/${id}`, {
-        method: 'DELETE',
-        message: 'Could not delete the category.',
-    });
+    const deleteCategory = (id) => apiFetch(`${adminUrl('/categories')}/${id}`, { method: 'DELETE' });
 
     const createTask = async (payload) => (await apiFetch(adminUrl('/tasks'), {
         method: 'POST',
         body: payload,
-        message: 'Could not create the task.',
     })).task;
 
     const updateTask = async (id, payload) => (await apiFetch(`${adminUrl('/tasks')}/${id}`, {
         method: 'PUT',
         body: payload,
-        message: 'Could not save the task.',
     })).task;
 
-    const deleteTask = (id) => apiFetch(`${adminUrl('/tasks')}/${id}`, {
-        method: 'DELETE',
-        message: 'Could not delete the task.',
-    });
+    const deleteTask = (id) => apiFetch(`${adminUrl('/tasks')}/${id}`, { method: 'DELETE' });
 
     // Keyed on the start alone: the backend derives the end from it, and
     // normalises the start to the period's first day.
     const fetchReflection = async (periodType, periodStart) => {
         const query = new URLSearchParams({ period_type: periodType, period_start: periodStart });
 
-        return (await apiFetch(`${adminUrl('/reflections')}?${query}`, {
-            message: 'Could not load the reflection.',
-        })).reflection;
+        return (await apiFetch(`${adminUrl('/reflections')}?${query}`)).reflection;
     };
 
     const saveReflection = async (payload) => (await apiFetch(adminUrl('/reflections'), {
         method: 'PUT',
         body: payload,
-        message: 'Could not save the reflection.',
     })).reflection;
 
     const startTaskTimer = async (id) => (await apiFetch(`${adminUrl('/tasks')}/${id}/timer/start`, {
         method: 'POST',
-        message: 'Could not start the timer.',
     })).task;
 
     const stopTaskTimer = async (id) => (await apiFetch(`${adminUrl('/tasks')}/${id}/timer/stop`, {
         method: 'POST',
-        message: 'Could not stop the timer.',
     })).task;
 
     return {

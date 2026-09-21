@@ -35,9 +35,14 @@ class DeveloperInquiryController extends Controller
         return $this->accepted();
     }
 
+    /**
+     * The modal shows its own thank-you, so nothing reads this body — but a
+     * message the API states in one language while the page answers in another
+     * is a claim waiting to be believed.
+     */
     private function accepted(): JsonResponse
     {
-        return response()->json(['message' => 'Thanks — your message has been sent.']);
+        return response()->json(['message' => __('rules.inquiry_received')]);
     }
 
     // View-only on purpose: there is no update or destroy.

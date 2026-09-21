@@ -152,8 +152,12 @@ const runTimerAction = async (task, action) => {
 
 // Refresh both: the filters read the categories, the tasks carry their colours.
 const onCategoriesChanged = async () => {
-    await fetchCategories();
-    await load();
+    try {
+        await fetchCategories();
+        await load();
+    } catch (error) {
+        reportError(error, copy('taskLoadError'));
+    }
 };
 
 const handleStartTimer = (task) => runTimerAction(task, startTaskTimer);
@@ -187,8 +191,9 @@ const handleDelete = async () => {
     }
 };
 
-load();
-fetchCategories();
+// Caught, not floating: a rejected promise nobody handles says nothing at all.
+load().catch((error) => reportError(error, copy('taskLoadError')));
+fetchCategories().catch((error) => reportError(error, copy('categoryLoadError')));
 </script>
 
 <template>

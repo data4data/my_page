@@ -31,7 +31,7 @@ const load = async () => {
     }
 };
 
-onMounted(() => load().catch(reportError));
+onMounted(() => load().catch((error) => reportError(error, copy('twoFactorLoadError'))));
 
 const run = async (work) => {
     busy.value = true;
@@ -40,7 +40,7 @@ const run = async (work) => {
     try {
         await work();
     } catch (failure) {
-        error.value = errorMessage(failure, copy('error'));
+        error.value = errorMessage(failure, copy('twoFactorCodeError'));
     } finally {
         busy.value = false;
     }

@@ -1,5 +1,5 @@
 import { adminUrl } from './admin-path';
-import { copy } from './i18n';
+import { copy, lang } from './i18n';
 import { useToast } from './toast';
 
 export const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -41,6 +41,11 @@ const serverMessage = (status, payload) => {
 /**
  * What to tell the user about a failure, or null when there is nothing to say.
  * Every catch block goes through this, so one failure reads the same anywhere.
+ *
+ * The caller's `fallback` is the normal case and is already translated.
+ * `error.message` only wins when the *server* said something worth reading —
+ * apiFetch no longer invents one, which is what used to make every fallback
+ * here unreachable and every planner failure English.
  *
  * @param {unknown} error     Whatever was thrown.
  * @param {string} [fallback] Shown when the failure carries nothing better.
@@ -86,15 +91,20 @@ export const reportError = (error, fallback) => {
  * is load-bearing: without it an expired session takes the auth middleware's
  * HTML redirect instead of a JSON 401, and the loading ref never clears.
  *
+ * It carries no error text of its own: what a person is shown is the server's
+ * own message, or the words the calling component passes to errorMessage() /
+ * reportError() in the language on screen.
+ *
  * @param {string} url
- * @param {{method?: string, body?: unknown, message?: string}} options
- *   `message` is the error text thrown when the request fails; a validation
- *   message from the server wins over it.
+ * @param {{method?: string, body?: unknown}} options
  */
-export async function apiFetch(url, { method = 'GET', body, message } = {}) {
+export async function apiFetch(url, { method = 'GET', body } = {}) {
     const headers = {
         Accept: 'application/json',
         'X-CSRF-TOKEN': csrfToken(),
+        // The language the workspace is in, so Laravel's own validator answers
+        // in it. The public page says the same thing with its URL prefix.
+        'X-App-Language': lang.value,
     };
 
     if (body !== undefined) {
@@ -115,7 +125,9 @@ export async function apiFetch(url, { method = 'GET', body, message } = {}) {
     }
 
     if (!response.ok) {
-        throw new ApiError(serverMessage(response.status, payload) ?? message ?? copy('error'), {
+        // '' when the server said nothing safe to show, so the caller's own
+        // translated fallback is what reaches the user.
+        throw new ApiError(serverMessage(response.status, payload) ?? '', {
             status: response.status,
             body: payload,
         });

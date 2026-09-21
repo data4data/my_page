@@ -42,10 +42,9 @@ const submit = async () => {
                 password: password.value,
                 remember: remember.value,
             },
-            message: 'Could not sign in. Please try again.',
         });
     } catch (failure) {
-        error.value = errorMessage(failure, copy('error'));
+        error.value = errorMessage(failure, copy('loginError'));
         submitting.value = false;
         return;
     }
@@ -70,10 +69,9 @@ const verify = async () => {
             body: usingRecoveryCode.value
                 ? { recovery_code: recoveryCode.value }
                 : { code: code.value },
-            message: 'Could not verify that code. Please try again.',
         }));
     } catch (failure) {
-        error.value = errorMessage(failure, copy('error'));
+        error.value = errorMessage(failure, copy('twoFactorCodeError'));
         submitting.value = false;
     }
 };

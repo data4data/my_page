@@ -33,7 +33,7 @@ class UpdateTaskRequest extends FormRequest
                 : $task?->end_datetime?->toDateTimeString();
 
             if ($start && $end && strtotime($end) < strtotime($start)) {
-                $validator->errors()->add('end_datetime', 'The end must not be before the start.');
+                $validator->errors()->add('end_datetime', __('rules.end_before_start'));
             }
         });
     }
