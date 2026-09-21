@@ -122,11 +122,11 @@ describe('ReportView: moving between periods', () => {
         expect(start.getDay()).toBe(1);
     });
 
-    // The note reuses the period the backend derived rather than recomputing it.
-    it('keys the reflection to the range the report came back with', async () => {
+    // The note reuses the start the backend normalised rather than recomputing it.
+    it('keys the reflection to the period the report came back with', async () => {
         await mountView();
 
-        expect(fetchReflection).toHaveBeenCalledWith('week', '2026-06-08', '2026-06-14');
+        expect(fetchReflection).toHaveBeenCalledWith('week', '2026-06-08');
     });
 
     it('shows a failure instead of an empty report', async () => {

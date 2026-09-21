@@ -677,4 +677,118 @@ class PlanningApiTest extends TestCase
         $this->assertSame(120, $response->json('by_category.0.planned_minutes'));
         $this->assertSame(45, $response->json('by_category.0.minutes'));
     }
+
+    // The number is "minutes tracked this week", not "every minute ever spent
+    // on a task that happens to start this week".
+    public function test_report_counts_only_the_minutes_logged_inside_the_period(): void
+    {
+        $admin = $this->admin();
+
+        $task = Task::create([
+            'user_id' => $admin->id,
+            'title' => 'Long runner',
+            'start_datetime' => '2026-06-10 09:00:00',
+            'status' => TaskStatus::InProgress,
+            'source' => TaskSource::Manual,
+        ]);
+
+        $task->timeLogs()->create(['started_at' => '2026-06-10 09:00:00', 'ended_at' => '2026-06-10 09:45:00']);
+        // Same task, the week before: its minutes belong to that week.
+        $task->timeLogs()->create(['started_at' => '2026-06-03 09:00:00', 'ended_at' => '2026-06-03 11:00:00']);
+
+        $response = $this->actingAs($admin)->getJson($this->adminUrl('/reports?').http_build_query([
+            'period_type' => 'week',
+            'period_start' => '2026-06-08',
+        ]));
+
+        $response->assertOk();
+        $this->assertSame(45, $response->json('total_minutes'));
+    }
+
+    // The other half of the same rule: time tracked here is never invisible
+    // because the task it belongs to was scheduled in another week.
+    public function test_report_includes_time_tracked_on_a_task_scheduled_elsewhere(): void
+    {
+        $admin = $this->admin();
+
+        $task = Task::create([
+            'user_id' => $admin->id,
+            'title' => 'Started last week',
+            'start_datetime' => '2026-06-03 09:00:00',
+            'end_datetime' => '2026-06-03 10:00:00',
+            'status' => TaskStatus::InProgress,
+            'source' => TaskSource::Manual,
+        ]);
+
+        $task->timeLogs()->create(['started_at' => '2026-06-10 09:00:00', 'ended_at' => '2026-06-10 09:20:00']);
+
+        $response = $this->actingAs($admin)->getJson($this->adminUrl('/reports?').http_build_query([
+            'period_type' => 'week',
+            'period_start' => '2026-06-08',
+        ]));
+
+        $response->assertOk();
+        $this->assertSame(20, $response->json('total_minutes'));
+        // Planned time stays with the week the task was scheduled in.
+        $this->assertSame(0, $response->json('total_planned_minutes'));
+    }
+
+    // A date mid-period names its period, rather than reporting from that day
+    // to the end of the week and calling it a week.
+    public function test_report_normalises_the_period_start(): void
+    {
+        $admin = $this->admin();
+
+        $task = $this->task($admin, '2026-06-08 09:00:00');
+        $task->timeLogs()->create(['started_at' => '2026-06-08 09:00:00', 'ended_at' => '2026-06-08 09:30:00']);
+
+        $response = $this->actingAs($admin)->getJson($this->adminUrl('/reports?').http_build_query([
+            'period_type' => 'week',
+            // A Wednesday, three days after the Monday the week really starts.
+            'period_start' => '2026-06-10',
+        ]));
+
+        $response->assertOk();
+        $this->assertSame('2026-06-08', $response->json('period_start'));
+        $this->assertSame('2026-06-14', $response->json('period_end'));
+        $this->assertSame(30, $response->json('total_minutes'));
+    }
+
+    // One week, one reflection — whichever day of it the caller names.
+    public function test_reflections_key_on_the_first_day_of_the_period(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->putJson($this->adminUrl('/reflections'), [
+            'period_type' => 'week',
+            'period_start' => '2026-06-08',
+            'notes' => 'Monday.',
+        ])->assertOk();
+
+        $this->actingAs($admin)->putJson($this->adminUrl('/reflections'), [
+            'period_type' => 'week',
+            'period_start' => '2026-06-11',
+            'notes' => 'Thursday, same week.',
+        ])->assertOk();
+
+        $this->assertSame(1, Reflection::query()->count());
+        $this->assertSame('Thursday, same week.', Reflection::query()->value('notes'));
+    }
+
+    // 'date' accepts far more than the Y-m-d the calendar sends.
+    public function test_task_index_accepts_a_date_it_has_to_parse(): void
+    {
+        $admin = $this->admin();
+        $this->task($admin, '2026-06-10 09:00:00');
+
+        $tasks = $this->actingAs($admin)
+            ->getJson($this->adminUrl('/tasks?').http_build_query([
+                'start' => '8 June 2026',
+                'end' => '14 June 2026',
+            ]))
+            ->assertOk()
+            ->json('tasks');
+
+        $this->assertCount(1, $tasks);
+    }
 }

@@ -266,6 +266,10 @@ The public connect form has three layers against spam: `throttle:10,1` on the ro
 - `POST {admin}/tasks/{task}/timer/start|stop`.
 - `GET|POST {admin}/categories`, `PUT|DELETE {admin}/categories/{category}`.
 - `GET {admin}/reports?period_type=week|month&period_start=Y-m-d` — totals come from `withSum` on `time_logs.duration_minutes`, so the stored column is summed in SQL rather than in PHP. `by_category` groups by `category_id`, not by name, and leaves the uncategorized bucket's label to the frontend.
+
+  **Tracked and planned are counted over different rows, on purpose.** A task and the minutes spent on it can fall in different periods, so the `withSum` is *constrained to logs started inside the period* and the task set is "scheduled here **or** tracked here". Summing a task's whole history instead — which is what it did until 2026-09-21 — put last month's minutes in this week's total and hid minutes tracked this week on last week's task. Planned time is the mirror rule: a task that merely collected minutes here contributes 0, because its plan is counted in the period it was scheduled in.
+
+  **`period_start` is normalised, not trusted.** `ReflectionPeriodType::startFor()`/`endFor()` own the week/month boundaries — one `match` per rule, the same pair the reflection upsert keys on, so a Wednesday and the Monday before it cannot name two different weeks or buy a half-width report.
 - `GET|PUT {admin}/reflections` (upsert by period).
 - `GET|POST {admin}/two-factor`, `POST {admin}/two-factor/confirm`, `POST {admin}/two-factor/recovery-codes`, `DELETE {admin}/two-factor` — enrolment. The delete takes the password in its body rather than relying on the open session, so a machine left unlocked cannot strip the account back to one factor.
 - `POST {admin}/two-factor-challenge` — the second step at sign-in, throttled by the same `login` limiter as the password step.
