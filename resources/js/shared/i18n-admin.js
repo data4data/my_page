@@ -205,7 +205,7 @@ export const adminUi = {
         navCollapse: 'Collapse navigation',
         unsavedChanges: 'Unsaved changes',
         allSaved: 'All saved',
-        tabShared: 'Shared',
+        tabGeneral: 'General',
         // One subtitle per section tab, saying what that tab edits.
         subtitleAgendaCategories: 'Colours, icons and one level of nesting',
         subtitleInsightsConnections: 'Messages from the contact form',
@@ -217,7 +217,7 @@ export const adminUi = {
         subtitleEditProcess: 'The input / core / output panel',
         subtitleEditProjects: 'The Featured projects grid, in the order you set',
         subtitleEditSocial: 'Labels, URLs and where each link shows',
-        subtitleEditShared: 'Values that are the same in both languages',
+        subtitleEditGeneral: 'Values that are the same in both languages',
         subtitleSettingsLanguage: 'Which language the site opens in, and the zone your week is measured in',
         subtitleSettingsTwoFactor: 'A second step after your password',
         subtitleSettingsVersions: 'Every save, newest first',
@@ -267,7 +267,7 @@ export const adminUi = {
         fieldAccentGold: 'Accented words — gold',
         timerRunning: 'Timer running',
         cancel: 'Cancel',
-        sharedAccentHint: 'Both languages\u2019 spellings go in one list — only words in the headline on screen can match.',
+        generalAccentHint: 'Both languages\u2019 spellings go in one list — only words in the headline on screen can match.',
     },
 
     nl: {
@@ -470,7 +470,7 @@ export const adminUi = {
         navCollapse: 'Navigatie inklappen',
         unsavedChanges: 'Niet-opgeslagen wijzigingen',
         allSaved: 'Alles opgeslagen',
-        tabShared: 'Gedeeld',
+        tabGeneral: 'Algemeen',
         subtitleAgendaCategories: 'Kleuren, iconen en één niveau subcategorieën',
         subtitleInsightsConnections: 'Berichten uit het contactformulier',
         subtitleInsightsNews: 'Nu nog een placeholder in de app',
@@ -481,7 +481,7 @@ export const adminUi = {
         subtitleEditProcess: 'Het input- / kern- / outputpaneel',
         subtitleEditProjects: 'Het raster met uitgelichte projecten, in jouw volgorde',
         subtitleEditSocial: 'Labels, URL’s en waar elke link verschijnt',
-        subtitleEditShared: 'Waarden die in beide talen hetzelfde zijn',
+        subtitleEditGeneral: 'Waarden die in beide talen hetzelfde zijn',
         subtitleSettingsLanguage: 'In welke taal de site opent, en in welke zone je week wordt gemeten',
         subtitleSettingsTwoFactor: 'Een tweede stap na je wachtwoord',
         subtitleSettingsVersions: 'Elke opslag, nieuwste eerst',
@@ -531,6 +531,6 @@ export const adminUi = {
         fieldAccentGold: 'Accentwoorden — goud',
         timerRunning: 'Timer loopt',
         cancel: 'Annuleren',
-        sharedAccentHint: 'De spelling van beide talen staat in één lijst — alleen woorden uit de kop die op het scherm staat kunnen matchen.',
+        generalAccentHint: 'De spelling van beide talen staat in één lijst — alleen woorden uit de kop die op het scherm staat kunnen matchen.',
     },
 };

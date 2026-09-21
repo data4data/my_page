@@ -77,6 +77,6 @@ const setTerms = (tone, value) => {
             </label>
         </div>
 
-        <p class="admin-note">{{ copy('sharedAccentHint') }}</p>
+        <p class="admin-note">{{ copy('generalAccentHint') }}</p>
     </div>
 </template>

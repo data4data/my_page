@@ -8,7 +8,7 @@ import ExpertiseTab from './ExpertiseTab.vue';
 import ProcessTab from './ProcessTab.vue';
 import ProjectsTab from './ProjectsTab.vue';
 import SocialLinksTab from './SocialLinksTab.vue';
-import SharedTab from './SharedTab.vue';
+import GeneralTab from './GeneralTab.vue';
 import { copy } from '../../../shared/i18n';
 import { usePortfolioEditor } from '../usePortfolioEditor';
 
@@ -43,7 +43,7 @@ const tabs = computed(() => [
     { value: 'projects', label: copy('tabProjects') },
     { value: 'social', label: copy('tabSocial') },
     // Trailing: the values that are the same in both languages.
-    { value: 'shared', label: copy('tabShared'), right: true },
+    { value: 'general', label: copy('tabGeneral'), right: true },
 ]);
 
 const SUBTITLES = {
@@ -53,7 +53,7 @@ const SUBTITLES = {
     process: 'subtitleEditProcess',
     projects: 'subtitleEditProjects',
     social: 'subtitleEditSocial',
-    shared: 'subtitleEditShared',
+    general: 'subtitleEditGeneral',
 };
 
 const subtitle = computed(() => copy(SUBTITLES[tab.value] ?? ''));
@@ -116,7 +116,7 @@ const updateTags = (project, value) => {
                 @remove="removeItem"
                 @move="moveItem"
             />
-            <SharedTab v-else-if="tab === 'shared'" :profile="profile" />
+            <GeneralTab v-else-if="tab === 'general'" :profile="profile" />
         </template>
 
         <template #status>{{ saveStatus }}</template>

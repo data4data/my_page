@@ -6,7 +6,7 @@ A Laravel + Vue app with two halves behind one login.
 
 **The private side** is a planning workspace: calendar, task timers, categories, weekly and monthly reports, and reflection notes.
 
-All the content lives in the database, so you change it in the app rather than in the code. It ships with placeholder content under the initials `AB`. Swap them under **Edit page → Shared** and nothing is left pointing at whoever set it up.
+All the content lives in the database, so you change it in the app rather than in the code. It ships with placeholder content under the initials `AB`. Swap them under **Edit page → General** and nothing is left pointing at whoever set it up.
 
 ## What's in it
 

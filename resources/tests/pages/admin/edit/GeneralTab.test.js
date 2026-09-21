@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import SharedTab from '../../../../js/pages/admin/edit/SharedTab.vue';
+import GeneralTab from '../../../../js/pages/admin/edit/GeneralTab.vue';
 import { copy } from '../../../../js/shared/i18n';
 
 // One flat [{text, tone}] list, edited as two comma-separated fields.
@@ -13,7 +13,7 @@ const stubs = {
     },
 };
 
-const mountTab = (profile) => mount(SharedTab, { props: { profile }, global: { stubs } });
+const mountTab = (profile) => mount(GeneralTab, { props: { profile }, global: { stubs } });
 
 // By label, not position, so reordering the tab cannot silently point these at
 // a different field.
@@ -25,7 +25,7 @@ const highlightInputs = (wrapper) => {
     return { blue: byLabel(copy('fieldAccentBlue')), gold: byLabel(copy('fieldAccentGold')) };
 };
 
-describe('SharedTab headline highlights', () => {
+describe('GeneralTab headline highlights', () => {
     it('shows each tone as its own comma-separated list', () => {
         const wrapper = mountTab({
             headline_highlights: [
